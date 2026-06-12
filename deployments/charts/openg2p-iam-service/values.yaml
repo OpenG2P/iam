@@ -1,0 +1,207 @@
+global:
+  iamHostname: "iam.trial.openg2p.org"
+
+  # Database
+  postgresqlHost: commons-postgresql
+  iamDB: '{{ printf "%s" .Release.Name | replace "-" "_" }}'
+  iamDBPort: 5432
+  iamDBUser: '{{ printf "%s_user" .Release.Name | replace "-" "_" }}'
+  iamDBSecret: '{{ .Release.Name }}'
+  iamDBUserPasswordKey: '{{ .Release.Name }}-db-user'
+
+  # Redis
+  redisInstallationName: 'commons-redis'
+
+  # Security & Authentication
+  keycloakBaseUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
+  keycloakRealm: staff
+  keycloakIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.keycloakRealm }}'
+  keycloakExternalIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.keycloakRealm }}'
+
+  # Cookie domain (dot-prefixed so cookies work across subdomains)
+  authCookieDomain: '.{{ .Release.Namespace }}.openg2p.org'
+
+  # Staff Portal redirect URL
+  staffPortalDefaultRedirectUri: 'https://staff-portal.trial.openg2p.org'
+
+  # Application URLs (populated by parent chart per environment)
+  keycloakApplicationUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
+  registryApplicationUrl: 'https://registry.{{ .Release.Namespace }}.openg2p.org'
+  minioApplicationUrl: 'https://minio.{{ .Release.Namespace }}.openg2p.org'
+
+postgres-init:
+  enabled: true
+  postgresql:
+    host: "{{ .Values.global.postgresqlHost }}"
+    port: 5432
+    existingSecret: commons-postgresql
+    existingSecretPostgresPasswordKey: postgres-password
+  databases:
+    - name: '{{ tpl .Values.global.iamDB $ }}'
+      user: '{{ tpl .Values.global.iamDBUser $ }}'
+      secret: '{{ tpl .Values.global.iamDBSecret $ }}'
+      secretUserPasswordKey: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
+
+iamStaffPortalApi:
+  enabled: true
+  nameOverride: iam-staff-portal-api
+  hostname: 'staff-{{ tpl .Values.global.iamHostname $ }}'
+  replicaCount: 1
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  updateStrategy:
+    type: RollingUpdate
+
+  serviceAccount:
+    create: false
+    name: ""
+
+  image:
+    repository: openg2p/iam-staff-portal-api
+    tag: "develop"
+    pullPolicy: Always
+
+  podSecurityContext:
+    enabled: false
+
+  containerSecurityContext:
+    enabled: false
+
+  openapiRootPath: /
+  containerPort: 8000
+
+  service:
+    type: ClusterIP
+    port: 80
+    externalTrafficPolicy: Cluster
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      host: '{{ tpl .Values.iamStaffPortalApi.hostname $ }}'
+      gateway: "internal"
+      destination: ""
+      destinationPort: '{{ .Values.iamStaffPortalApi.service.port }}'
+      prefix: '{{ .Values.openapiRootPath }}/'
+      rewriteUri: "/"
+    gateway:
+      enabled: false
+      host: '{{ tpl .Values.iamStaffPortalApi.hostname $ }}'
+      ingressController:
+        istio: ingressgateway
+      httpTlsRedirect: false
+      httpEnabled: true
+      httpsEnabled: false
+      tls:
+        mode: SIMPLE
+        credentialName: ""
+
+  # ---------------------------------------------------------------------------
+  # Login providers — rendered as a Secret and mounted into the container.
+  # Each entry maps to a row in the login_providers DB table.
+  # Keycloak endpoints are auto-derived from keycloakBaseUrl + realm.
+  # ---------------------------------------------------------------------------
+  loginProviders:
+    - id: 1
+      userType: "staff"
+      providerName: "Keycloak"
+      description: "Login with Keycloak"
+      realm: "staff"
+      clientId: "staff-portal"
+      clientSecret: "staff_portal_secret"
+      tokenEndpointAuthMethod: "client_secret_basic"
+      scope: "openid profile email"
+      enablePkce: true
+      active: true
+
+  dataMountPath: /opt/iam-staff-portal-data
+
+  envVars:
+    IAM_STAFF_DB_DRIVER: "postgresql+asyncpg"
+    IAM_STAFF_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    IAM_STAFF_DB_DBNAME: '{{ tpl .Values.global.iamDB $ }}'
+    IAM_STAFF_DB_PORT: '{{ .Values.global.iamDBPort }}'
+    IAM_STAFF_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
+    IAM_STAFF_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+    IAM_STAFF_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
+    IAM_STAFF_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.keycloakExternalIssuerUrl $ }}'
+    IAM_STAFF_LOGIN_PROVIDERS_TABLE_ENABLED: true
+    IAM_STAFF_LOGIN_PROVIDERS_TABLE_NAME: "login_providers"
+    IAM_STAFF_AUTH_REDIS_URL: 'redis://{{ tpl .Values.global.redisInstallationName $ }}-master:6379/0'
+    IAM_STAFF_AUTH_TRANSACTION_STORE_BACKEND: "redis"
+    IAM_STAFF_AUTH_ENABLED: true
+    IAM_STAFF_AUTH_COOKIE_HTTPONLY: true
+    IAM_STAFF_AUTH_COOKIE_PATH: "/"
+    IAM_STAFF_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
+    IAM_STAFF_AUTH_COOKIE_MAX_AGE: 1800
+    IAM_STAFF_AUTH_COOKIE_SET_EXPIRES: true
+    IAM_STAFF_DATA_APPLICATION_URLS__KEYCLOAK_APPLICATION_URL: '{{ tpl .Values.global.keycloakApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__REGISTRY_APPLICATION_URL: '{{ tpl .Values.global.registryApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__MINIO_APPLICATION_URL: '{{ tpl .Values.global.minioApplicationUrl $ }}'
+
+    # API specific middleware configs
+    IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) | toJson }}'
+  
+  envVarsFrom:
+    IAM_STAFF_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.iamDBSecret $ }}'
+        key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
+    IAM_STAFF_DATA_CLIENT_SECRETS__STAFF_PORTAL_SECRET:
+      secretKeyRef:
+        name: staff-portal
+        key: client_secret
+
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+      - 'sh'
+    args:
+      - '-c'
+      - 'until psql "postgresql://${IAM_STAFF_DB_USERNAME}:${IAM_STAFF_DB_PASSWORD}@${IAM_STAFF_DB_HOSTNAME}:${IAM_STAFF_DB_PORT}/${IAM_STAFF_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_STAFF_DB_DBNAME} to be ready..."; sleep 3; done'
+    containerSecurityContext:
+      enabled: false

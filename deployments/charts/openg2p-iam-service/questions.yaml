@@ -1,0 +1,58 @@
+questions:
+
+# General
+- variable: global.iamHostname
+  description: Hostname under which the IAM service will be accessed
+  type: string
+  label: IAM Hostname
+  group: General
+
+- variable: global.postgresqlHost
+  description: PostgreSQL server host
+  type: string
+  label: PostgreSQL Server Host
+  group: General
+
+- variable: global.keycloakBaseUrl
+  description: Keycloak base URL for authentication
+  type: string
+  label: Keycloak Base URL
+  group: General
+
+- variable: postgres-init.enabled
+  description: Run Postgres init job to create database and user
+  type: boolean
+  label: Postgres Init
+  group: General
+
+- variable: iamStaffPortalApi.enabled
+  description: Install IAM Staff Portal API service
+  type: boolean
+  label: IAM Staff Portal API
+  group: General
+
+# Image
+- variable: iamStaffPortalApi.image.repository
+  description: Docker image repository for the IAM Staff Portal API
+  type: string
+  label: Image Repository
+  group: Image
+
+- variable: iamStaffPortalApi.image.tag
+  description: Docker image tag
+  type: string
+  label: Image Tag
+  group: Image
+
+# Scaling
+- variable: iamStaffPortalApi.replicaCount
+  description: Number of replicas
+  type: int
+  label: Replica Count
+  group: Scaling
+
+- variable: iamStaffPortalApi.autoscaling.enabled
+  description: Enable Horizontal Pod Autoscaler
+  type: boolean
+  label: Enable HPA
+  group: Scaling
