@@ -25,7 +25,7 @@ async def get_jwks(metadata: dict, issuer: str | None = None) -> dict:
             message="Missing jwks_uri for provider.",
         )
 
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(verify=_config.auth_verify_ssl, timeout=10) as client:
         response = await client.get(jwks_url)
         response.raise_for_status()
         jwks = response.json()
