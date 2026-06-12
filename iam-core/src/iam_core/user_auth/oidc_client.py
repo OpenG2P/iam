@@ -79,7 +79,7 @@ class OidcClient:
         metadata_url = self._metadata_url(login_provider)
         metadata = {}
         if metadata_url:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(verify=_config.auth_verify_ssl, timeout=10) as client:
                 response = await client.get(metadata_url)
                 response.raise_for_status()
                 metadata = response.json()
@@ -227,7 +227,7 @@ class OidcClient:
                 "G2P-AUT-502",
                 "userinfo endpoint missing for provider.",
             )
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(verify=_config.auth_verify_ssl, timeout=10) as client:
             response = await client.get(
                 userinfo_endpoint,
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -267,7 +267,7 @@ class OidcClient:
             if login_provider.client_secret:
                 data["client_secret"] = login_provider.client_secret
 
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(verify=_config.auth_verify_ssl, timeout=10) as client:
             response = await client.post(introspection_endpoint, auth=auth, data=data)
             response.raise_for_status()
             payload = response.json()

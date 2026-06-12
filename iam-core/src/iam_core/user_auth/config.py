@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     auth_enabled: bool = True
 
+    # Whether to verify SSL certificates for authentication requests
+    # Set to False for self-signed certificates or when using a proxy
+    auth_verify_ssl: bool = True
+
     auth_cookie_max_age: int | None = None
     auth_cookie_set_expires: bool = False
     auth_cookie_domain: str | None = None
