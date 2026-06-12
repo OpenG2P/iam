@@ -28,6 +28,7 @@ global:
   keycloakApplicationUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
   registryApplicationUrl: 'https://registry.{{ .Release.Namespace }}.openg2p.org'
   minioApplicationUrl: 'https://minio.{{ .Release.Namespace }}.openg2p.org'
+  supersetApplicationUrl: 'https://superset.{{ .Release.Namespace }}.openg2p.org'
 
 postgres-init:
   enabled: true
@@ -145,6 +146,7 @@ iamStaffPortalApi:
     IAM_STAFF_DATA_APPLICATION_URLS__KEYCLOAK_APPLICATION_URL: '{{ tpl .Values.global.keycloakApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__REGISTRY_APPLICATION_URL: '{{ tpl .Values.global.registryApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__MINIO_APPLICATION_URL: '{{ tpl .Values.global.minioApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__SUPERSET_APPLICATION_URL: '{{ tpl .Values.global.supersetApplicationUrl $ }}'
 
     # API specific middleware configs
     IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) | toJson }}'

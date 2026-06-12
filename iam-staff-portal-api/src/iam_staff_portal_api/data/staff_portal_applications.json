@@ -34,5 +34,17 @@
     "updated_at": "2026-04-02 06:51:52.165424",
     "id": 2,
     "active": true
+  },
+  {
+    "application_mnemonic": "openg2p-superset",
+    "application_description": "Superset",
+    "icon_base64": "PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQ0IDE0Yy04IDAtMTIgNi0xNiAxMlMyMCA1MCAxMiA1MGMtNSAwLTgtMy04LThzMy04IDgtOGM1IDAgOCAzIDEyIDkiIHN0cm9rZT0iIzIwQTdDOSIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz4KPHBhdGggZD0iTTIwIDUwYzggMCAxMi02IDE2LTEyczgtMjQgMTYtMjRjNSAwIDggMyA4IDhzLTMgOC04IDhjLTUgMC04LTMtMTItOSIgc3Ryb2tlPSIjMTY2Rjg3IiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4K",
+    "width": 80,
+    "application_url": "superset_application_url",
+    "order": 4,
+    "created_at": "2026-04-02 06:51:52.165425",
+    "updated_at": "2026-04-02 06:51:52.165427",
+    "id": 4,
+    "active": true
   }
 ]

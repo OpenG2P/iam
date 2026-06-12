@@ -18,6 +18,7 @@ class Settings(BaseSettings):
             "keycloak_application_url": "https://keycloak.openg2p.org",
             "registry_application_url": "https://registry.openg2p.org",
             "minio_application_url": "https://minio.openg2p.org",
+            "superset_application_url": "https://superset.openg2p.org",
         }
     )
     data_client_secrets: dict[str, str] = Field(default_factory=dict)
