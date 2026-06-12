@@ -30,20 +30,32 @@ class LoginProvider(BaseORMModelWithTimes):
     )
     keymanager_app_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     keymanager_ref_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    authorization_endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True) #IdP URL
-    userinfo_endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Optional URL to fetch user info from IdP.
-    token_endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Optional URL to fetch token from IdP.
-    server_metadata_url: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Optional URL to fetch OIDC server metadata from IdP, can be used as an alternative to manually specifying authorization_endpoint, token_endpoint and jwks_uri.
-    adapter_name: Mapped[Optional[str]] = mapped_column(String, nullable=True) 
+    authorization_endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # IdP URL
+    userinfo_endpoint: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # Optional URL to fetch user info from IdP.
+    token_endpoint: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # Optional URL to fetch token from IdP.
+    server_metadata_url: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # Optional URL to fetch OIDC server metadata from IdP, can be used as an alternative to manually specifying authorization_endpoint, token_endpoint and jwks_uri.
+    adapter_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     jwks_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     jwt_assertion_aud: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     scope: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     enable_pkce: Mapped[Optional[bool]] = mapped_column(Boolean(), nullable=True)
     extra_authorize_params: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     issuer: Mapped[str] = mapped_column(String, nullable=False)  # Canonical OIDC issuer URL
-    audiences: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # JSON-encoded list of allowed audiences
-    oauth_callback_url: Mapped[str] = mapped_column(String, nullable=False) # The callback URL registered with the IdP for this login provider, used in the OIDC authorization flow. This is required to be stored for each login provider as different providers may have different callback URLs registered with the IdP.
-    default_redirect_uri: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Optional default redirect URI after login; used when the client does not send one.
+    audiences: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # JSON-encoded list of allowed audiences
+    oauth_callback_url: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # The callback URL registered with the IdP for this login provider, used in the OIDC authorization flow. This is required to be stored for each login provider as different providers may have different callback URLs registered with the IdP.
+    default_redirect_uri: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # Optional default redirect URI after login; used when the client does not send one.
 
     @property
     def audiences_list(self) -> list[str]:

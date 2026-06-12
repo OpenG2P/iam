@@ -21,6 +21,4 @@ class JWTSignatureValidator:
             return False
 
         jwt_validate_helper = JWTValidationHelper.get_component()
-        return await jwt_validate_helper.verify_jwt(
-            jwt_signature_data, request_json
-        )
+        return await jwt_validate_helper.verify_jwt(jwt_signature_data, request_json)

@@ -32,10 +32,7 @@ async def generate_keymanager_client_assertion(
     keymanager_helper,
     **kw,
 ) -> tuple[str, str]:
-    if (
-        login_provider.token_endpoint_auth_method
-        != TokenEndpointAuthMethod.private_key_jwt_keymanager
-    ):
+    if login_provider.token_endpoint_auth_method != TokenEndpointAuthMethod.private_key_jwt_keymanager:
         raise InternalServerError(
             "G2P-AUT-503",
             "LoginProvider is not configured for keymanager client assertions.",
@@ -78,7 +75,7 @@ def generate_private_key_client_assertion(
     headers = {"typ": "JWT"}
     if isinstance(kid, str) and kid:
         headers["kid"] = kid
-    
+
     token = jose_jwt.encode(
         _jwt_payload(login_provider),
         key_pem,

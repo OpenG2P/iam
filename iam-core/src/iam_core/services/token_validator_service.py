@@ -80,9 +80,7 @@ class TokenValidatorService(BaseService):
         try:
             unverified_payload = jose_jwt.get_unverified_claims(jwt_token)
         except Exception as e:
-            raise UnauthorizedError(
-                message=f"Unauthorized. Jwt expired. {repr(e)}"
-            ) from e
+            raise UnauthorizedError(message=f"Unauthorized. Jwt expired. {repr(e)}") from e
 
         iss = unverified_payload.get("iss")
         login_provider = await self._get_login_provider_db_by_iss(iss)
@@ -109,9 +107,7 @@ class TokenValidatorService(BaseService):
                     iss=iss,
                 )
             except JoseError as e:
-                raise UnauthorizedError(
-                    message=f"Unauthorized. Invalid Jwt. {repr(e)}"
-                ) from e
+                raise UnauthorizedError(message=f"Unauthorized. Invalid Jwt. {repr(e)}") from e
         else:
             verified_claims = {}
 
@@ -125,9 +121,7 @@ class TokenValidatorService(BaseService):
                     iss=iss,
                 )
             except JoseError as e:
-                raise UnauthorizedError(
-                    message=f"Unauthorized. Invalid Jwt ID Token. {repr(e)}"
-                ) from e
+                raise UnauthorizedError(message=f"Unauthorized. Invalid Jwt ID Token. {repr(e)}") from e
 
         claims = self._combine_claims(
             unverified_payload,

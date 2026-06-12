@@ -148,7 +148,7 @@ iamStaffPortalApi:
 
     # API specific middleware configs
     IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) | toJson }}'
-  
+
   envVarsFrom:
     IAM_STAFF_DB_PASSWORD:
       secretKeyRef:

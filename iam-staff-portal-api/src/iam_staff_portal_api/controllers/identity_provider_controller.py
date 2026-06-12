@@ -3,9 +3,10 @@ from openg2p_fastapi_common.controller import BaseController
 
 
 class IdentityProviderController(BaseController):
-    '''
+    """
     Controller for identity provider-related endpoints, such as retrieving information about configured identity providers.
-    '''
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.router.prefix += "/identity-providers"

@@ -11,9 +11,10 @@ _config = Settings.get_config(strict=False)
 
 
 class OAuthCallbackController(BaseController):
-    '''
+    """
     Controller for handling the OAuth callback endpoint, which completes the authentication transaction and sets the necessary cookies for authenticated sessions.
-    '''
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.router.prefix += "/auth"

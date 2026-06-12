@@ -16,6 +16,7 @@ from .helpers import user_auth_error_response, get_required_permissions as defau
 
 _config = Settings.get_config(strict=False)
 
+
 class AuthMiddleware(BaseHTTPMiddleware):
     """Reusable IAM authorization middleware.
 
@@ -80,9 +81,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 )
                 response.raise_for_status()
         except httpx.HTTPError as exc:
-            raise ForbiddenError(
-                message="Forbidden. Unable to fetch user permissions."
-            ) from exc
+            raise ForbiddenError(message="Forbidden. Unable to fetch user permissions.") from exc
 
         response_data = response.json() or {}
         return set(response_data.get("permissions") or [])

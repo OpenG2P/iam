@@ -7,7 +7,7 @@ from iam_core.schemas import AuthTransaction
 
 
 class AuthTransactionStore(BaseService):
-    """In-memory transaction store with TTL. Use RedisAuthTransactionStore for production.""" 
+    """In-memory transaction store with TTL. Use RedisAuthTransactionStore for production."""
 
     def __init__(self, ttl_seconds: int = 300):
         super().__init__()

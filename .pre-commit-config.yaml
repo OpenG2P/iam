@@ -46,10 +46,14 @@ repos:
       - id: black
         args:
         - --line-length=110
+  # black is the sole formatter (line-length 110). ruff is used only as a
+  # LINTER — ruff-format is intentionally NOT enabled, since two formatters
+  # (black at 110 vs ruff-format at its 88 default) reformat each other and
+  # never converge. ruff's settings (line-length 110, __init__.py F401 ignore)
+  # live in the root .ruff.toml.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.7
     hooks:
       - id: ruff-check
         args:
         - --fix
-      - id: ruff-format

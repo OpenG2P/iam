@@ -13,13 +13,16 @@ class StaffPortalApplicationResponse(BaseModel):
     order: Optional[int] = None
     disabled: bool
 
+
 class ApplicationPermissionResponse(BaseModel):
     application_id: int
     application_mnemonic: str
     permissions: List[str]
 
+
 class GetPermissionsForRolesRequest(BaseModel):
     role_mnemonics: List[str]
+
 
 class PermissionsResponse(BaseModel):
     permissions: List[str]

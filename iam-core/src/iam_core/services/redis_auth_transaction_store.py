@@ -17,9 +17,7 @@ class RedisAuthTransactionStore(BaseService):
     def __init__(self, ttl_seconds: int = 300, redis_url: str | None = None):
         super().__init__()
         self._ttl = ttl_seconds
-        self._redis_url = redis_url or getattr(
-            _config, "auth_redis_url", "redis://localhost:6379/0"
-        )
+        self._redis_url = redis_url or getattr(_config, "auth_redis_url", "redis://localhost:6379/0")
         self._client = None
 
     def _get_client(self):

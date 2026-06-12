@@ -22,13 +22,9 @@ class JwtBearerAuth(HTTPBearer):
 
         api_call_name = str(request.scope["route"].name)
 
-        api_auth_settings = ApiAuthSettings.model_validate(
-            config_dict.get("auth_api_" + api_call_name, {})
-        )
+        api_auth_settings = ApiAuthSettings.model_validate(config_dict.get("auth_api_" + api_call_name, {}))
 
-        jwt_token = request.headers.get("Authorization", None) or request.cookies.get(
-            "X-Access-Token", None
-        )
+        jwt_token = request.headers.get("Authorization", None) or request.cookies.get("X-Access-Token", None)
         jwt_id_token = request.cookies.get("X-ID-Token", None)
         if jwt_token:
             jwt_token = jwt_token.removeprefix("Bearer ")

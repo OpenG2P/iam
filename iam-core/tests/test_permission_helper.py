@@ -50,12 +50,11 @@ def test_enforce_resource_access_uses_or_semantics_for_multiple_permissions():
 
 
 def test_staff_portal_single_permission_metadata_is_set():
-    assert get_required_permissions(G2PIntakeFormMetadataController.get_intake_form) == {
-        "intakeForm:view"
-    }
+    assert get_required_permissions(G2PIntakeFormMetadataController.get_intake_form) == {"intakeForm:view"}
 
 
 def test_staff_portal_multi_permission_metadata_is_set():
-    assert get_required_permissions(
-        G2PRegistryConfigurationController.get_number_of_requests_pending
-    ) == {"registryConfiguration:view", "changeRequest:view"}
+    assert get_required_permissions(G2PRegistryConfigurationController.get_number_of_requests_pending) == {
+        "registryConfiguration:view",
+        "changeRequest:view",
+    }

@@ -99,9 +99,7 @@ class ProviderRepository(BaseService):
                 self._by_iss_cache[issuer] = (provider, time.monotonic())
                 return provider
         except Exception:
-            _logger.exception(
-                "Failed to fetch login provider from API for issuer: %s", issuer
-            )
+            _logger.exception("Failed to fetch login provider from API for issuer: %s", issuer)
             return None
 
     async def get_all(self) -> list[LoginProvider]:

@@ -12,8 +12,7 @@ class OIDCInterface(ABC):
         nonce: str,
         code_verifier: str,
         server_metadata: dict | None = None,
-    ) -> tuple[str, str]:
-        ...
+    ) -> tuple[str, str]: ...
 
     async def exchange_code_for_token(
         self,
@@ -23,8 +22,7 @@ class OIDCInterface(ABC):
         keymanager_helper=None,
         server_metadata: dict | None = None,
         **kw,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
     async def validate_callback_id_token(
         self,
@@ -32,23 +30,20 @@ class OIDCInterface(ABC):
         token_response: dict[str, Any],
         nonce: str | None,
         server_metadata: dict | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     async def get_oauth_validation_data(
         self,
         login_provider: LoginProvider,
         access_token: str,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
     async def decode_access_token(
         self,
         login_provider: LoginProvider,
         jwt_token: str,
         iss: str | None = None,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
     async def decode_id_token(
         self,
@@ -56,30 +51,26 @@ class OIDCInterface(ABC):
         jwt_id_token: str,
         jwt_token: str,
         iss: str | None = None,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
     async def introspect_token(
         self,
         login_provider: LoginProvider,
         jwt_token: str,
         endpoint: str | None = None,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
     def normalize_claims(
         self,
         claims: dict[str, Any],
         login_provider: LoginProvider,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
     def validate_claims(
         self,
         claims: dict[str, Any],
         login_provider: LoginProvider,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def registrant_subject(
         self,

@@ -27,10 +27,12 @@ from ..schemas import (
 
 _config = Settings.get_config(strict=False)
 
+
 class UserAccessController(BaseController):
-    '''
+    """
     Controller for managing user access to staff portal applications and their associated permissions.
-    '''
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.router.prefix += "/user-access"
@@ -87,9 +89,7 @@ class UserAccessController(BaseController):
                 "order": app.order,
                 "disabled": app.application_mnemonic not in allowed_mnemonics,
                 "application_url": (
-                    app.application_url
-                    if app.application_mnemonic in allowed_mnemonics
-                    else None
+                    app.application_url if app.application_mnemonic in allowed_mnemonics else None
                 ),
             }
             for app in apps
@@ -157,7 +157,7 @@ class UserAccessController(BaseController):
                 )
                 permission_rows = (await session.execute(permission_stmt)).scalars().all()
 
-                permissions = sorted(set(p.permission_mnemonic for p in permission_rows))
+                permissions = sorted({p.permission_mnemonic for p in permission_rows})
 
                 if permissions:
                     result.append(
@@ -177,9 +177,7 @@ class UserAccessController(BaseController):
         permissions: List[str] = []
 
         for role_mnemonic in request.role_mnemonics:
-            permissions.extend(
-                await self.get_permission_mnemonics_for_role(role_mnemonic)
-            )
+            permissions.extend(await self.get_permission_mnemonics_for_role(role_mnemonic))
 
         return PermissionsResponse(permissions=sorted(set(permissions)))
 

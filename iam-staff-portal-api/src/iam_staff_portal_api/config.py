@@ -21,5 +21,5 @@ class Settings(BaseSettings):
         }
     )
     data_client_secrets: dict[str, str] = Field(default_factory=dict)
-    cache_expire_seconds: int = 7*24*60*60      # 7 days
+    cache_expire_seconds: int = 7 * 24 * 60 * 60  # 7 days
     data_dir: str = "/opt/iam-staff-portal-data"

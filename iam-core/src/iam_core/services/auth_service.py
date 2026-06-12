@@ -53,11 +53,7 @@ class AuthService(BaseService):
         if not login_provider:
             raise UnauthorizedError("G2P-AUT-401", "Invalid Login Provider Id")
 
-        redirect_uri = (
-            redirect_uri
-            or getattr(login_provider, "default_redirect_uri", None)
-            or "/"
-        )
+        redirect_uri = redirect_uri or getattr(login_provider, "default_redirect_uri", None) or "/"
 
         oidc_client = OidcClient()
         server_metadata = await oidc_client.get_server_metadata(login_provider)
@@ -85,9 +81,7 @@ class AuthService(BaseService):
     ) -> dict:
         auth_transaction: AuthTransaction = self._transaction_store.get_and_pop(state_value)
         if auth_transaction:
-            login_provider = await self.provider_repository.get_by_id(
-                auth_transaction.login_provider_id
-            )
+            login_provider = await self.provider_repository.get_by_id(auth_transaction.login_provider_id)
             if not login_provider:
                 raise UnauthorizedError("G2P-AUT-401", "Invalid Login Provider Id")
 
@@ -191,11 +185,7 @@ class AuthService(BaseService):
         for token in tokens:
             if token:
                 try:
-                    values.append(
-                        jose_jwt.get_unverified_claims(token)
-                        if isinstance(token, str)
-                        else token
-                    )
+                    values.append(jose_jwt.get_unverified_claims(token) if isinstance(token, str) else token)
                 except Exception:
                     pass
         return cls.combine_token_dicts(*values)

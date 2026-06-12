@@ -106,18 +106,14 @@ class OidcClient:
         server_metadata: dict | None = None,
     ) -> tuple[str, str]:
         metadata = (
-            server_metadata
-            if server_metadata is not None
-            else await self.get_server_metadata(login_provider)
+            server_metadata if server_metadata is not None else await self.get_server_metadata(login_provider)
         )
         auth_endpoint = metadata.get("authorization_endpoint")
         if not auth_endpoint:
             raise InternalServerError("G2P-AUT-500", "authorization_endpoint missing.")
 
         extra_authorize_params = self._extra_params(login_provider)
-        async_oauth2_client: AsyncOAuth2Client = AsyncOAuth2Client(
-            client_id=login_provider.client_id
-        )
+        async_oauth2_client: AsyncOAuth2Client = AsyncOAuth2Client(client_id=login_provider.client_id)
         params = {
             "redirect_uri": login_provider.oauth_callback_url,
             "scope": login_provider.scope or "openid profile email",
@@ -133,7 +129,7 @@ class OidcClient:
         try:
             result = async_oauth2_client.create_authorization_url(auth_endpoint, **params)
             return result
-        except Exception as e:
+        except Exception:
             raise
 
     async def exchange_code_for_token(
@@ -146,9 +142,7 @@ class OidcClient:
         **kw,
     ) -> dict:
         metadata = (
-            server_metadata
-            if server_metadata is not None
-            else await self.get_server_metadata(login_provider)
+            server_metadata if server_metadata is not None else await self.get_server_metadata(login_provider)
         )
         token_endpoint = metadata.get("token_endpoint")
         if not token_endpoint:
@@ -206,9 +200,7 @@ class OidcClient:
         server_metadata: dict | None = None,
     ) -> dict:
         metadata = (
-            server_metadata
-            if server_metadata is not None
-            else await self.get_server_metadata(login_provider)
+            server_metadata if server_metadata is not None else await self.get_server_metadata(login_provider)
         )
         issuer = iss or metadata.get("issuer") or self._guess_issuer(login_provider)
         jwks = await jwks_get(metadata, issuer)
@@ -227,9 +219,7 @@ class OidcClient:
         server_metadata: dict | None = None,
     ) -> dict:
         metadata = (
-            server_metadata
-            if server_metadata is not None
-            else await self.get_server_metadata(login_provider)
+            server_metadata if server_metadata is not None else await self.get_server_metadata(login_provider)
         )
         userinfo_endpoint = metadata.get("userinfo_endpoint")
         if not userinfo_endpoint:
@@ -258,9 +248,7 @@ class OidcClient:
         server_metadata: dict | None = None,
     ) -> dict:
         metadata = (
-            server_metadata
-            if server_metadata is not None
-            else await self.get_server_metadata(login_provider)
+            server_metadata if server_metadata is not None else await self.get_server_metadata(login_provider)
         )
         introspection_endpoint = endpoint or metadata.get("introspection_endpoint")
         if not introspection_endpoint:

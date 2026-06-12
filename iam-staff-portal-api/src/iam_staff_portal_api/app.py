@@ -17,7 +17,7 @@ from .controllers import (
     AuthController,
     IdentityProviderController,
     OAuthCallbackController,
-    UserAccessController
+    UserAccessController,
 )
 from .models import (
     StaffApplicationPermission,
