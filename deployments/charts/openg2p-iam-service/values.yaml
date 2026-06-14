@@ -138,6 +138,7 @@ iamStaffPortalApi:
     IAM_STAFF_AUTH_REDIS_URL: 'redis://{{ tpl .Values.global.redisInstallationName $ }}-master:6379/0'
     IAM_STAFF_AUTH_TRANSACTION_STORE_BACKEND: "redis"
     IAM_STAFF_AUTH_ENABLED: true
+    IAM_STAFF_AUTH_VERIFY_SSL: false
     IAM_STAFF_AUTH_COOKIE_HTTPONLY: true
     IAM_STAFF_AUTH_COOKIE_PATH: "/"
     IAM_STAFF_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
