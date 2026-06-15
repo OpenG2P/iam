@@ -184,6 +184,7 @@ class OidcClient:
 
         client = AsyncOAuth2Client(
             client_id=login_provider.client_id,
+            verify=_config.auth_verify_ssl,
             **client_kwargs,
         )
         idp_token = await client.fetch_token(token_endpoint, **token_kwargs)
