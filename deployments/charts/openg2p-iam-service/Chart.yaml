@@ -2,14 +2,14 @@ apiVersion: v2
 name: openg2p-iam-service
 description: A Helm chart for OpenG2P IAM Service
 type: application
-version: 0.0.0-develop
+version: 1.2.0
 dependencies:
 - name: common
   repository: https://openg2p.github.io/openg2p-helm
   version: 2.30.0
 - name: postgres-init
   repository: https://openg2p.github.io/openg2p-helm
-  version: 0.0.0-develop
+  version: 1.1.0
   condition: postgres-init.enabled
 keywords:
   - openg2p-iam-service
