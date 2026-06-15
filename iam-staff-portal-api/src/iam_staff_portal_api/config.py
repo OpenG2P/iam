@@ -13,6 +13,12 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
     )
     auth_api_get_staff_portal_applications: ApiAuthSettings = ApiAuthSettings(enabled=True)
+    # Guards the self-registration write endpoint. Enabled by default so a valid
+    # token from a trusted login provider is required. In production, tighten by
+    # setting claim_name / claim_values (e.g. a mapped registrar role claim) via
+    # IAM_STAFF_AUTH_API_REGISTER_STAFF_PORTAL_APPLICATION__* so only an
+    # authorized service account can register applications.
+    auth_api_register_staff_portal_application: ApiAuthSettings = ApiAuthSettings(enabled=True)
     data_application_urls: dict[str, str] = Field(
         default_factory=lambda: {
             "keycloak_application_url": "https://keycloak.openg2p.org",
