@@ -135,9 +135,7 @@ class UserAccessController(BaseController):
             roles_by_mnemonic = await self._upsert_roles(session, app.id, request.roles)
             await session.flush()  # ensure permission/role ids are available
 
-            await self._rebuild_role_permissions(
-                session, request.roles, roles_by_mnemonic, perms_by_mnemonic
-            )
+            await self._rebuild_role_permissions(session, request.roles, roles_by_mnemonic, perms_by_mnemonic)
 
             await session.commit()
             await session.refresh(app)
@@ -152,12 +150,16 @@ class UserAccessController(BaseController):
 
     async def _upsert_application(self, session, request):
         existing = (
-            await session.execute(
-                select(StaffPortalApplication).where(
-                    StaffPortalApplication.application_mnemonic == request.application_mnemonic
+            (
+                await session.execute(
+                    select(StaffPortalApplication).where(
+                        StaffPortalApplication.application_mnemonic == request.application_mnemonic
+                    )
                 )
             )
-        ).scalars().first()
+            .scalars()
+            .first()
+        )
 
         if existing is not None:
             existing.application_url = request.application_url
@@ -184,12 +186,16 @@ class UserAccessController(BaseController):
 
     async def _upsert_permissions(self, session, application_id, permissions):
         existing = (
-            await session.execute(
-                select(StaffApplicationPermission).where(
-                    StaffApplicationPermission.application_id == application_id
+            (
+                await session.execute(
+                    select(StaffApplicationPermission).where(
+                        StaffApplicationPermission.application_id == application_id
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         by_mnemonic = {p.permission_mnemonic: p for p in existing}
 
         for perm in permissions:
@@ -211,10 +217,10 @@ class UserAccessController(BaseController):
 
     async def _upsert_roles(self, session, application_id, roles):
         existing = (
-            await session.execute(
-                select(StaffRole).where(StaffRole.application_id == application_id)
-            )
-        ).scalars().all()
+            (await session.execute(select(StaffRole).where(StaffRole.application_id == application_id)))
+            .scalars()
+            .all()
+        )
         by_mnemonic = {r.role_mnemonic: r for r in existing}
 
         for role in roles:

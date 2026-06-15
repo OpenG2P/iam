@@ -151,9 +151,7 @@ class DataLoaderBase(ABC):
         if not rows:
             return
 
-        existing_rows = (
-            await session.execute(select(StaffPortalApplication))
-        ).scalars().all()
+        existing_rows = (await session.execute(select(StaffPortalApplication))).scalars().all()
         existing_by_mnemonic = {row.application_mnemonic: row for row in existing_rows}
 
         new_rows: list[dict[str, Any]] = []
@@ -175,9 +173,7 @@ class DataLoaderBase(ABC):
                 setattr(existing, key, value)
 
         if new_rows:
-            _logger.info(
-                "Seeding %s with %s new rows", StaffPortalApplication.__tablename__, len(new_rows)
-            )
+            _logger.info("Seeding %s with %s new rows", StaffPortalApplication.__tablename__, len(new_rows))
             await session.execute(insert(StaffPortalApplication), new_rows)
 
     async def seed_if_empty(
