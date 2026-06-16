@@ -3,16 +3,22 @@ from typing import Any
 
 import httpx
 from fastapi import Request
-from fastapi.security import HTTPAuthorizationCredentials
 from openg2p_fastapi_common.errors.base_exception import BaseAppException
-from openg2p_fastapi_common.errors.http_exceptions import ForbiddenError
+from openg2p_fastapi_common.errors.http_exceptions import ForbiddenError, UnauthorizedError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.routing import Match
-from ..schemas import AuthPrincipal
+from ..schemas import AuthCredentials, AuthPrincipal
 
 from .config import Settings
-from .dependencies import JwtBearerAuth, auth_principal
-from .helpers import user_auth_error_response, get_required_permissions as default_get_required_permissions
+from .dependencies import JwtBearerAuth, auth_principal, authenticate_token_response
+from .errors import ExpiredTokenError
+from .helpers import (
+    AUTH_SESSION_COOKIE_NAME,
+    set_auth_cookies,
+    user_auth_error_response,
+    get_required_permissions as default_get_required_permissions,
+)
+from ..services import AuthService
 
 _config = Settings.get_config(strict=False)
 
@@ -35,6 +41,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     ):
         super().__init__(app)
         self._auth_scheme = JwtBearerAuth()
+        self._auth_service = AuthService.get_component() or AuthService()
         self._client_id = client_id
         self._allow_by_default = allow_by_default
         self._state_key = state_key
@@ -126,7 +133,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
         response_data = response.json() or {}
         return set(response_data.get("permissions") or [])
 
+    async def _authenticate(self, request: Request) -> AuthPrincipal:
+        auth_credentials: AuthCredentials = await self._auth_scheme(request)
+        return await auth_principal(auth_credentials)
+
+    async def _refresh_tokens(self, request: Request) -> dict | None:
+        session_id = request.cookies.get(AUTH_SESSION_COOKIE_NAME)
+        return await self._auth_service.refresh_access_token(session_id)
+
     async def dispatch(self, request: Request, call_next):
+        refreshed_tokens: dict | None = None
         try:
             matched_route = self._match_route(request)
             if matched_route is None:
@@ -142,8 +158,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if required_permissions and not client_id:
                 raise ForbiddenError(message="Forbidden. keycloak_client_id is not configured.")
 
-            auth_credentials: HTTPAuthorizationCredentials | None = await self._auth_scheme(request)
-            principal: AuthPrincipal = await auth_principal(auth_credentials)
+            try:
+                principal = await self._authenticate(request)
+            except ExpiredTokenError:
+                refreshed_tokens = await self._refresh_tokens(request)
+                if not refreshed_tokens:
+                    raise UnauthorizedError(
+                        message="Unauthorized. Access token expired and refresh failed.",
+                    ) from None
+                principal = await authenticate_token_response(request, refreshed_tokens)
 
             user_roles = list((principal.client_roles or {}).get(client_id, []))
             user_permissions = await self._get_user_permissions(user_roles)
@@ -152,6 +175,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 raise ForbiddenError(message="Forbidden. Insufficient resource_access roles.")
 
             setattr(request.state, self._state_key, principal)
-            return await call_next(request)
+            response = await call_next(request)
+            if refreshed_tokens:
+                set_auth_cookies(response, refreshed_tokens)
+            return response
         except BaseAppException as exc:
             return user_auth_error_response(request, exc)

@@ -30,7 +30,7 @@ async def test_claim_in_accepts_string_and_list_values():
 
 @pytest.mark.asyncio
 async def test_token_validator_hybrid_mode_merges_claims():
-    validator = TokenValidatorService.get_component()
+    validator = TokenValidatorService()
     token = jose_jwt.encode(
         {"iss": "https://issuer", "aud": "portal", "sub": "u-1"},
         "secret",
@@ -63,7 +63,9 @@ async def test_token_validator_hybrid_mode_merges_claims():
     )
 
     validator._get_login_provider_db_by_iss = mock_provider
-    validator._adapters.resolve_for_provider = lambda lp: mock_adapter
+    validator._adapters = types.SimpleNamespace(
+        resolve_for_provider=lambda _lp: mock_adapter,
+    )
 
     result = await validator.validate(
         jwt_token=token,
@@ -81,7 +83,7 @@ async def test_token_validator_hybrid_mode_merges_claims():
 
 @pytest.mark.asyncio
 async def test_token_validator_claim_gate_rejects_mismatch():
-    validator = TokenValidatorService.get_component()
+    validator = TokenValidatorService()
     token = jose_jwt.encode(
         {"iss": "https://issuer", "aud": "portal", "sub": "u-1"},
         "secret",
@@ -111,7 +113,9 @@ async def test_token_validator_claim_gate_rejects_mismatch():
     )
 
     validator._get_login_provider_db_by_iss = mock_provider
-    validator._adapters.resolve_for_provider = lambda lp: mock_adapter
+    validator._adapters = types.SimpleNamespace(
+        resolve_for_provider=lambda _lp: mock_adapter,
+    )
 
     with pytest.raises(ForbiddenError):
         await validator.validate(

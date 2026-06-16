@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, Response
+from fastapi import Depends, Request, Response
 from openg2p_fastapi_common.controller import BaseController
 from iam_core.schemas import (
     AuthPrincipal,
@@ -14,6 +14,7 @@ from iam_core.user_auth.dependencies import (
     logged_in_user,
     require_auth,
 )
+from iam_core.user_auth.helpers import AUTH_SESSION_COOKIE_NAME, clear_auth_cookies
 
 from ..config import Settings
 
@@ -70,17 +71,10 @@ class AuthController(BaseController):
     ) -> LoggedInUserResponse:
         return user
 
-    async def logout(self, response: Response):
-        response.delete_cookie(
-            "X-Access-Token",
-            path=_config.auth_cookie_path,
-            domain=_config.auth_cookie_domain,
-        )
-        response.delete_cookie(
-            "X-ID-Token",
-            path=_config.auth_cookie_path,
-            domain=_config.auth_cookie_domain,
-        )
+    async def logout(self, request: Request, response: Response):
+        session_id = request.cookies.get(AUTH_SESSION_COOKIE_NAME)
+        self.auth_service.delete_refresh_token(session_id)
+        clear_auth_cookies(response)
 
     async def get_login_providers(self):
         return await self.auth_service.get_login_providers()

@@ -10,8 +10,40 @@ from openg2p_fastapi_common.errors.http_exceptions import (
 from iam_core.schemas import AuthCredentials, AuthPrincipal, LoggedInUserResponse
 from iam_core.services import AuthService, TokenValidatorService
 from .config import ApiAuthSettings, Settings
+from iam_core.user_auth.helpers.cookie_helper import (
+    AUTH_ACCESS_TOKEN_COOKIE_NAME,
+    AUTH_ID_TOKEN_COOKIE_NAME,
+)
 
 _config = Settings.get_config(strict=False)
+
+
+def _api_auth_settings_for_request(request: Request) -> ApiAuthSettings:
+    config_dict = _config.model_dump()
+    api_call_name = str(request.scope["route"].name)
+    return ApiAuthSettings.model_validate(config_dict.get("auth_api_" + api_call_name, {}))
+
+
+async def validate_request_tokens(
+    request: Request,
+    jwt_token: str,
+    jwt_id_token: str | None = None,
+) -> AuthCredentials:
+    token_validator = TokenValidatorService.get_component() or TokenValidatorService()
+    return await token_validator.validate(
+        jwt_token=jwt_token,
+        jwt_id_token=jwt_id_token,
+        api_auth_settings=_api_auth_settings_for_request(request),
+    )
+
+
+async def authenticate_token_response(request: Request, token_response: dict) -> AuthPrincipal:
+    auth_credentials = await validate_request_tokens(
+        request,
+        jwt_token=token_response["access_token"],
+        jwt_id_token=token_response.get("id_token"),
+    )
+    return await auth_principal(auth_credentials)
 
 
 class JwtBearerAuth(HTTPBearer):
@@ -20,23 +52,21 @@ class JwtBearerAuth(HTTPBearer):
         if not config_dict.get("auth_enabled", None):
             return None
 
-        api_call_name = str(request.scope["route"].name)
-
-        api_auth_settings = ApiAuthSettings.model_validate(config_dict.get("auth_api_" + api_call_name, {}))
-
-        jwt_token = request.headers.get("Authorization", None) or request.cookies.get("X-Access-Token", None)
-        jwt_id_token = request.cookies.get("X-ID-Token", None)
+        jwt_token = (
+            request.headers.get("Authorization", None)
+            or request.cookies.get(AUTH_ACCESS_TOKEN_COOKIE_NAME, None)
+        )
+        jwt_id_token = request.cookies.get(AUTH_ID_TOKEN_COOKIE_NAME, None)
         if jwt_token:
             jwt_token = jwt_token.removeprefix("Bearer ")
 
         if not jwt_token:
             raise UnauthorizedError()
 
-        token_validator = TokenValidatorService.get_component()
-        return await token_validator.validate(
+        return await validate_request_tokens(
+            request,
             jwt_token=jwt_token,
             jwt_id_token=jwt_id_token,
-            api_auth_settings=api_auth_settings,
         )
 
 

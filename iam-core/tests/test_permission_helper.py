@@ -9,7 +9,7 @@ from iam_core.user_auth.helpers.permission_helper import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-STAFF_PORTAL_SRC = REPO_ROOT / "openg2p-registry-gen2-apis" / "openg2p-registry-staff-portal-api" / "src"
+STAFF_PORTAL_SRC = REPO_ROOT / "registry-platform" / "apis" / "openg2p-registry-staff-portal-api" / "src"
 if str(STAFF_PORTAL_SRC) not in sys.path:
     sys.path.append(str(STAFF_PORTAL_SRC))
 
@@ -50,7 +50,9 @@ def test_enforce_resource_access_uses_or_semantics_for_multiple_permissions():
 
 
 def test_staff_portal_single_permission_metadata_is_set():
-    assert get_required_permissions(G2PIntakeFormMetadataController.get_intake_form) == {"intakeForm:view"}
+    assert get_required_permissions(G2PIntakeFormMetadataController.get_intake_form) == {
+        "intakeFormDefinition:view",
+    }
 
 
 def test_staff_portal_multi_permission_metadata_is_set():

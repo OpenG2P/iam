@@ -190,6 +190,60 @@ class OidcClient:
         idp_token = await client.fetch_token(token_endpoint, **token_kwargs)
         return dict(idp_token)
 
+    async def refresh_access_token(
+        self,
+        login_provider: LoginProvider,
+        refresh_token: str,
+        keymanager_helper=None,
+        server_metadata: dict | None = None,
+        **kw,
+    ) -> dict:
+        metadata = (
+            server_metadata if server_metadata is not None else await self.get_server_metadata(login_provider)
+        )
+        token_endpoint = metadata.get("token_endpoint")
+        if not token_endpoint:
+            raise UnauthorizedError(message="Unauthorized. Missing token endpoint.")
+
+        client_kwargs = {}
+        token_kwargs = {}
+
+        method = login_provider.token_endpoint_auth_method
+        if method == TokenEndpointAuthMethod.client_secret_basic:
+            client_kwargs["client_secret"] = login_provider.client_secret
+            client_kwargs["token_endpoint_auth_method"] = method.value
+        elif method == TokenEndpointAuthMethod.client_secret_post:
+            client_kwargs["client_secret"] = login_provider.client_secret
+            client_kwargs["token_endpoint_auth_method"] = method.value
+        elif method == TokenEndpointAuthMethod.private_key_jwt_keymanager:
+            client_kwargs["token_endpoint_auth_method"] = method.value
+            keymanager_assertion_type, keymanager_token = await generate_keymanager_client_assertion(
+                login_provider=login_provider,
+                keymanager_helper=keymanager_helper,
+                **kw,
+            )
+            token_kwargs["client_assertion_type"] = keymanager_assertion_type
+            token_kwargs["client_assertion"] = keymanager_token
+        elif method == TokenEndpointAuthMethod.private_key_jwt:
+            assertion_type, assertion_token = generate_private_key_client_assertion(
+                login_provider=login_provider,
+                **kw,
+            )
+            token_kwargs["client_assertion_type"] = assertion_type
+            token_kwargs["client_assertion"] = assertion_token
+
+        client = AsyncOAuth2Client(
+            client_id=login_provider.client_id,
+            verify=_config.auth_verify_ssl,
+            **client_kwargs,
+        )
+        idp_token = await client.refresh_token(
+            token_endpoint,
+            refresh_token=refresh_token,
+            **token_kwargs,
+        )
+        return dict(idp_token)
+
     async def decode_jwt(
         self,
         login_provider: LoginProvider,

@@ -1,3 +1,4 @@
+from .refresh_token_record import RefreshTokenRecord
 from .credentials import AuthCredentials
 from .auth_principal import AuthPrincipal
 from .auth_transaction import AuthTransaction
