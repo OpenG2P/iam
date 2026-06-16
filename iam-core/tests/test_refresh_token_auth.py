@@ -4,6 +4,7 @@ import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from authlib.integrations.base_client.errors import OAuthError
 from authlib.jose.errors import BadSignatureError, ExpiredTokenError as JoseExpiredTokenError
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
@@ -25,7 +26,9 @@ from iam_core.user_auth.helpers.cookie_helper import (
     oidc_session_id_from_token_response,
     set_auth_cookies,
 )
+from iam_core.user_auth.helpers.token_response_helper import validate_refresh_token_response
 from iam_core.user_auth.middleware import AuthMiddleware
+from iam_core.user_auth.refresh_token_middleware import RefreshTokenMiddleware
 
 
 def _fake_jwt(claims: dict) -> str:
@@ -275,6 +278,108 @@ async def test_refresh_access_token_calls_idp_and_updates_store():
 
 
 @pytest.mark.asyncio
+async def test_refresh_access_token_returns_none_when_idp_rejects_refresh():
+    service = AuthService()
+    store = _make_refresh_token_store()
+    service._refresh_token_store = store
+    store.store(
+        token_response=_token_response(sid="sid-99", refresh_token="rt-old"),
+        issuer="https://keycloak.example.com/realms/staff",
+        session_id="sid-99",
+    )
+
+    login_provider = types.SimpleNamespace(issuer="https://keycloak.example.com/realms/staff")
+    service.provider_repository = types.SimpleNamespace(
+        get_by_iss=AsyncMock(return_value=login_provider),
+    )
+    service._adapters = types.SimpleNamespace(
+        resolve_for_provider=lambda _lp: types.SimpleNamespace(
+            refresh_access_token=AsyncMock(
+                side_effect=OAuthError(error="invalid_grant", description="Session not active"),
+            ),
+        ),
+    )
+
+    result = await service.refresh_access_token("sid-99")
+
+    assert result is None
+    assert store.get("sid-99") is None
+
+
+def test_validate_refresh_token_response_raises_for_oidc_error():
+    with pytest.raises(UnauthorizedError, match="Session not active"):
+        validate_refresh_token_response(
+            {"error": "invalid_grant", "error_description": "Session not active"},
+        )
+
+
+def test_validate_refresh_token_response_raises_for_missing_access_token():
+    with pytest.raises(UnauthorizedError, match="Missing access_token"):
+        validate_refresh_token_response({"token_type": "Bearer"})
+
+
+def test_validate_refresh_token_response_returns_valid_response():
+    token_response = {"access_token": "at-new", "refresh_token": "rt-new"}
+    assert validate_refresh_token_response(token_response) == token_response
+
+
+@pytest.mark.asyncio
+async def test_refresh_access_token_returns_none_when_token_response_has_oidc_error():
+    service = AuthService()
+    store = _make_refresh_token_store()
+    service._refresh_token_store = store
+    store.store(
+        token_response=_token_response(sid="sid-99", refresh_token="rt-old"),
+        issuer="https://keycloak.example.com/realms/staff",
+        session_id="sid-99",
+    )
+
+    login_provider = types.SimpleNamespace(issuer="https://keycloak.example.com/realms/staff")
+    service.provider_repository = types.SimpleNamespace(
+        get_by_iss=AsyncMock(return_value=login_provider),
+    )
+    service._adapters = types.SimpleNamespace(
+        resolve_for_provider=lambda _lp: types.SimpleNamespace(
+            refresh_access_token=AsyncMock(
+                return_value={"error": "invalid_grant", "error_description": "Session not active"},
+            ),
+        ),
+    )
+
+    result = await service.refresh_access_token("sid-99")
+
+    assert result is None
+    assert store.get("sid-99") is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_access_token_returns_none_when_token_response_missing_access_token():
+    service = AuthService()
+    store = _make_refresh_token_store()
+    service._refresh_token_store = store
+    store.store(
+        token_response=_token_response(sid="sid-99", refresh_token="rt-old"),
+        issuer="https://keycloak.example.com/realms/staff",
+        session_id="sid-99",
+    )
+
+    login_provider = types.SimpleNamespace(issuer="https://keycloak.example.com/realms/staff")
+    service.provider_repository = types.SimpleNamespace(
+        get_by_iss=AsyncMock(return_value=login_provider),
+    )
+    service._adapters = types.SimpleNamespace(
+        resolve_for_provider=lambda _lp: types.SimpleNamespace(
+            refresh_access_token=AsyncMock(return_value={"token_type": "Bearer"}),
+        ),
+    )
+
+    result = await service.refresh_access_token("sid-99")
+
+    assert result is None
+    assert store.get("sid-99") is None
+
+
+@pytest.mark.asyncio
 async def test_token_validator_raises_expired_token_error_for_expired_access_token():
     validator = TokenValidatorService()
     token = jose_jwt.encode(
@@ -447,7 +552,6 @@ async def test_middleware_refreshes_expired_token_and_updates_access_cookies_onl
     assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
     assert AUTH_SESSION_COOKIE_NAME not in cookie_names
     mock_authenticate_token_response.assert_awaited_once_with(request, refreshed_tokens)
-    assert request.cookies[AUTH_ACCESS_TOKEN_COOKIE_NAME] == "expired-access"
 
 
 @pytest.mark.asyncio
@@ -466,6 +570,102 @@ async def test_middleware_raises_unauthorized_when_refresh_fails():
         patch.object(middleware, "_match_route", return_value=route),
         patch.object(middleware, "get_required_permissions", return_value={"admin"}),
         patch.object(middleware, "_authenticate", AsyncMock(side_effect=ExpiredTokenError())),
+        patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=None)),
+    ):
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_middleware_refreshes_expired_token_and_updates_cookies():
+    middleware = RefreshTokenMiddleware(
+        app=MagicMock(),
+        protected_route_names={"get_user_profile"},
+    )
+    request = _make_request(
+        cookies={
+            AUTH_ACCESS_TOKEN_COOKIE_NAME: "expired-access",
+            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
+        },
+    )
+
+    route = MagicMock()
+    route.name = "get_user_profile"
+    route.endpoint = MagicMock()
+    refreshed_tokens = _token_response(sid="kc-session-123", access_token="fresh-access")
+
+    downstream = Response(content=b"ok", status_code=200)
+    call_next = AsyncMock(return_value=downstream)
+
+    with (
+        patch.object(middleware, "_match_route", return_value=route),
+        patch(
+            "iam_core.user_auth.refresh_token_middleware.is_access_token_expired",
+            return_value=True,
+        ),
+        patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=refreshed_tokens)),
+    ):
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 200
+    cookie_names = _set_cookie_names(response)
+    assert AUTH_ACCESS_TOKEN_COOKIE_NAME in cookie_names
+    assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
+    assert AUTH_SESSION_COOKIE_NAME not in cookie_names
+    assert request.headers.get("authorization") == "Bearer fresh-access"
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_middleware_skips_unprotected_routes():
+    middleware = RefreshTokenMiddleware(
+        app=MagicMock(),
+        protected_route_names={"get_user_profile"},
+    )
+    request = _make_request()
+    route = MagicMock()
+    route.name = "get_login_providers"
+    route.endpoint = MagicMock()
+
+    downstream = Response(content=b"ok", status_code=200)
+    call_next = AsyncMock(return_value=downstream)
+
+    with (
+        patch.object(middleware, "_match_route", return_value=route),
+        patch(
+            "iam_core.user_auth.refresh_token_middleware.is_access_token_expired",
+            return_value=True,
+        ) as mock_is_expired,
+    ):
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 200
+    mock_is_expired.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_middleware_raises_unauthorized_when_refresh_fails():
+    middleware = RefreshTokenMiddleware(
+        app=MagicMock(),
+        protected_route_names={"get_user_profile"},
+    )
+    request = _make_request(
+        cookies={
+            AUTH_ACCESS_TOKEN_COOKIE_NAME: "expired-access",
+            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
+        },
+    )
+    route = MagicMock()
+    route.name = "get_user_profile"
+    route.endpoint = MagicMock()
+    call_next = AsyncMock()
+
+    with (
+        patch.object(middleware, "_match_route", return_value=route),
+        patch(
+            "iam_core.user_auth.refresh_token_middleware.is_access_token_expired",
+            return_value=True,
+        ),
         patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=None)),
     ):
         response = await middleware.dispatch(request, call_next)

@@ -1,3 +1,7 @@
+import logging
+
+import httpx
+from authlib.integrations.base_client.errors import OAuthError
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 from openg2p_fastapi_common.service import BaseService
@@ -20,7 +24,11 @@ from iam_core.user_auth.helpers.cookie_helper import (
     issuer_from_token_response,
     oidc_session_id_from_token_response,
 )
+from iam_core.user_auth.helpers.token_response_helper import validate_refresh_token_response
 from iam_core.user_auth.oidc_client import OidcClient
+
+_config = Settings.get_config(strict=False)
+_logger = logging.getLogger(_config.logging_default_logger_name)
 
 
 class AuthService(BaseService):
@@ -167,12 +175,23 @@ class AuthService(BaseService):
 
         adapter = self._adapters.resolve_for_provider(login_provider)
         refresh_token = stored_refresh_token.refresh_token
-        token_response = await adapter.refresh_access_token(
-            login_provider=login_provider,
-            refresh_token=refresh_token,
-            keymanager_helper=keymanager_helper,
-            **kw,
-        )
+        try:
+            token_response = await adapter.refresh_access_token(
+                login_provider=login_provider,
+                refresh_token=refresh_token,
+                keymanager_helper=keymanager_helper,
+                **kw,
+            )
+            validate_refresh_token_response(token_response)
+        except (OAuthError, httpx.HTTPError, UnauthorizedError) as exc:
+            _logger.warning(
+                "Refresh token rejected for session %s: %s",
+                session_id,
+                exc,
+            )
+            self._refresh_token_store.delete(session_id)
+            return None
+
         self._refresh_token_store.update_refresh_token(session_id, token_response)
         return token_response
 

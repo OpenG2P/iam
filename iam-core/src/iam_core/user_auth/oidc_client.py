@@ -20,6 +20,7 @@ from .helpers import (
 )
 from .helpers import get_jwks as jwks_get
 from .helpers import pkce_kwargs
+from .helpers.token_response_helper import validate_refresh_token_response
 
 _config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
@@ -242,7 +243,7 @@ class OidcClient:
             refresh_token=refresh_token,
             **token_kwargs,
         )
-        return dict(idp_token)
+        return validate_refresh_token_response(dict(idp_token))
 
     async def decode_jwt(
         self,

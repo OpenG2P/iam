@@ -15,12 +15,21 @@ from .cookie_helper import (
     set_auth_cookies,
 )
 from .error_response_helper import user_auth_error_response
+from .token_response_helper import validate_refresh_token_response
+from .token_refresh_helper import (
+    access_token_from_request,
+    apply_refreshed_tokens_to_request,
+    is_access_token_expired,
+)
 
 __all__ = [
     "AUTH_ACCESS_TOKEN_COOKIE_NAME",
     "AUTH_ID_TOKEN_COOKIE_NAME",
     "AUTH_SESSION_COOKIE_NAME",
+    "access_token_from_request",
+    "apply_refreshed_tokens_to_request",
     "clear_auth_cookies",
+    "is_access_token_expired",
     "oidc_session_id_from_token_response",
     "set_auth_cookies",
     "get_jwks",
@@ -31,4 +40,5 @@ __all__ = [
     "get_required_permissions",
     "require_permissions",
     "user_auth_error_response",
+    "validate_refresh_token_response",
 ]
