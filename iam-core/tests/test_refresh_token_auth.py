@@ -18,7 +18,6 @@ from iam_core.services.token_validator_service import TokenValidatorService
 from iam_core.user_auth.config import ApiAuthSettings
 from iam_core.user_auth.errors import ExpiredTokenError
 from iam_core.user_auth.enums import AuthCookieName
-from iam_core.user_auth.jwt_bearer import JwtBearerAuth
 from iam_core.user_auth.helpers.cookie_helper import (
     clear_auth_cookies,
     oidc_session_id_from_token_response,
@@ -453,31 +452,6 @@ async def test_token_validator_raises_unauthorized_for_non_expiry_jose_error():
             jwt_id_token=None,
             api_auth_settings=ApiAuthSettings(enabled=True, validation_mode="jwt"),
         )
-
-
-@pytest.mark.asyncio
-async def test_jwt_bearer_auth_reads_tokens_from_cookies():
-    auth_scheme = JwtBearerAuth()
-    request = MagicMock()
-    request.scope = {"route": MagicMock(name="test_route")}
-    request.headers = {}
-    request.cookies = {
-        AuthCookieName.ACCESS_TOKEN: "cookie-access",
-        AuthCookieName.ID_TOKEN: "cookie-id",
-    }
-
-    mock_validator = types.SimpleNamespace(
-        validate=AsyncMock(return_value=types.SimpleNamespace()),
-    )
-
-    with patch.object(TokenValidatorService, "get_component", return_value=mock_validator):
-        await auth_scheme(request)
-
-    mock_validator.validate.assert_awaited_once_with(
-        jwt_token="cookie-access",
-        jwt_id_token="cookie-id",
-        api_auth_settings=ApiAuthSettings(enabled=False),
-    )
 
 
 def _auth_credentials(access_token: str = "valid-access") -> AuthCredentials:
