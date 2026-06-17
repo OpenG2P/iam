@@ -7,6 +7,7 @@ from openg2p_fastapi_common.service import BaseService
 from pydantic import BaseModel
 
 from iam_core.models import LoginProvider
+from iam_core.schemas import TokenEndpointAuthMethod
 from iam_core.user_auth.config import Settings
 
 _CACHE_TTL_SECONDS = 60
@@ -22,8 +23,12 @@ class _ApiLoginProvider(BaseModel):
     server_metadata_url: str | None = None
     audiences: str | None = None
     adapter_name: str | None = None
-    token_endpoint_auth_method: str | None = None
+    token_endpoint_auth_method: TokenEndpointAuthMethod | None = None
     client_id: str | None = None
+    client_secret: str | None = None
+    keymanager_app_id: str | None = None
+    keymanager_ref_id: str | None = None
+    jwt_assertion_aud: str | None = None
 
     # Fields expected by OidcClient.get_server_metadata cache key
     id: int | None = None
@@ -54,10 +59,13 @@ class ProviderRepository(BaseService):
             if now - ts < _CACHE_TTL_SECONDS:
                 return cached
             del self._by_id_cache[provider_id]
-        lp = await LoginProvider.get_by_id(provider_id)
-        if lp is not None:
-            self._by_id_cache[provider_id] = (lp, now)
-        return lp
+        try:
+            lp = await LoginProvider.get_by_id(provider_id)
+            if lp is not None:
+                self._by_id_cache[provider_id] = (lp, now)
+            return lp
+        except Exception:
+            return None
 
     async def get_by_iss(self, issuer: str):
         # Try DB first

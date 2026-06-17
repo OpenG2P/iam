@@ -8,6 +8,8 @@ from .oidc_interface import OIDCInterface
 
 
 class OIDCBase(BaseService, OIDCInterface):
+    name = "default_oidc"
+
     def __init__(self, oidc_client: OidcClient | None = None):
         super().__init__()
         self.oidc_client = oidc_client or OidcClient()
@@ -41,6 +43,22 @@ class OIDCBase(BaseService, OIDCInterface):
             login_provider=login_provider,
             code=code,
             code_verifier=code_verifier,
+            keymanager_helper=keymanager_helper,
+            server_metadata=server_metadata,
+            **kw,
+        )
+
+    async def refresh_access_token(
+        self,
+        login_provider: LoginProvider,
+        refresh_token: str,
+        keymanager_helper=None,
+        server_metadata: dict | None = None,
+        **kw,
+    ) -> dict[str, Any]:
+        return await self.oidc_client.refresh_access_token(
+            login_provider=login_provider,
+            refresh_token=refresh_token,
             keymanager_helper=keymanager_helper,
             server_metadata=server_metadata,
             **kw,

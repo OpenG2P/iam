@@ -1,13 +1,13 @@
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
-from fastapi import Depends
+from fastapi import Request
 from fastapi_cache.decorator import cache
-from iam_core.schemas import AuthPrincipal
-from iam_core.user_auth.dependencies import auth_principal, require_auth
 from openg2p_fastapi_common.context import dbengine
 from openg2p_fastapi_common.controller import BaseController
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from iam_core.user_auth.decorators import requires_auth
 
 from ..cache import role_cache_key
 from ..config import Settings
@@ -57,13 +57,12 @@ class UserAccessController(BaseController):
             methods=["POST"],
         )
 
+    @requires_auth
     async def get_staff_portal_applications(
         self,
-        auth: Annotated[
-            AuthPrincipal,
-            Depends(require_auth(auth_principal)),
-        ],
+        request: Request,
     ) -> List[StaffPortalApplicationResponse]:
+        auth = request.state.auth
         client_roles = auth.client_roles or {}
         allowed_mnemonics = list(client_roles.keys())
 
@@ -95,14 +94,13 @@ class UserAccessController(BaseController):
             for app in apps
         ]
 
+    @requires_auth
     async def get_application_permissions_for_user(
         self,
-        auth: Annotated[
-            AuthPrincipal,
-            Depends(require_auth(auth_principal)),
-        ],
+        request: Request,
         application_mnemonic: Optional[str] = None,
     ) -> List[ApplicationPermissionResponse]:
+        auth = request.state.auth
         client_roles = auth.client_roles or {}
         if not client_roles:
             return []
@@ -119,7 +117,6 @@ class UserAccessController(BaseController):
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             for client_id, roles in client_roles_items:
-                # Find the application by mnemonic (= Keycloak client_id).
                 stmt = select(StaffPortalApplication).where(
                     StaffPortalApplication.application_mnemonic == client_id,
                     StaffPortalApplication.active == True,  # noqa: E712
@@ -128,7 +125,6 @@ class UserAccessController(BaseController):
                 if not app_row:
                     continue
 
-                # Find role IDs matching the token roles for this application.
                 role_stmt = select(StaffRole).where(
                     StaffRole.application_id == app_row.id,
                     StaffRole.role_mnemonic.in_(roles),
@@ -140,7 +136,6 @@ class UserAccessController(BaseController):
                 if not role_ids:
                     continue
 
-                # Get permission IDs mapped to those roles.
                 mapping_stmt = select(StaffRolePermission.permission_id).where(
                     StaffRolePermission.role_id.in_(role_ids),
                     StaffRolePermission.active == True,  # noqa: E712
@@ -150,7 +145,6 @@ class UserAccessController(BaseController):
                 if not permission_ids:
                     continue
 
-                # Get the permission details.
                 permission_stmt = select(StaffApplicationPermission).where(
                     StaffApplicationPermission.id.in_(permission_ids),
                     StaffApplicationPermission.active == True,  # noqa: E712

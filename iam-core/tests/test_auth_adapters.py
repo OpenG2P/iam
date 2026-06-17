@@ -1,15 +1,13 @@
 import types
 
-import pytest
 
 from iam_core.schemas import AuthCredentials
 from iam_core.user_auth.adapters.implementations.esignet_adapter import EsignetAdapter
 from iam_core.user_auth.adapters.implementations.keycloak_adapter import KeycloakAdapter
-from iam_core.user_auth.dependencies import auth_principal
+from iam_core.user_auth.helpers.auth_user_helper import auth_principal_from_credentials
 
 
-@pytest.mark.asyncio
-async def test_auth_principal_extracts_client_roles_without_user_type():
+def test_auth_principal_extracts_client_roles_without_user_type():
     credentials = AuthCredentials.model_validate(
         {
             "credentials": "token",
@@ -20,7 +18,7 @@ async def test_auth_principal_extracts_client_roles_without_user_type():
         }
     )
 
-    principal = await auth_principal(credentials)
+    principal = auth_principal_from_credentials(credentials)
 
     assert principal.sub == "user-1"
     assert principal.name == "Test User"

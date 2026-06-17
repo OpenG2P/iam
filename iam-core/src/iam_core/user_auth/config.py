@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     auth_transaction_store_backend: Literal["memory", "redis"] = "memory"
     auth_redis_url: str = "redis://localhost:6379/0"
+    auth_refresh_token_ttl_seconds: int = 2592000
 
     auth_default_id_token_verify_at_hash: bool = True
 
