@@ -2,20 +2,23 @@ from fastapi import Request
 from openg2p_fastapi_common.errors.base_exception import BaseAppException
 from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 
+from .dependencies import validate_request_tokens
+from .errors import ExpiredTokenError
 from .helpers import (
     apply_refreshed_tokens_to_request,
     access_token_from_request,
-    is_access_token_expired,
     set_auth_cookies,
     user_auth_error_response,
 )
+from .helpers.cookie_helper import AUTH_ID_TOKEN_COOKIE_NAME
 from .middleware_base import UserAuthMiddlewareBase
 
 
 class RefreshTokenMiddleware(UserAuthMiddlewareBase):
     """Refresh expired access tokens for dependency-protected IAM endpoints.
 
-    Uses a lightweight ``exp`` check only; full validation remains in dependencies.
+    Validates tokens first; refresh is attempted only when validation fails
+    due to token expiry.
     """
 
     def __init__(self, app, *, protected_route_names: set[str]):
@@ -36,13 +39,20 @@ class RefreshTokenMiddleware(UserAuthMiddlewareBase):
             request.scope["route"] = matched_route
 
             access_token = access_token_from_request(request)
-            if access_token and is_access_token_expired(access_token):
-                refreshed_tokens = await self._refresh_tokens(request)
-                if not refreshed_tokens:
-                    raise UnauthorizedError(
-                        message="Unauthorized. Access token expired and refresh failed.",
-                    ) from None
-                apply_refreshed_tokens_to_request(request, refreshed_tokens)
+            if access_token:
+                try:
+                    await validate_request_tokens(
+                        request,
+                        jwt_token=access_token,
+                        jwt_id_token=request.cookies.get(AUTH_ID_TOKEN_COOKIE_NAME),
+                    )
+                except ExpiredTokenError:
+                    refreshed_tokens = await self._refresh_tokens(request)
+                    if not refreshed_tokens:
+                        raise UnauthorizedError(
+                            message="Unauthorized. Access token expired and refresh failed.",
+                        ) from None
+                    apply_refreshed_tokens_to_request(request, refreshed_tokens)
 
             response = await call_next(request)
             if refreshed_tokens:

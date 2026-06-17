@@ -601,8 +601,8 @@ async def test_refresh_token_middleware_refreshes_expired_token_and_updates_cook
     with (
         patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.is_access_token_expired",
-            return_value=True,
+            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
+            AsyncMock(side_effect=ExpiredTokenError()),
         ),
         patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=refreshed_tokens)),
     ):
@@ -614,6 +614,41 @@ async def test_refresh_token_middleware_refreshes_expired_token_and_updates_cook
     assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
     assert AUTH_SESSION_COOKIE_NAME not in cookie_names
     assert request.headers.get("authorization") == "Bearer fresh-access"
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_middleware_skips_refresh_when_token_is_valid():
+    middleware = RefreshTokenMiddleware(
+        app=MagicMock(),
+        protected_route_names={"get_user_profile"},
+    )
+    request = _make_request(
+        cookies={
+            AUTH_ACCESS_TOKEN_COOKIE_NAME: "valid-access",
+            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
+        },
+    )
+
+    route = MagicMock()
+    route.name = "get_user_profile"
+    route.endpoint = MagicMock()
+
+    downstream = Response(content=b"ok", status_code=200)
+    call_next = AsyncMock(return_value=downstream)
+
+    with (
+        patch.object(middleware, "_match_route", return_value=route),
+        patch(
+            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
+            AsyncMock(return_value=MagicMock()),
+        ) as mock_validate,
+        patch.object(middleware, "_refresh_tokens", AsyncMock()) as mock_refresh,
+    ):
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 200
+    mock_validate.assert_awaited_once()
+    mock_refresh.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -633,14 +668,14 @@ async def test_refresh_token_middleware_skips_unprotected_routes():
     with (
         patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.is_access_token_expired",
-            return_value=True,
-        ) as mock_is_expired,
+            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
+            AsyncMock(),
+        ) as mock_validate,
     ):
         response = await middleware.dispatch(request, call_next)
 
     assert response.status_code == 200
-    mock_is_expired.assert_not_called()
+    mock_validate.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -663,8 +698,8 @@ async def test_refresh_token_middleware_raises_unauthorized_when_refresh_fails()
     with (
         patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.is_access_token_expired",
-            return_value=True,
+            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
+            AsyncMock(side_effect=ExpiredTokenError()),
         ),
         patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=None)),
     ):
