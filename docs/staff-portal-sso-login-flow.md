@@ -171,7 +171,7 @@ To get true login once, access many OpenG2P services:
 
 ## Important current constraint
 
-Current cookie write uses no explicit `domain` attribute (host cookie).  
+Current cookie write uses no explicit `domain` attribute (host cookie).
 That means cross-service SSO works naturally when services are under the same host (for example path-based routing), but not automatically across unrelated hosts/subdomains.
 
 If Registry/PBMS are separate hosts, use either:

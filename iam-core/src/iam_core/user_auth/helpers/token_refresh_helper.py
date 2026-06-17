@@ -7,10 +7,7 @@ from .cookie_helper import AUTH_ACCESS_TOKEN_COOKIE_NAME, AUTH_ID_TOKEN_COOKIE_N
 
 
 def access_token_from_request(request: Request) -> str | None:
-    jwt_token = (
-        request.headers.get("Authorization")
-        or request.cookies.get(AUTH_ACCESS_TOKEN_COOKIE_NAME)
-    )
+    jwt_token = request.headers.get("Authorization") or request.cookies.get(AUTH_ACCESS_TOKEN_COOKIE_NAME)
     if not jwt_token:
         return None
     return jwt_token.removeprefix("Bearer ").strip() or None
@@ -36,11 +33,7 @@ def apply_refreshed_tokens_to_request(request: Request, token_response: dict) ->
         cookies[AUTH_ID_TOKEN_COOKIE_NAME] = id_token
 
     cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
-    headers = [
-        (k, v)
-        for k, v in request.scope["headers"]
-        if k.lower() not in (b"cookie", b"authorization")
-    ]
+    headers = [(k, v) for k, v in request.scope["headers"] if k.lower() not in (b"cookie", b"authorization")]
     headers.append((b"authorization", f"Bearer {access_token}".encode("latin-1")))
     headers.append((b"cookie", cookie_header.encode("latin-1")))
     request.scope["headers"] = headers

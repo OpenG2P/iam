@@ -527,7 +527,9 @@ async def test_middleware_refreshes_expired_token_and_updates_access_cookies_onl
 
     route = MagicMock()
     route.endpoint = MagicMock()
-    principal = AuthPrincipal(credentials="fresh-access", sub="user-1", client_roles={"portal-client": ["admin"]})
+    principal = AuthPrincipal(
+        credentials="fresh-access", sub="user-1", client_roles={"portal-client": ["admin"]}
+    )
     refreshed_tokens = _token_response(sid="kc-session-123", access_token="fresh-access")
 
     downstream = Response(content=b"ok", status_code=200)

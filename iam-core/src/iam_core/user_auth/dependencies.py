@@ -52,9 +52,8 @@ class JwtBearerAuth(HTTPBearer):
         if not config_dict.get("auth_enabled", None):
             return None
 
-        jwt_token = (
-            request.headers.get("Authorization", None)
-            or request.cookies.get(AUTH_ACCESS_TOKEN_COOKIE_NAME, None)
+        jwt_token = request.headers.get("Authorization", None) or request.cookies.get(
+            AUTH_ACCESS_TOKEN_COOKIE_NAME, None
         )
         jwt_id_token = request.cookies.get(AUTH_ID_TOKEN_COOKIE_NAME, None)
         if jwt_token:
