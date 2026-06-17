@@ -11,24 +11,22 @@ from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 from starlette.requests import Request
 from starlette.responses import Response
 
-from iam_core.schemas import AuthPrincipal, RefreshTokenRecord
+from iam_core.schemas import AuthCredentials, AuthPrincipal, RefreshTokenRecord
 from iam_core.services.auth_service import AuthService
 from iam_core.services.redis_refresh_token_store import RedisRefreshTokenStore
 from iam_core.services.token_validator_service import TokenValidatorService
 from iam_core.user_auth.config import ApiAuthSettings
-from iam_core.user_auth.dependencies import JwtBearerAuth, authenticate_token_response
 from iam_core.user_auth.errors import ExpiredTokenError
+from iam_core.user_auth.enums import AuthCookieName
+from iam_core.user_auth.jwt_bearer import JwtBearerAuth
 from iam_core.user_auth.helpers.cookie_helper import (
-    AUTH_ACCESS_TOKEN_COOKIE_NAME,
-    AUTH_ID_TOKEN_COOKIE_NAME,
-    AUTH_SESSION_COOKIE_NAME,
     clear_auth_cookies,
     oidc_session_id_from_token_response,
     set_auth_cookies,
 )
-from iam_core.user_auth.helpers.token_response_helper import validate_refresh_token_response
-from iam_core.user_auth.middleware import AuthMiddleware
-from iam_core.user_auth.refresh_token_middleware import RefreshTokenMiddleware
+from iam_core.user_auth.helpers.token_helper import REFRESH_FAILED_MESSAGE, validate_refresh_token_response
+from iam_core.user_auth.middleware import ResolvePermissionMiddleware, ValidateAndRefreshTokenMiddleware
+from iam_core.user_auth.decorators import require_permissions, requires_auth
 
 
 def _fake_jwt(claims: dict) -> str:
@@ -137,9 +135,9 @@ def test_set_auth_cookies_sets_access_id_and_session_on_login():
     set_auth_cookies(response, token_response, session_id="kc-session-123")
 
     cookie_names = _set_cookie_names(response)
-    assert AUTH_ACCESS_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_SESSION_COOKIE_NAME in cookie_names
+    assert AuthCookieName.ACCESS_TOKEN in cookie_names
+    assert AuthCookieName.ID_TOKEN in cookie_names
+    assert AuthCookieName.SESSION in cookie_names
 
 
 def test_set_auth_cookies_on_refresh_does_not_reset_session_cookie():
@@ -149,9 +147,9 @@ def test_set_auth_cookies_on_refresh_does_not_reset_session_cookie():
     set_auth_cookies(response, token_response)
 
     cookie_names = _set_cookie_names(response)
-    assert AUTH_ACCESS_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_SESSION_COOKIE_NAME not in cookie_names
+    assert AuthCookieName.ACCESS_TOKEN in cookie_names
+    assert AuthCookieName.ID_TOKEN in cookie_names
+    assert AuthCookieName.SESSION not in cookie_names
 
 
 def test_clear_auth_cookies_removes_all_auth_cookies():
@@ -161,9 +159,9 @@ def test_clear_auth_cookies_removes_all_auth_cookies():
     clear_auth_cookies(response)
 
     cleared = " ".join(value.decode() for _, value in response.raw_headers)
-    assert AUTH_ACCESS_TOKEN_COOKIE_NAME in cleared
-    assert AUTH_ID_TOKEN_COOKIE_NAME in cleared
-    assert AUTH_SESSION_COOKIE_NAME in cleared
+    assert AuthCookieName.ACCESS_TOKEN in cleared
+    assert AuthCookieName.ID_TOKEN in cleared
+    assert AuthCookieName.SESSION in cleared
 
 
 def test_refresh_token_store_persists_only_refresh_token_data():
@@ -458,46 +456,14 @@ async def test_token_validator_raises_unauthorized_for_non_expiry_jose_error():
 
 
 @pytest.mark.asyncio
-async def test_authenticate_token_response_validates_refreshed_tokens():
-    request = MagicMock()
-    request.scope = {"route": MagicMock(name="test_route")}
-    token_response = {"access_token": "fresh-access", "id_token": "fresh-id"}
-
-    mock_credentials = types.SimpleNamespace(
-        model_dump=lambda: {
-            "credentials": "fresh-access",
-            "sub": "user-1",
-            "resource_access": {"portal": {"roles": ["admin"]}},
-        },
-        scheme="bearer",
-        name=None,
-        credentials="fresh-access",
-    )
-    mock_validator = types.SimpleNamespace(
-        validate=AsyncMock(return_value=mock_credentials),
-    )
-
-    with patch.object(TokenValidatorService, "get_component", return_value=mock_validator):
-        principal = await authenticate_token_response(request, token_response)
-
-    mock_validator.validate.assert_awaited_once_with(
-        jwt_token="fresh-access",
-        jwt_id_token="fresh-id",
-        api_auth_settings=ApiAuthSettings(enabled=False),
-    )
-    assert principal.credentials == "fresh-access"
-    assert principal.sub == "user-1"
-
-
-@pytest.mark.asyncio
 async def test_jwt_bearer_auth_reads_tokens_from_cookies():
     auth_scheme = JwtBearerAuth()
     request = MagicMock()
     request.scope = {"route": MagicMock(name="test_route")}
     request.headers = {}
     request.cookies = {
-        AUTH_ACCESS_TOKEN_COOKIE_NAME: "cookie-access",
-        AUTH_ID_TOKEN_COOKIE_NAME: "cookie-id",
+        AuthCookieName.ACCESS_TOKEN: "cookie-access",
+        AuthCookieName.ID_TOKEN: "cookie-id",
     }
 
     mock_validator = types.SimpleNamespace(
@@ -514,65 +480,63 @@ async def test_jwt_bearer_auth_reads_tokens_from_cookies():
     )
 
 
+def _auth_credentials(access_token: str = "valid-access") -> AuthCredentials:
+    return AuthCredentials(credentials=access_token, sub="user-1")
+
+
+@requires_auth
+def _requires_auth_endpoint():
+    return None
+
+
+def _public_endpoint():
+    return None
+
+
+@require_permissions({"admin"})
+def _requires_permissions_endpoint():
+    return None
+
+
 @pytest.mark.asyncio
-async def test_middleware_refreshes_expired_token_and_updates_access_cookies_only():
-    middleware = AuthMiddleware(app=MagicMock(), client_id="portal-client")
-    request = _make_request(
-        cookies={
-            AUTH_ACCESS_TOKEN_COOKIE_NAME: "expired-access",
-            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
-        },
-        authorization="Bearer expired-access",
+async def test_resolve_permission_middleware_enforces_permissions_from_state():
+    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal-client")
+    request = _make_request()
+    request.state.auth = AuthPrincipal(
+        credentials="valid-access", sub="user-1", client_roles={"portal-client": ["admin"]}
     )
 
     route = MagicMock()
-    route.endpoint = MagicMock()
-    principal = AuthPrincipal(
-        credentials="fresh-access", sub="user-1", client_roles={"portal-client": ["admin"]}
-    )
-    refreshed_tokens = _token_response(sid="kc-session-123", access_token="fresh-access")
+    route.endpoint = _requires_permissions_endpoint
 
     downstream = Response(content=b"ok", status_code=200)
     call_next = AsyncMock(return_value=downstream)
 
     with (
-        patch.object(middleware, "_match_route", return_value=route),
-        patch.object(middleware, "get_required_permissions", return_value={"admin"}),
-        patch.object(middleware, "_authenticate", AsyncMock(side_effect=ExpiredTokenError())),
-        patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=refreshed_tokens)),
         patch(
-            "iam_core.user_auth.middleware.authenticate_token_response",
-            AsyncMock(return_value=principal),
-        ) as mock_authenticate_token_response,
-        patch.object(middleware, "_get_user_permissions", AsyncMock(return_value={"admin"})),
+            "iam_core.user_auth.middleware.resolve_permissions.match_route",
+            return_value=route,
+        ),
+        patch.object(middleware, "_fetch_permissions_for_roles", AsyncMock(return_value={"admin"})),
     ):
         response = await middleware.dispatch(request, call_next)
 
     assert response.status_code == 200
-    cookie_names = _set_cookie_names(response)
-    assert AUTH_ACCESS_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_SESSION_COOKIE_NAME not in cookie_names
-    mock_authenticate_token_response.assert_awaited_once_with(request, refreshed_tokens)
+    assert request.state.permissions == {"admin"}
 
 
 @pytest.mark.asyncio
-async def test_middleware_raises_unauthorized_when_refresh_fails():
-    middleware = AuthMiddleware(app=MagicMock(), client_id="portal-client")
-    request = MagicMock()
-    request.scope = {}
-    request.headers = {}
-    request.cookies = {}
+async def test_resolve_permission_middleware_raises_unauthorized_without_auth_state():
+    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal-client")
+    request = _make_request()
 
     route = MagicMock()
-    route.endpoint = MagicMock()
+    route.endpoint = _requires_permissions_endpoint
     call_next = AsyncMock()
 
-    with (
-        patch.object(middleware, "_match_route", return_value=route),
-        patch.object(middleware, "get_required_permissions", return_value={"admin"}),
-        patch.object(middleware, "_authenticate", AsyncMock(side_effect=ExpiredTokenError())),
-        patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=None)),
+    with patch(
+        "iam_core.user_auth.middleware.resolve_permissions.match_route",
+        return_value=route,
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -580,97 +544,160 @@ async def test_middleware_raises_unauthorized_when_refresh_fails():
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_middleware_refreshes_expired_token_and_updates_cookies():
-    middleware = RefreshTokenMiddleware(
-        app=MagicMock(),
-        protected_route_names={"get_user_profile"},
+async def test_resolve_permission_middleware_raises_forbidden_when_permissions_missing():
+    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal-client")
+    request = _make_request()
+    request.state.auth = AuthPrincipal(
+        credentials="valid-access", sub="user-1", client_roles={"portal-client": ["viewer"]}
     )
+
+    route = MagicMock()
+    route.endpoint = _requires_permissions_endpoint
+    call_next = AsyncMock()
+
+    with (
+        patch(
+            "iam_core.user_auth.middleware.resolve_permissions.match_route",
+            return_value=route,
+        ),
+        patch.object(middleware, "_fetch_permissions_for_roles", AsyncMock(return_value={"viewer"})),
+    ):
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_validate_and_refresh_runs_for_require_permissions_endpoints():
+    middleware = ValidateAndRefreshTokenMiddleware(app=MagicMock())
     request = _make_request(
         cookies={
-            AUTH_ACCESS_TOKEN_COOKIE_NAME: "expired-access",
-            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
+            AuthCookieName.ACCESS_TOKEN: "valid-access",
+            AuthCookieName.SESSION: "kc-session-123",
+        },
+    )
+
+    route = MagicMock()
+    route.endpoint = _requires_permissions_endpoint
+
+    downstream = Response(content=b"ok", status_code=200)
+    call_next = AsyncMock(return_value=downstream)
+
+    with (
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.match_route",
+            return_value=route,
+        ),
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
+            AsyncMock(return_value=_auth_credentials()),
+        ) as mock_validate,
+    ):
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 200
+    mock_validate.assert_awaited_once()
+    assert request.state.auth.credentials == "valid-access"
+
+
+@pytest.mark.asyncio
+async def test_validate_and_refresh_middleware_refreshes_expired_token_and_updates_cookies():
+    middleware = ValidateAndRefreshTokenMiddleware(app=MagicMock())
+    request = _make_request(
+        cookies={
+            AuthCookieName.ACCESS_TOKEN: "expired-access",
+            AuthCookieName.SESSION: "kc-session-123",
         },
     )
 
     route = MagicMock()
     route.name = "get_user_profile"
-    route.endpoint = MagicMock()
+    route.endpoint = _requires_auth_endpoint
     refreshed_tokens = _token_response(sid="kc-session-123", access_token="fresh-access")
 
     downstream = Response(content=b"ok", status_code=200)
     call_next = AsyncMock(return_value=downstream)
 
     with (
-        patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
-            AsyncMock(side_effect=ExpiredTokenError()),
+            "iam_core.user_auth.middleware.validate_and_refresh.match_route",
+            return_value=route,
         ),
-        patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=refreshed_tokens)),
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
+            AsyncMock(
+                side_effect=[
+                    ExpiredTokenError(),
+                    _auth_credentials("fresh-access"),
+                ],
+            ),
+        ),
+        patch.object(middleware, "_refresh_access_token", AsyncMock(return_value=refreshed_tokens)),
     ):
         response = await middleware.dispatch(request, call_next)
 
     assert response.status_code == 200
     cookie_names = _set_cookie_names(response)
-    assert AUTH_ACCESS_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_ID_TOKEN_COOKIE_NAME in cookie_names
-    assert AUTH_SESSION_COOKIE_NAME not in cookie_names
+    assert AuthCookieName.ACCESS_TOKEN in cookie_names
+    assert AuthCookieName.ID_TOKEN in cookie_names
+    assert AuthCookieName.SESSION not in cookie_names
     assert request.headers.get("authorization") == "Bearer fresh-access"
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_middleware_skips_refresh_when_token_is_valid():
-    middleware = RefreshTokenMiddleware(
-        app=MagicMock(),
-        protected_route_names={"get_user_profile"},
-    )
+async def test_validate_and_refresh_middleware_skips_refresh_when_token_is_valid():
+    middleware = ValidateAndRefreshTokenMiddleware(app=MagicMock())
     request = _make_request(
         cookies={
-            AUTH_ACCESS_TOKEN_COOKIE_NAME: "valid-access",
-            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
+            AuthCookieName.ACCESS_TOKEN: "valid-access",
+            AuthCookieName.SESSION: "kc-session-123",
         },
     )
 
     route = MagicMock()
     route.name = "get_user_profile"
-    route.endpoint = MagicMock()
+    route.endpoint = _requires_auth_endpoint
 
     downstream = Response(content=b"ok", status_code=200)
     call_next = AsyncMock(return_value=downstream)
 
     with (
-        patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
-            AsyncMock(return_value=MagicMock()),
+            "iam_core.user_auth.middleware.validate_and_refresh.match_route",
+            return_value=route,
+        ),
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
+            AsyncMock(return_value=_auth_credentials()),
         ) as mock_validate,
-        patch.object(middleware, "_refresh_tokens", AsyncMock()) as mock_refresh,
+        patch.object(middleware, "_refresh_access_token", AsyncMock()) as mock_refresh,
     ):
         response = await middleware.dispatch(request, call_next)
 
     assert response.status_code == 200
     mock_validate.assert_awaited_once()
     mock_refresh.assert_not_called()
+    assert request.state.auth.credentials == "valid-access"
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_middleware_skips_unprotected_routes():
-    middleware = RefreshTokenMiddleware(
-        app=MagicMock(),
-        protected_route_names={"get_user_profile"},
-    )
+async def test_validate_and_refresh_middleware_skips_unprotected_routes():
+    middleware = ValidateAndRefreshTokenMiddleware(app=MagicMock())
     request = _make_request()
     route = MagicMock()
     route.name = "get_login_providers"
-    route.endpoint = MagicMock()
+    route.endpoint = _public_endpoint
 
     downstream = Response(content=b"ok", status_code=200)
     call_next = AsyncMock(return_value=downstream)
 
     with (
-        patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
+            "iam_core.user_auth.middleware.validate_and_refresh.match_route",
+            return_value=route,
+        ),
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
             AsyncMock(),
         ) as mock_validate,
     ):
@@ -681,30 +708,36 @@ async def test_refresh_token_middleware_skips_unprotected_routes():
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_middleware_raises_unauthorized_when_refresh_fails():
-    middleware = RefreshTokenMiddleware(
-        app=MagicMock(),
-        protected_route_names={"get_user_profile"},
-    )
+async def test_validate_and_refresh_middleware_raises_unauthorized_when_refresh_fails():
+    middleware = ValidateAndRefreshTokenMiddleware(app=MagicMock())
     request = _make_request(
         cookies={
-            AUTH_ACCESS_TOKEN_COOKIE_NAME: "expired-access",
-            AUTH_SESSION_COOKIE_NAME: "kc-session-123",
+            AuthCookieName.ACCESS_TOKEN: "expired-access",
+            AuthCookieName.SESSION: "kc-session-123",
         },
     )
     route = MagicMock()
     route.name = "get_user_profile"
-    route.endpoint = MagicMock()
+    route.endpoint = _requires_auth_endpoint
     call_next = AsyncMock()
 
     with (
-        patch.object(middleware, "_match_route", return_value=route),
         patch(
-            "iam_core.user_auth.refresh_token_middleware.validate_request_tokens",
+            "iam_core.user_auth.middleware.validate_and_refresh.match_route",
+            return_value=route,
+        ),
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
             AsyncMock(side_effect=ExpiredTokenError()),
         ),
-        patch.object(middleware, "_refresh_tokens", AsyncMock(return_value=None)),
+        patch.object(middleware, "_refresh_access_token", AsyncMock(return_value=None)),
     ):
         response = await middleware.dispatch(request, call_next)
 
     assert response.status_code == 401
+    cookie_names = _set_cookie_names(response)
+    assert AuthCookieName.ACCESS_TOKEN in cookie_names
+    assert AuthCookieName.ID_TOKEN in cookie_names
+    assert AuthCookieName.SESSION in cookie_names
+    body = json.loads(response.body)
+    assert body["response_header"]["response_error_message"] == REFRESH_FAILED_MESSAGE

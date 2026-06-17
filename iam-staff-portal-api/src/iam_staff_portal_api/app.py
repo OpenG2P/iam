@@ -11,7 +11,7 @@ print("DB datasource:", _config.db_datasource)
 
 from iam_core.models import LoginProvider
 from iam_core.user_auth.app import Initializer as AuthInitializer
-from iam_core.user_auth.refresh_token_middleware import RefreshTokenMiddleware
+from iam_core.user_auth.middleware import ValidateAndRefreshTokenMiddleware
 from .cache import init_cache
 
 from .controllers import (
@@ -28,22 +28,12 @@ from .models import (
 )
 from .data import DataLoader
 
-STAFF_PORTAL_PROTECTED_ROUTE_NAMES = {
-    "get_user_profile",
-    "get_logged_in_user",
-    "get_staff_portal_applications",
-    "get_application_permissions_for_user",
-}
-
 
 class Initializer(AuthInitializer):
     def initialize(self, **kwargs):
         super().initialize()
 
-        self.return_app().add_middleware(
-            RefreshTokenMiddleware,
-            protected_route_names=STAFF_PORTAL_PROTECTED_ROUTE_NAMES,
-        )
+        self.return_app().add_middleware(ValidateAndRefreshTokenMiddleware)
 
         init_cache()
 
@@ -58,10 +48,9 @@ class Initializer(AuthInitializer):
         async def migrate():
             await LoginProvider.create_migrate()
             await StaffPortalApplication.create_migrate()
-            await StaffRole.create_migrate()
             await StaffApplicationPermission.create_migrate()
+            await StaffRole.create_migrate()
             await StaffRolePermission.create_migrate()
 
-            await DataLoader.run()
-
         asyncio.run(migrate())
+        DataLoader().load()

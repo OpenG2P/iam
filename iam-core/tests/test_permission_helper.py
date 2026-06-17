@@ -1,8 +1,5 @@
-from iam_core.user_auth.dependencies import enforce_resource_access
-from iam_core.user_auth.helpers.permission_helper import (
-    get_required_permissions,
-    require_permissions,
-)
+from iam_core.user_auth.decorators import get_required_permissions, require_permissions
+from iam_core.user_auth.helpers.resource_access_helper import enforce_resource_access
 
 
 class _StubStaffPortalController:

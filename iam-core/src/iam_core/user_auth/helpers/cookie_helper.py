@@ -6,16 +6,13 @@ from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 from starlette.responses import Response as StarletteResponse
 
 from iam_core.user_auth.config import Settings
+from iam_core.user_auth.enums import AuthCookieName
 
 _config = Settings.get_config(strict=False)
 
-AUTH_ACCESS_TOKEN_COOKIE_NAME = "X-Access-Token"
-AUTH_ID_TOKEN_COOKIE_NAME = "X-ID-Token"
-AUTH_SESSION_COOKIE_NAME = "X-Session-Id"
-
 
 def oidc_session_id_from_token_response(token_response: dict) -> str:
-    """Return Keycloak/OIDC ``sid`` from access or id token claims."""
+    """Return OIDC ``sid`` from tokens; this value becomes the ``SESSION`` cookie."""
     for token in (token_response.get("access_token"), token_response.get("id_token")):
         if not token:
             continue
@@ -29,7 +26,7 @@ def oidc_session_id_from_token_response(token_response: dict) -> str:
 
 
 def issuer_from_token_response(token_response: dict) -> str:
-    """Return OIDC ``iss`` from access or id token claims."""
+    """Return OIDC ``iss``; used to pick the right provider adapter on refresh/logout."""
     for token in (token_response.get("access_token"), token_response.get("id_token")):
         if not token:
             continue
@@ -43,6 +40,7 @@ def issuer_from_token_response(token_response: dict) -> str:
 
 
 def _cookie_expires(token_response: dict) -> datetime | None:
+    """Optional Set-Cookie expiry aligned with the provider's ``expires_in``."""
     if not _config.auth_cookie_set_expires:
         return None
     seconds = token_response.get("expires_in")
@@ -52,6 +50,7 @@ def _cookie_expires(token_response: dict) -> datetime | None:
 
 
 def _cookie_delete_kwargs() -> dict:
+    """Shared path/domain/flags so delete matches how cookies were originally set."""
     return {
         "path": _config.auth_cookie_path,
         "domain": _config.auth_cookie_domain,
@@ -66,11 +65,12 @@ def set_auth_cookies(
     *,
     session_id: str | None = None,
 ) -> None:
+    """Write auth cookies. Pass ``session_id`` on login only; refresh updates tokens alone."""
     delete_kwargs = _cookie_delete_kwargs()
-    response.delete_cookie(AUTH_ACCESS_TOKEN_COOKIE_NAME, **delete_kwargs)
-    response.delete_cookie(AUTH_ID_TOKEN_COOKIE_NAME, **delete_kwargs)
+    response.delete_cookie(AuthCookieName.ACCESS_TOKEN, **delete_kwargs)
+    response.delete_cookie(AuthCookieName.ID_TOKEN, **delete_kwargs)
     if session_id:
-        response.delete_cookie(AUTH_SESSION_COOKIE_NAME, **delete_kwargs)
+        response.delete_cookie(AuthCookieName.SESSION, **delete_kwargs)
 
     expires_in = _cookie_expires(token_response)
     cookie_kwargs = {
@@ -82,19 +82,20 @@ def set_auth_cookies(
         "secure": _config.auth_cookie_secure,
     }
     response.set_cookie(
-        AUTH_ACCESS_TOKEN_COOKIE_NAME,
+        AuthCookieName.ACCESS_TOKEN,
         token_response["access_token"],
         **cookie_kwargs,
     )
     if token_response.get("id_token"):
         response.set_cookie(
-            AUTH_ID_TOKEN_COOKIE_NAME,
+            AuthCookieName.ID_TOKEN,
             token_response["id_token"],
             **cookie_kwargs,
         )
     if session_id:
+        # Session cookie outlives access tokens and ties the browser to stored refresh state.
         response.set_cookie(
-            AUTH_SESSION_COOKIE_NAME,
+            AuthCookieName.SESSION,
             session_id,
             max_age=_config.auth_refresh_token_ttl_seconds,
             path=_config.auth_cookie_path,
@@ -107,7 +108,7 @@ def set_auth_cookies(
 def clear_auth_cookies(
     response: Response | StarletteResponse,
 ) -> None:
+    """Remove every auth cookie (logout)."""
     delete_kwargs = _cookie_delete_kwargs()
-    response.delete_cookie(AUTH_ACCESS_TOKEN_COOKIE_NAME, **delete_kwargs)
-    response.delete_cookie(AUTH_ID_TOKEN_COOKIE_NAME, **delete_kwargs)
-    response.delete_cookie(AUTH_SESSION_COOKIE_NAME, **delete_kwargs)
+    for name in AuthCookieName:
+        response.delete_cookie(name, **delete_kwargs)

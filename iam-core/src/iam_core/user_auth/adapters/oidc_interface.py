@@ -24,6 +24,15 @@ class OIDCInterface(ABC):
         **kw,
     ) -> dict[str, Any]: ...
 
+    async def refresh_access_token(
+        self,
+        login_provider: LoginProvider,
+        refresh_token: str,
+        keymanager_helper=None,
+        server_metadata: dict | None = None,
+        **kw,
+    ) -> dict[str, Any]: ...
+
     async def validate_callback_id_token(
         self,
         login_provider: LoginProvider,

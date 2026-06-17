@@ -1,20 +1,9 @@
-from typing import Annotated
-
-from fastapi import Depends, Request, Response
-from openg2p_fastapi_common.controller import BaseController
-from iam_core.schemas import (
-    AuthPrincipal,
-    LoginProviderHttpResponse,
-    LoggedInUserResponse,
-    StartAuthTransactionResponse,
-)
+from fastapi import Request, Response
+from iam_core.schemas import LoggedInUserResponse, LoginProviderHttpResponse, StartAuthTransactionResponse
 from iam_core.services import AuthService
-from iam_core.user_auth.dependencies import (
-    auth_principal,
-    logged_in_user,
-    require_auth,
-)
-from iam_core.user_auth.helpers import AUTH_SESSION_COOKIE_NAME, clear_auth_cookies
+from iam_core.user_auth.decorators import requires_auth, requires_user
+from iam_core.user_auth.helpers import AuthCookieName, clear_auth_cookies
+from openg2p_fastapi_common.controller import BaseController
 
 from ..config import Settings
 
@@ -53,26 +42,17 @@ class AuthController(BaseController):
             methods=["POST"],
         )
 
-    async def get_user_profile(
-        self,
-        auth: Annotated[
-            AuthPrincipal,
-            Depends(require_auth(auth_principal)),
-        ],
-    ):
+    @requires_auth
+    async def get_user_profile(self, request: Request):
+        auth = request.state.auth
         return auth.model_dump(exclude={"credentials"})
 
-    async def get_logged_in_user(
-        self,
-        user: Annotated[
-            LoggedInUserResponse,
-            Depends(logged_in_user),
-        ],
-    ) -> LoggedInUserResponse:
-        return user
+    @requires_user
+    async def get_logged_in_user(self, request: Request) -> LoggedInUserResponse:
+        return request.state.user
 
     async def logout(self, request: Request, response: Response):
-        session_id = request.cookies.get(AUTH_SESSION_COOKIE_NAME)
+        session_id = request.cookies.get(AuthCookieName.SESSION)
         self.auth_service.delete_refresh_token(session_id)
         clear_auth_cookies(response)
 

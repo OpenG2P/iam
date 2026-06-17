@@ -24,7 +24,7 @@ from iam_core.user_auth.helpers.cookie_helper import (
     issuer_from_token_response,
     oidc_session_id_from_token_response,
 )
-from iam_core.user_auth.helpers.token_response_helper import validate_refresh_token_response
+from iam_core.user_auth.helpers.token_helper import validate_refresh_token_response
 from iam_core.user_auth.oidc_client import OidcClient
 
 _config = Settings.get_config(strict=False)

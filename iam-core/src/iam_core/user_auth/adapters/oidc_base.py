@@ -8,6 +8,8 @@ from .oidc_interface import OIDCInterface
 
 
 class OIDCBase(BaseService, OIDCInterface):
+    name = "default_oidc"
+
     def __init__(self, oidc_client: OidcClient | None = None):
         super().__init__()
         self.oidc_client = oidc_client or OidcClient()

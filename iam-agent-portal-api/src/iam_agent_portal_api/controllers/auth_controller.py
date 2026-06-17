@@ -1,16 +1,10 @@
-from typing import Annotated
-
-from fastapi import Depends, Request, Response
+from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
 from openg2p_fastapi_common.controller import BaseController
-from iam_core.schemas import (
-    AuthPrincipal,
-    LoginProviderHttpResponse,
-    StartAuthTransactionResponse,
-)
+from iam_core.schemas import LoginProviderHttpResponse, StartAuthTransactionResponse
 from iam_core.services import AuthService
-from iam_core.user_auth.helpers import AUTH_SESSION_COOKIE_NAME, clear_auth_cookies, set_auth_cookies
-from iam_core.user_auth.dependencies import auth_principal, require_auth
+from iam_core.user_auth.decorators import requires_auth
+from iam_core.user_auth.helpers import AuthCookieName, clear_auth_cookies, set_auth_cookies
 
 from ..config import Settings
 
@@ -45,17 +39,13 @@ class AuthController(BaseController):
         )
         self.router.add_api_route("/callback", self.oauth_callback, methods=["GET"])
 
-    async def get_user_profile(
-        self,
-        auth: Annotated[
-            AuthPrincipal,
-            Depends(require_auth(auth_principal)),
-        ],
-    ):
+    @requires_auth
+    async def get_user_profile(self, request: Request):
+        auth = request.state.auth
         return auth.model_dump(exclude={"credentials"})
 
     async def logout(self, request: Request, response: Response):
-        session_id = request.cookies.get(AUTH_SESSION_COOKIE_NAME)
+        session_id = request.cookies.get(AuthCookieName.SESSION)
         self.auth_service.delete_refresh_token(session_id)
         clear_auth_cookies(response)
 

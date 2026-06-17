@@ -6,17 +6,7 @@ from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import ForbiddenError
 from iam_core.services.token_validator_service import TokenValidatorService
 from iam_core.user_auth.config import ApiAuthSettings
-from iam_core.user_auth.dependencies import claim_in, require_auth
-
-
-@pytest.mark.asyncio
-async def test_require_auth_returns_auth_object():
-    checker = require_auth()
-    auth = {"sub": "user-1", "roles": ["staff"]}
-
-    result = await checker(auth=auth)
-
-    assert result is auth
+from iam_core.user_auth.helpers.claims_helper import claim_in
 
 
 @pytest.mark.asyncio
