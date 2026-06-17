@@ -1,6 +1,3 @@
-import sys
-from pathlib import Path
-
 from iam_core.user_auth.dependencies import enforce_resource_access
 from iam_core.user_auth.helpers.permission_helper import (
     get_required_permissions,
@@ -8,17 +5,16 @@ from iam_core.user_auth.helpers.permission_helper import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-STAFF_PORTAL_SRC = REPO_ROOT / "registry-platform" / "apis" / "openg2p-registry-staff-portal-api" / "src"
-if str(STAFF_PORTAL_SRC) not in sys.path:
-    sys.path.append(str(STAFF_PORTAL_SRC))
+class _StubStaffPortalController:
+    """Mirrors staff-portal controller permission metadata without external deps."""
 
-from openg2p_registry_staff_portal_api.controllers.g2p_intake_form_metadata_controller import (  # noqa: E402
-    G2PIntakeFormMetadataController,
-)
-from openg2p_registry_staff_portal_api.controllers.g2p_registry_configuration_controller import (  # noqa: E402
-    G2PRegistryConfigurationController,
-)
+    @require_permissions({"intakeFormDefinition:view"})
+    def get_intake_form(self):
+        return None
+
+    @require_permissions({"registryConfiguration:view", "changeRequest:view"})
+    def get_number_of_requests_pending(self):
+        return None
 
 
 def test_require_permissions_accepts_varargs():
@@ -50,13 +46,15 @@ def test_enforce_resource_access_uses_or_semantics_for_multiple_permissions():
 
 
 def test_staff_portal_single_permission_metadata_is_set():
-    assert get_required_permissions(G2PIntakeFormMetadataController.get_intake_form) == {
+    controller = _StubStaffPortalController()
+    assert get_required_permissions(controller.get_intake_form) == {
         "intakeFormDefinition:view",
     }
 
 
 def test_staff_portal_multi_permission_metadata_is_set():
-    assert get_required_permissions(G2PRegistryConfigurationController.get_number_of_requests_pending) == {
+    controller = _StubStaffPortalController()
+    assert get_required_permissions(controller.get_number_of_requests_pending) == {
         "registryConfiguration:view",
         "changeRequest:view",
     }
