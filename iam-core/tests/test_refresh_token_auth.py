@@ -104,6 +104,16 @@ def _make_refresh_token_store(*, ttl_seconds: int = 3600) -> RedisRefreshTokenSt
     return store
 
 
+def _patch_auth_service(*, has_active_session: bool = True):
+    """Middleware tests with X-Session-Id must mock Redis refresh-session lookup."""
+    mock_auth_service = MagicMock()
+    mock_auth_service.has_active_refresh_session.return_value = has_active_session
+    mock_auth_service_cls = MagicMock()
+    mock_auth_service_cls.get_component.return_value = mock_auth_service
+    mock_auth_service_cls.return_value = mock_auth_service
+    return patch("iam_core.services.AuthService", mock_auth_service_cls)
+
+
 def test_oidc_session_id_from_token_response_uses_access_token_sid():
     token_response = _token_response(sid="sid-from-access")
 
@@ -570,6 +580,7 @@ async def test_validate_and_refresh_runs_for_require_permissions_endpoints():
             "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
             AsyncMock(return_value=_auth_credentials()),
         ) as mock_validate,
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -611,6 +622,7 @@ async def test_validate_and_refresh_middleware_refreshes_expired_token_and_updat
             ),
         ),
         patch.object(middleware, "_refresh_access_token", AsyncMock(return_value=refreshed_tokens)),
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -649,6 +661,7 @@ async def test_validate_and_refresh_middleware_skips_refresh_when_token_is_valid
             AsyncMock(return_value=_auth_credentials()),
         ) as mock_validate,
         patch.object(middleware, "_refresh_access_token", AsyncMock()) as mock_refresh,
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -709,6 +722,7 @@ async def test_validate_and_refresh_middleware_raises_unauthorized_when_refresh_
             AsyncMock(side_effect=ExpiredTokenError()),
         ),
         patch.object(middleware, "_refresh_access_token", AsyncMock(return_value=None)),
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
