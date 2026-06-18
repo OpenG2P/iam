@@ -14,6 +14,7 @@ from ..helpers.auth_user_helper import auth_principal_from_credentials, build_lo
 from ..helpers.route_helper import match_route
 from ..helpers.token_helper import (
     REFRESH_FAILED_MESSAGE,
+    SESSION_INVALIDATED_MESSAGE,
     access_token_and_id_token_from_request,
     validate_request_token,
 )
@@ -66,8 +67,21 @@ class ValidateAndRefreshTokenMiddleware(BaseHTTPMiddleware):
         auth_service = AuthService.get_component() or AuthService()
         return await auth_service.refresh_access_token(session_id)
 
+    def _ensure_refresh_session_active(self, request: Request) -> None:
+        """Reject requests when the browser session no longer has stored refresh state."""
+        session_id = request.cookies.get(AuthCookieName.SESSION)
+        if not session_id:
+            return
+
+        from iam_core.services import AuthService
+
+        auth_service = AuthService.get_component() or AuthService()
+        if not auth_service.has_active_refresh_session(session_id):
+            raise UnauthorizedError(message=SESSION_INVALIDATED_MESSAGE)
+
     async def _authenticate_with_refresh(self, request: Request) -> tuple[AuthPrincipal, dict | None]:
         """Validate tokens; on expiry, refresh via session cookie and re-validate."""
+        self._ensure_refresh_session_active(request)
         access_token, id_token = access_token_and_id_token_from_request(request)
         if not access_token:
             raise UnauthorizedError()
@@ -123,6 +137,9 @@ class ValidateAndRefreshTokenMiddleware(BaseHTTPMiddleware):
             return response
         except BaseAppException as exc:
             response = user_auth_error_response(request, exc)
-            if isinstance(exc, UnauthorizedError) and exc.message == REFRESH_FAILED_MESSAGE:
+            if isinstance(exc, UnauthorizedError) and exc.message in (
+                REFRESH_FAILED_MESSAGE,
+                SESSION_INVALIDATED_MESSAGE,
+            ):
                 clear_auth_cookies(response)
             return response

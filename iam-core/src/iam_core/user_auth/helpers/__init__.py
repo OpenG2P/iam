@@ -23,6 +23,7 @@ from .auth_user_helper import (
 from .route_helper import match_route, match_route_in_routes, resolve_matched_route
 from .token_helper import (
     REFRESH_FAILED_MESSAGE,
+    SESSION_INVALIDATED_MESSAGE,
     access_token_and_id_token_from_request,
     validate_refresh_token_response,
     validate_request_token,
@@ -31,6 +32,7 @@ from .token_helper import (
 __all__ = [
     "AuthCookieName",
     "REFRESH_FAILED_MESSAGE",
+    "SESSION_INVALIDATED_MESSAGE",
     "access_token_and_id_token_from_request",
     "auth_from_request",
     "auth_principal_from_credentials",

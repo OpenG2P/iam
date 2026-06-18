@@ -120,6 +120,19 @@ class OIDCBase(BaseService, OIDCInterface):
             iss=iss,
         )
 
+    async def decode_logout_token(
+        self,
+        login_provider: LoginProvider,
+        logout_token: str,
+        iss: str | None = None,
+    ) -> dict[str, Any]:
+        return await self.oidc_client.decode_jwt(
+            login_provider=login_provider,
+            token=logout_token,
+            verify_exp=True,
+            iss=iss,
+        )
+
     async def introspect_token(
         self,
         login_provider: LoginProvider,
