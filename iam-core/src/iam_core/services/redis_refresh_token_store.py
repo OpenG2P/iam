@@ -15,7 +15,7 @@ class RedisRefreshTokenStore(BaseService):
 
     def __init__(self, ttl_seconds: int | None = None, redis_url: str | None = None):
         super().__init__()
-        self._ttl = ttl_seconds or getattr(_config, "auth_refresh_token_ttl_seconds", 2592000)
+        self._ttl = ttl_seconds or getattr(_config, "auth_refresh_token_ttl_seconds", 1800)
         self._redis_url = redis_url or getattr(_config, "auth_redis_url", "redis://localhost:6379/0")
         self._client = None
 

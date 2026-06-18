@@ -62,6 +62,13 @@ class OIDCInterface(ABC):
         iss: str | None = None,
     ) -> dict[str, Any]: ...
 
+    async def decode_logout_token(
+        self,
+        login_provider: LoginProvider,
+        logout_token: str,
+        iss: str | None = None,
+    ) -> dict[str, Any]: ...
+
     async def introspect_token(
         self,
         login_provider: LoginProvider,

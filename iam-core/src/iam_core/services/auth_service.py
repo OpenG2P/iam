@@ -24,6 +24,7 @@ from iam_core.user_auth.helpers.cookie_helper import (
     issuer_from_token_response,
     oidc_session_id_from_token_response,
 )
+from iam_core.user_auth.helpers.logout_token_helper import session_id_from_logout_token_claims
 from iam_core.user_auth.helpers.token_helper import validate_refresh_token_response
 from iam_core.user_auth.oidc_client import OidcClient
 
@@ -197,6 +198,35 @@ class AuthService(BaseService):
 
     def delete_refresh_token(self, session_id: str | None) -> None:
         self._refresh_token_store.delete(session_id)
+
+    def has_active_refresh_session(self, session_id: str | None) -> bool:
+        """Return False when a browser session cookie has no stored refresh token."""
+        if not session_id:
+            return True
+        return self._refresh_token_store.get(session_id) is not None
+
+    async def handle_backchannel_logout(self, logout_token: str) -> None:
+        """Validate a Keycloak back-channel logout token and remove the stored refresh token."""
+        try:
+            unverified_payload = jose_jwt.get_unverified_claims(logout_token)
+        except Exception as exc:
+            raise UnauthorizedError(
+                message=f"Unauthorized. Invalid logout token: {exc!r}",
+            ) from exc
+
+        issuer = unverified_payload.get("iss")
+        login_provider = await self.provider_repository.get_by_iss(issuer)
+        if not login_provider:
+            raise UnauthorizedError(message=f"Unauthorized. Unknown Issuer. {issuer}")
+
+        adapter = self._adapters.resolve_for_provider(login_provider)
+        claims = await adapter.decode_logout_token(
+            login_provider=login_provider,
+            logout_token=logout_token,
+            iss=issuer,
+        )
+        session_id = session_id_from_logout_token_claims(claims, login_provider)
+        self.delete_refresh_token(session_id)
 
     async def get_oauth_validation_data(
         self,

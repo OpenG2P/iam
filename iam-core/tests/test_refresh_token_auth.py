@@ -23,7 +23,11 @@ from iam_core.user_auth.helpers.cookie_helper import (
     oidc_session_id_from_token_response,
     set_auth_cookies,
 )
-from iam_core.user_auth.helpers.token_helper import REFRESH_FAILED_MESSAGE, validate_refresh_token_response
+from iam_core.user_auth.helpers.token_helper import (
+    REFRESH_FAILED_MESSAGE,
+    SESSION_INVALIDATED_MESSAGE,
+    validate_refresh_token_response,
+)
 from iam_core.user_auth.middleware import ResolvePermissionMiddleware, ValidateAndRefreshTokenMiddleware
 from iam_core.user_auth.decorators import require_permissions, requires_auth
 
@@ -98,6 +102,16 @@ def _make_refresh_token_store(*, ttl_seconds: int = 3600) -> RedisRefreshTokenSt
     store = RedisRefreshTokenStore(ttl_seconds=ttl_seconds)
     store._client = _fake_redis_client()
     return store
+
+
+def _patch_auth_service(*, has_active_session: bool = True):
+    """Middleware tests with X-Session-Id must mock Redis refresh-session lookup."""
+    mock_auth_service = MagicMock()
+    mock_auth_service.has_active_refresh_session.return_value = has_active_session
+    mock_auth_service_cls = MagicMock()
+    mock_auth_service_cls.get_component.return_value = mock_auth_service
+    mock_auth_service_cls.return_value = mock_auth_service
+    return patch("iam_core.services.AuthService", mock_auth_service_cls)
 
 
 def test_oidc_session_id_from_token_response_uses_access_token_sid():
@@ -566,6 +580,7 @@ async def test_validate_and_refresh_runs_for_require_permissions_endpoints():
             "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
             AsyncMock(return_value=_auth_credentials()),
         ) as mock_validate,
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -607,6 +622,7 @@ async def test_validate_and_refresh_middleware_refreshes_expired_token_and_updat
             ),
         ),
         patch.object(middleware, "_refresh_access_token", AsyncMock(return_value=refreshed_tokens)),
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -645,6 +661,7 @@ async def test_validate_and_refresh_middleware_skips_refresh_when_token_is_valid
             AsyncMock(return_value=_auth_credentials()),
         ) as mock_validate,
         patch.object(middleware, "_refresh_access_token", AsyncMock()) as mock_refresh,
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -705,6 +722,7 @@ async def test_validate_and_refresh_middleware_raises_unauthorized_when_refresh_
             AsyncMock(side_effect=ExpiredTokenError()),
         ),
         patch.object(middleware, "_refresh_access_token", AsyncMock(return_value=None)),
+        _patch_auth_service(),
     ):
         response = await middleware.dispatch(request, call_next)
 
@@ -715,3 +733,105 @@ async def test_validate_and_refresh_middleware_raises_unauthorized_when_refresh_
     assert AuthCookieName.SESSION in cookie_names
     body = json.loads(response.body)
     assert body["response_header"]["response_error_message"] == REFRESH_FAILED_MESSAGE
+
+
+def test_has_active_refresh_session_returns_false_when_missing():
+    store = _make_refresh_token_store()
+    service = AuthService()
+    service._refresh_token_store = store
+
+    assert service.has_active_refresh_session("missing-session") is False
+
+
+def test_has_active_refresh_session_returns_true_when_present():
+    store = _make_refresh_token_store()
+    service = AuthService()
+    service._refresh_token_store = store
+    service.store_refresh_token(token_response=_token_response(sid="sid-99"))
+
+    assert service.has_active_refresh_session("sid-99") is True
+
+
+@pytest.mark.asyncio
+async def test_handle_backchannel_logout_deletes_refresh_token_by_sid():
+    store = _make_refresh_token_store()
+    service = AuthService()
+    service._refresh_token_store = store
+    service.store_refresh_token(token_response=_token_response(sid="sid-bc-logout"))
+
+    login_provider = MagicMock()
+    login_provider.client_id = "staff-portal"
+    login_provider.audiences_list = ["staff-portal"]
+
+    adapter = MagicMock()
+    adapter.decode_logout_token = AsyncMock(
+        return_value={
+            "iss": "https://keycloak.example.com/realms/staff",
+            "aud": "staff-portal",
+            "sid": "sid-bc-logout",
+            "events": {"http://schemas.openid.net/event/backchannel-logout": {}},
+        }
+    )
+
+    service.provider_repository = types.SimpleNamespace(
+        get_by_iss=AsyncMock(return_value=login_provider),
+    )
+    service._adapters = types.SimpleNamespace(
+        resolve_for_provider=lambda _provider: adapter,
+    )
+
+    logout_token = _fake_jwt(
+        {
+            "iss": "https://keycloak.example.com/realms/staff",
+            "aud": "staff-portal",
+            "sid": "sid-bc-logout",
+            "events": {"http://schemas.openid.net/event/backchannel-logout": {}},
+        }
+    )
+
+    await service.handle_backchannel_logout(logout_token)
+
+    assert store.get("sid-bc-logout") is None
+
+
+@pytest.mark.asyncio
+async def test_validate_and_refresh_middleware_rejects_when_refresh_token_missing_from_redis():
+    middleware = ValidateAndRefreshTokenMiddleware(app=MagicMock())
+    request = _make_request(
+        cookies={
+            AuthCookieName.ACCESS_TOKEN: "valid-access",
+            AuthCookieName.SESSION: "kc-session-123",
+        },
+    )
+    route = MagicMock()
+    route.name = "get_user_profile"
+    route.endpoint = _requires_auth_endpoint
+    call_next = AsyncMock()
+
+    with (
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.match_route",
+            return_value=route,
+        ),
+        patch(
+            "iam_core.user_auth.middleware.validate_and_refresh.validate_request_token",
+            AsyncMock(),
+        ) as mock_validate,
+        patch(
+            "iam_core.services.AuthService",
+        ) as mock_auth_service_cls,
+    ):
+        mock_auth_service = MagicMock()
+        mock_auth_service.has_active_refresh_session.return_value = False
+        mock_auth_service_cls.get_component.return_value = mock_auth_service
+        response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 401
+    mock_validate.assert_not_called()
+    call_next.assert_not_called()
+    cookie_names = _set_cookie_names(response)
+    assert AuthCookieName.ACCESS_TOKEN in cookie_names
+    assert AuthCookieName.ID_TOKEN in cookie_names
+    assert AuthCookieName.SESSION in cookie_names
+    body = json.loads(response.body)
+    assert body["response_header"]["response_error_message"] == SESSION_INVALIDATED_MESSAGE

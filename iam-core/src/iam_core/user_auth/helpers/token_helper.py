@@ -9,6 +9,7 @@ from ..enums import AuthCookieName
 _config = Settings.get_config(strict=False)
 
 REFRESH_FAILED_MESSAGE = "Unauthorized. Access token expired and refresh failed."
+SESSION_INVALIDATED_MESSAGE = "Unauthorized. Session has ended."
 
 
 def access_token_and_id_token_from_request(request: Request) -> tuple[str | None, str | None]:
