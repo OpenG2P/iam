@@ -65,7 +65,7 @@ iamStaffPortalApi:
 
   image:
     repository: openg2p/iam-staff-portal-api
-    tag: "1.2.0"
+    tag: "1.2.1"
     pullPolicy: Always
 
   podSecurityContext:
