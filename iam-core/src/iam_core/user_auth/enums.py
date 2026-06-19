@@ -23,3 +23,4 @@ class AuthCookieName(StrEnum):
     ACCESS_TOKEN = "X-Access-Token"  # JWT access token; fallback when no Authorization header
     ID_TOKEN = "X-ID-Token"  # OIDC id token, paired with access token when present
     SESSION = "X-Session-Id"  # OIDC ``sid``; server-side key for silent token refresh
+    CSRF_TOKEN = "X-CSRF-Token"  # Double-submit CSRF token; readable by JS (not httponly)
