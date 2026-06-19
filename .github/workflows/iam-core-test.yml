@@ -5,13 +5,13 @@ name: Test (iam-core)
 on:
   pull_request:
     branches-ignore:
-      - 1.2
+      - 1.2.1
     paths:
       - 'iam-core/**'
       - '.github/workflows/iam-core-test.yml'
   push:
     branches-ignore:
-      - 1.2
+      - 1.2.1
     paths:
       - 'iam-core/**'
       - '.github/workflows/iam-core-test.yml'
