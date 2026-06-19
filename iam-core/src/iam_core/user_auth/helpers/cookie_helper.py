@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import secrets
 
 from fastapi import Response
 from jose import jwt as jose_jwt
@@ -59,6 +60,42 @@ def _cookie_delete_kwargs() -> dict:
     }
 
 
+def _csrf_cookie_delete_kwargs() -> dict:
+    """Delete kwargs for the CSRF cookie (not httponly)."""
+    return {
+        "path": _config.auth_cookie_path,
+        "domain": _config.auth_cookie_domain,
+        "httponly": False,
+        "secure": _config.auth_cookie_secure,
+    }
+
+
+def generate_csrf_token() -> str:
+    """Return a cryptographically secure CSRF token."""
+    return secrets.token_urlsafe(32)
+
+
+def set_csrf_cookie(
+    response: Response | StarletteResponse,
+    *,
+    token: str | None = None,
+) -> str:
+    """Write the double-submit CSRF cookie. Returns the token value."""
+    csrf_token = token or generate_csrf_token()
+    response.delete_cookie(AuthCookieName.CSRF_TOKEN, **_csrf_cookie_delete_kwargs())
+    response.set_cookie(
+        AuthCookieName.CSRF_TOKEN,
+        csrf_token,
+        max_age=_config.auth_refresh_token_ttl_seconds,
+        path=_config.auth_cookie_path,
+        domain=_config.auth_cookie_domain,
+        httponly=False,
+        secure=_config.auth_cookie_secure,
+        samesite="lax",
+    )
+    return csrf_token
+
+
 def set_auth_cookies(
     response: Response | StarletteResponse,
     token_response: dict,
@@ -103,6 +140,7 @@ def set_auth_cookies(
             httponly=True,
             secure=_config.auth_cookie_secure,
         )
+    set_csrf_cookie(response)
 
 
 def clear_auth_cookies(
@@ -110,5 +148,9 @@ def clear_auth_cookies(
 ) -> None:
     """Remove every auth cookie (logout)."""
     delete_kwargs = _cookie_delete_kwargs()
+    csrf_delete_kwargs = _csrf_cookie_delete_kwargs()
     for name in AuthCookieName:
-        response.delete_cookie(name, **delete_kwargs)
+        if name == AuthCookieName.CSRF_TOKEN:
+            response.delete_cookie(name, **csrf_delete_kwargs)
+        else:
+            response.delete_cookie(name, **delete_kwargs)

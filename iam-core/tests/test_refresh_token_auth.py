@@ -151,6 +151,7 @@ def test_set_auth_cookies_sets_access_id_and_session_on_login():
     assert AuthCookieName.ACCESS_TOKEN in cookie_names
     assert AuthCookieName.ID_TOKEN in cookie_names
     assert AuthCookieName.SESSION in cookie_names
+    assert AuthCookieName.CSRF_TOKEN in cookie_names
 
 
 def test_set_auth_cookies_on_refresh_does_not_reset_session_cookie():
@@ -163,6 +164,7 @@ def test_set_auth_cookies_on_refresh_does_not_reset_session_cookie():
     assert AuthCookieName.ACCESS_TOKEN in cookie_names
     assert AuthCookieName.ID_TOKEN in cookie_names
     assert AuthCookieName.SESSION not in cookie_names
+    assert AuthCookieName.CSRF_TOKEN in cookie_names
 
 
 def test_clear_auth_cookies_removes_all_auth_cookies():
@@ -175,6 +177,7 @@ def test_clear_auth_cookies_removes_all_auth_cookies():
     assert AuthCookieName.ACCESS_TOKEN in cleared
     assert AuthCookieName.ID_TOKEN in cleared
     assert AuthCookieName.SESSION in cleared
+    assert AuthCookieName.CSRF_TOKEN in cleared
 
 
 def test_refresh_token_store_persists_only_refresh_token_data():

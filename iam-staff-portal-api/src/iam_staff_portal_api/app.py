@@ -11,7 +11,7 @@ print("DB datasource:", _config.db_datasource)
 
 from iam_core.models import LoginProvider
 from iam_core.user_auth.app import Initializer as AuthInitializer
-from iam_core.user_auth.middleware import ValidateAndRefreshTokenMiddleware
+from iam_core.user_auth.middleware import CsrfMiddleware, ValidateAndRefreshTokenMiddleware
 from .cache import init_cache
 
 from .controllers import (
@@ -28,12 +28,31 @@ from .models import (
 )
 from .data import DataLoader
 
+# Pre-login browser flows, server-to-server callbacks, and logout (cookies cleared on response).
+IAM_STAFF_CSRF_EXCLUDED_PATHS = (
+    "/ping",
+    "/openapi.json",
+    "/docs",
+    "/redoc",
+    "/docs/oauth2-redirect",
+    "/auth/callback",
+    "/auth/get_login_providers",
+    "/auth/start_authentication_transaction",
+    "/auth/logout",
+    "/auth/backchannel-logout",
+    "/user-access/get_permissions_for_roles",
+)
+
 
 class Initializer(AuthInitializer):
     def initialize(self, **kwargs):
         super().initialize()
 
         self.return_app().add_middleware(ValidateAndRefreshTokenMiddleware)
+        self.return_app().add_middleware(
+            CsrfMiddleware,
+            excluded_paths=IAM_STAFF_CSRF_EXCLUDED_PATHS,
+        )
 
         init_cache()
 
