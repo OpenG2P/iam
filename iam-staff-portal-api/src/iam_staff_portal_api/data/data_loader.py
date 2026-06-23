@@ -129,7 +129,52 @@ class DataLoaderBase(ABC):
 
         for model in self.data_models:
             rows = self.load_dataset(model, data_dir)
-            await self.seed_if_empty(session, model, rows)
+            if model is StaffPortalApplication:
+                await self.seed_applications_by_mnemonic(session, rows)
+            else:
+                await self.seed_if_empty(session, model, rows)
+
+    async def seed_applications_by_mnemonic(
+        self,
+        session: AsyncSession,
+        rows: list[dict[str, Any]],
+    ) -> None:
+        """Idempotently seed staff_portal_applications keyed by mnemonic.
+
+        Unlike the whole-table ``seed_if_empty`` check, this inserts any seeded
+        singletons that are missing and refreshes the URL/metadata of existing
+        seeded rows (so changing IAM_STAFF_DATA_APPLICATION_URLS__* and
+        re-running migrate takes effect). Rows flagged ``is_self_registered``
+        (e.g. registries that registered themselves via the API) are never
+        touched, so seeding can run repeatedly without clobbering them.
+        """
+        if not rows:
+            return
+
+        existing_rows = (await session.execute(select(StaffPortalApplication))).scalars().all()
+        existing_by_mnemonic = {row.application_mnemonic: row for row in existing_rows}
+
+        new_rows: list[dict[str, Any]] = []
+        for row in self.coerce_rows_for_model(StaffPortalApplication, rows):
+            mnemonic = row.get("application_mnemonic")
+            existing = existing_by_mnemonic.get(mnemonic)
+
+            if existing is None:
+                new_rows.append(row)
+                continue
+
+            if existing.is_self_registered:
+                # Owned by the application itself; never overwrite from seed.
+                continue
+
+            for key, value in row.items():
+                if key in {"id", "application_mnemonic"}:
+                    continue
+                setattr(existing, key, value)
+
+        if new_rows:
+            _logger.info("Seeding %s with %s new rows", StaffPortalApplication.__tablename__, len(new_rows))
+            await session.execute(insert(StaffPortalApplication), new_rows)
 
     async def seed_if_empty(
         self,

@@ -4,7 +4,8 @@ from fastapi import Request
 from fastapi_cache.decorator import cache
 from openg2p_fastapi_common.context import dbengine
 from openg2p_fastapi_common.controller import BaseController
-from sqlalchemy import select
+from openg2p_fastapi_common.errors.http_exceptions import BadRequestError
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from iam_core.user_auth.decorators import requires_auth
@@ -21,6 +22,8 @@ from ..schemas import (
     ApplicationPermissionResponse,
     GetPermissionsForRolesRequest,
     PermissionsResponse,
+    RegisterStaffPortalApplicationRequest,
+    RegisterStaffPortalApplicationResponse,
     StaffPortalApplicationResponse,
 )
 
@@ -54,6 +57,12 @@ class UserAccessController(BaseController):
             "/get_permissions_for_roles",
             self.get_permissions_for_roles,
             response_model=PermissionsResponse,
+            methods=["POST"],
+        )
+        self.router.add_api_route(
+            "/staff_portal_applications",
+            self.register_staff_portal_application,
+            response_model=RegisterStaffPortalApplicationResponse,
             methods=["POST"],
         )
 
@@ -95,6 +104,173 @@ class UserAccessController(BaseController):
         ]
 
     @requires_auth
+    async def register_staff_portal_application(
+        self,
+        request: RegisterStaffPortalApplicationRequest,
+        auth: Annotated[
+            AuthPrincipal,
+            Depends(require_auth(auth_principal)),
+        ],
+    ) -> RegisterStaffPortalApplicationResponse:
+        """Register or update a staff portal application and its access catalog.
+
+        Intended for applications such as registries to self-register at install
+        time — their tile (URL, icon, ordering) plus their roles and permissions —
+        instead of any of it being hardcoded into IAM ahead of time. Everything is
+        upserted by mnemonic and scoped to this application's id, so it is
+        idempotent across re-installs/upgrades.
+
+        ``application_mnemonic`` must equal the application's Keycloak client_id so
+        role-gating in ``get_staff_portal_applications`` /
+        ``get_application_permissions_for_user`` resolves correctly. Multiple
+        instances of the same product coexist by each using a distinct
+        mnemonic/client_id and pushing their own (identical) catalog under it.
+        """
+        async_session = async_sessionmaker(dbengine.get())
+        async with async_session() as session:
+            app, created = await self._upsert_application(session, request)
+            await session.flush()  # ensure app.id is available
+
+            perms_by_mnemonic = await self._upsert_permissions(session, app.id, request.permissions)
+            roles_by_mnemonic = await self._upsert_roles(session, app.id, request.roles)
+            await session.flush()  # ensure permission/role ids are available
+
+            await self._rebuild_role_permissions(session, request.roles, roles_by_mnemonic, perms_by_mnemonic)
+
+            await session.commit()
+            await session.refresh(app)
+
+        return RegisterStaffPortalApplicationResponse(
+            id=app.id,
+            application_mnemonic=app.application_mnemonic,
+            created=created,
+            permissions_count=len(request.permissions),
+            roles_count=len(request.roles),
+        )
+
+    async def _upsert_application(self, session, request):
+        existing = (
+            (
+                await session.execute(
+                    select(StaffPortalApplication).where(
+                        StaffPortalApplication.application_mnemonic == request.application_mnemonic
+                    )
+                )
+            )
+            .scalars()
+            .first()
+        )
+
+        if existing is not None:
+            existing.application_url = request.application_url
+            existing.application_description = request.application_description
+            existing.icon_base64 = request.icon_base64
+            existing.width = request.width
+            existing.order = request.order
+            existing.active = request.active
+            existing.is_self_registered = True
+            return existing, False
+
+        app = StaffPortalApplication(
+            application_mnemonic=request.application_mnemonic,
+            application_url=request.application_url,
+            application_description=request.application_description,
+            icon_base64=request.icon_base64,
+            width=request.width,
+            order=request.order,
+            active=request.active,
+            is_self_registered=True,
+        )
+        session.add(app)
+        return app, True
+
+    async def _upsert_permissions(self, session, application_id, permissions):
+        existing = (
+            (
+                await session.execute(
+                    select(StaffApplicationPermission).where(
+                        StaffApplicationPermission.application_id == application_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        by_mnemonic = {p.permission_mnemonic: p for p in existing}
+
+        for perm in permissions:
+            row = by_mnemonic.get(perm.permission_mnemonic)
+            if row is None:
+                row = StaffApplicationPermission(
+                    application_id=application_id,
+                    permission_mnemonic=perm.permission_mnemonic,
+                    permission_description=perm.permission_description,
+                    active=perm.active,
+                )
+                session.add(row)
+                by_mnemonic[perm.permission_mnemonic] = row
+            else:
+                row.permission_description = perm.permission_description
+                row.active = perm.active
+
+        return by_mnemonic
+
+    async def _upsert_roles(self, session, application_id, roles):
+        existing = (
+            (await session.execute(select(StaffRole).where(StaffRole.application_id == application_id)))
+            .scalars()
+            .all()
+        )
+        by_mnemonic = {r.role_mnemonic: r for r in existing}
+
+        for role in roles:
+            row = by_mnemonic.get(role.role_mnemonic)
+            if row is None:
+                row = StaffRole(
+                    application_id=application_id,
+                    role_mnemonic=role.role_mnemonic,
+                    role_description=role.role_description,
+                    active=role.active,
+                )
+                session.add(row)
+                by_mnemonic[role.role_mnemonic] = row
+            else:
+                row.role_description = role.role_description
+                row.active = role.active
+
+        return by_mnemonic
+
+    async def _rebuild_role_permissions(self, session, roles, roles_by_mnemonic, perms_by_mnemonic):
+        """Replace role->permission mappings for the roles in the payload so the
+        result exactly matches what was sent (mappings dropped from the payload
+        are removed). Only touches roles present in this request."""
+        payload_role_ids = [roles_by_mnemonic[r.role_mnemonic].id for r in roles]
+        if not payload_role_ids:
+            return
+
+        await session.execute(
+            delete(StaffRolePermission).where(StaffRolePermission.role_id.in_(payload_role_ids))
+        )
+
+        for role in roles:
+            role_row = roles_by_mnemonic[role.role_mnemonic]
+            for permission_mnemonic in role.permissions:
+                perm_row = perms_by_mnemonic.get(permission_mnemonic)
+                if perm_row is None:
+                    raise BadRequestError(
+                        message=(
+                            f"Role '{role.role_mnemonic}' references unknown permission "
+                            f"'{permission_mnemonic}'. It must be listed in 'permissions'."
+                        )
+                    )
+                session.add(
+                    StaffRolePermission(
+                        role_id=role_row.id,
+                        permission_id=perm_row.id,
+                        active=True,
+                    )
+                )
+
     async def get_application_permissions_for_user(
         self,
         request: Request,
