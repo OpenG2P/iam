@@ -5,7 +5,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import Date, DateTime, func, insert, select
+from sqlalchemy import Date, DateTime, func, insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from iam_core.models import LoginProvider
@@ -228,6 +228,35 @@ class DataLoaderBase(ABC):
 
         return coerced_rows
 
+    async def sync_postgres_id_sequences(self, session: AsyncSession) -> None:
+        """Align SERIAL sequences with MAX(id) after bulk seed inserts.
+
+        PostgreSQL sequences are not advanced when rows are inserted with
+        explicit ids (or restored from dumps). Without this, the next ORM
+        insert can reuse an existing primary key and raise IntegrityError.
+        """
+        bind = session.get_bind()
+        if bind.dialect.name != "postgresql":
+            return
+
+        for model in self.data_models:
+            table_name = model.__tablename__
+            if "id" not in model.__table__.c:
+                continue
+
+            sequence = await session.scalar(
+                text("SELECT pg_get_serial_sequence(:table_name, 'id')"),
+                {"table_name": table_name},
+            )
+            if not sequence:
+                continue
+
+            await session.execute(
+                text(f"SELECT setval(:sequence, " f"COALESCE((SELECT MAX(id) FROM {table_name}), 1))"),
+                {"sequence": sequence},
+            )
+            _logger.debug("Synced id sequence for %s", table_name)
+
     def create_session_factory(self) -> async_sessionmaker[AsyncSession]:
         return async_sessionmaker(dbengine.get(), expire_on_commit=False)
 
@@ -242,8 +271,15 @@ class DataLoader(DataLoaderBase):
         async with session_factory() as session:
             await loader.load_data(session)
             await loader.load_fallback_data(session)
+            await loader.sync_postgres_id_sequences(session)
             await session.commit()
         _logger.info("Completed IAM staff data loader")
+
+    def load(self) -> None:
+        """Sync entrypoint used by ``migrate_database``."""
+        import asyncio
+
+        asyncio.run(self.run())
 
     async def load_data(self, session: AsyncSession) -> None:
         await self.seed_models_from_dir(session, self.get_mounted_data_dir())

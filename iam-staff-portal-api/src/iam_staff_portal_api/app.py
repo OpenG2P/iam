@@ -41,6 +41,7 @@ IAM_STAFF_CSRF_EXCLUDED_PATHS = (
     "/auth/logout",
     "/auth/backchannel-logout",
     "/user-access/get_permissions_for_roles",
+    "/user-access/staff_portal_applications",
 )
 
 

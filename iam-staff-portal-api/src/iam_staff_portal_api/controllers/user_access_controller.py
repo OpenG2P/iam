@@ -106,11 +106,8 @@ class UserAccessController(BaseController):
     @requires_auth
     async def register_staff_portal_application(
         self,
-        request: RegisterStaffPortalApplicationRequest,
-        auth: Annotated[
-            AuthPrincipal,
-            Depends(require_auth(auth_principal)),
-        ],
+        request: Request,
+        payload: RegisterStaffPortalApplicationRequest,
     ) -> RegisterStaffPortalApplicationResponse:
         """Register or update a staff portal application and its access catalog.
 
@@ -128,14 +125,14 @@ class UserAccessController(BaseController):
         """
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
-            app, created = await self._upsert_application(session, request)
+            app, created = await self._upsert_application(session, payload)
             await session.flush()  # ensure app.id is available
 
-            perms_by_mnemonic = await self._upsert_permissions(session, app.id, request.permissions)
-            roles_by_mnemonic = await self._upsert_roles(session, app.id, request.roles)
+            perms_by_mnemonic = await self._upsert_permissions(session, app.id, payload.permissions)
+            roles_by_mnemonic = await self._upsert_roles(session, app.id, payload.roles)
             await session.flush()  # ensure permission/role ids are available
 
-            await self._rebuild_role_permissions(session, request.roles, roles_by_mnemonic, perms_by_mnemonic)
+            await self._rebuild_role_permissions(session, payload.roles, roles_by_mnemonic, perms_by_mnemonic)
 
             await session.commit()
             await session.refresh(app)
@@ -144,8 +141,8 @@ class UserAccessController(BaseController):
             id=app.id,
             application_mnemonic=app.application_mnemonic,
             created=created,
-            permissions_count=len(request.permissions),
-            roles_count=len(request.roles),
+            permissions_count=len(payload.permissions),
+            roles_count=len(payload.roles),
         )
 
     async def _upsert_application(self, session, request):
@@ -271,6 +268,7 @@ class UserAccessController(BaseController):
                     )
                 )
 
+    @requires_auth
     async def get_application_permissions_for_user(
         self,
         request: Request,
