@@ -1,3 +1,7 @@
+import logging
+
+import httpx
+from authlib.integrations.base_client.errors import OAuthError
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 from openg2p_fastapi_common.service import BaseService
@@ -7,14 +11,25 @@ from iam_core.schemas import (
     LoginProviderResponse,
     StartAuthTransactionResponse,
     AuthTransaction,
+    RefreshTokenRecord,
 )
 from iam_core.services.auth_transaction_store import AuthTransactionStore
 from iam_core.services.legacy_state_resolver import LegacyStateResolver
 from iam_core.services.provider_repository import ProviderRepository
+from iam_core.services.redis_refresh_token_store import RedisRefreshTokenStore
 from iam_core.services.redis_auth_transaction_store import RedisAuthTransactionStore
 from iam_core.user_auth.adapters import AdapterFactory
 from iam_core.user_auth.config import Settings
+from iam_core.user_auth.helpers.cookie_helper import (
+    issuer_from_token_response,
+    oidc_session_id_from_token_response,
+)
+from iam_core.user_auth.helpers.logout_token_helper import session_id_from_logout_token_claims
+from iam_core.user_auth.helpers.token_helper import validate_refresh_token_response
 from iam_core.user_auth.oidc_client import OidcClient
+
+_config = Settings.get_config(strict=False)
+_logger = logging.getLogger(_config.logging_default_logger_name)
 
 
 class AuthService(BaseService):
@@ -23,12 +38,16 @@ class AuthService(BaseService):
         self.provider_repository = ProviderRepository.get_component()
         self._adapters = AdapterFactory.get_component()
         self._transaction_store = self._get_transaction_store()
+        self._refresh_token_store = self._get_refresh_token_store()
 
     def _get_transaction_store(self):
         config = Settings.get_config(strict=False)
         if getattr(config, "auth_transaction_store_backend", "memory") == "redis":
             return RedisAuthTransactionStore.get_component()
         return AuthTransactionStore.get_component()
+
+    def _get_refresh_token_store(self):
+        return RedisRefreshTokenStore.get_component()
 
     async def get_login_providers(self) -> LoginProviderHttpResponse:
         login_providers = await self.provider_repository.get_all()
@@ -125,6 +144,90 @@ class AuthService(BaseService):
             "token_response": token_response,
         }
 
+    def store_refresh_token(
+        self,
+        *,
+        token_response: dict,
+    ) -> RefreshTokenRecord:
+        if not token_response.get("refresh_token"):
+            raise UnauthorizedError("G2P-AUT-401", "Missing refresh_token in token response.")
+        session_id = oidc_session_id_from_token_response(token_response)
+        issuer = issuer_from_token_response(token_response)
+        return self._refresh_token_store.store(
+            session_id=session_id,
+            token_response=token_response,
+            issuer=issuer,
+        )
+
+    async def refresh_access_token(
+        self,
+        session_id: str | None,
+        keymanager_helper=None,
+        **kw,
+    ) -> dict | None:
+        stored_refresh_token = self._refresh_token_store.get(session_id)
+        if stored_refresh_token is None:
+            return None
+
+        login_provider = await self.provider_repository.get_by_iss(stored_refresh_token.issuer)
+        if not login_provider:
+            self._refresh_token_store.delete(session_id)
+            return None
+
+        adapter = self._adapters.resolve_for_provider(login_provider)
+        refresh_token = stored_refresh_token.refresh_token
+        try:
+            token_response = await adapter.refresh_access_token(
+                login_provider=login_provider,
+                refresh_token=refresh_token,
+                keymanager_helper=keymanager_helper,
+                **kw,
+            )
+            validate_refresh_token_response(token_response)
+        except (OAuthError, httpx.HTTPError, UnauthorizedError) as exc:
+            _logger.warning(
+                "Refresh token rejected for session %s: %s",
+                session_id,
+                exc,
+            )
+            self._refresh_token_store.delete(session_id)
+            return None
+
+        self._refresh_token_store.update_refresh_token(session_id, token_response)
+        return token_response
+
+    def delete_refresh_token(self, session_id: str | None) -> None:
+        self._refresh_token_store.delete(session_id)
+
+    def has_active_refresh_session(self, session_id: str | None) -> bool:
+        """Return False when a browser session cookie has no stored refresh token."""
+        if not session_id:
+            return True
+        return self._refresh_token_store.get(session_id) is not None
+
+    async def handle_backchannel_logout(self, logout_token: str) -> None:
+        """Validate a Keycloak back-channel logout token and remove the stored refresh token."""
+        try:
+            unverified_payload = jose_jwt.get_unverified_claims(logout_token)
+        except Exception as exc:
+            raise UnauthorizedError(
+                message=f"Unauthorized. Invalid logout token: {exc!r}",
+            ) from exc
+
+        issuer = unverified_payload.get("iss")
+        login_provider = await self.provider_repository.get_by_iss(issuer)
+        if not login_provider:
+            raise UnauthorizedError(message=f"Unauthorized. Unknown Issuer. {issuer}")
+
+        adapter = self._adapters.resolve_for_provider(login_provider)
+        claims = await adapter.decode_logout_token(
+            login_provider=login_provider,
+            logout_token=logout_token,
+            iss=issuer,
+        )
+        session_id = session_id_from_logout_token_claims(claims, login_provider)
+        self.delete_refresh_token(session_id)
+
     async def get_oauth_validation_data(
         self,
         auth: str,
@@ -152,7 +255,12 @@ class AuthService(BaseService):
         if not login_provider:
             raise UnauthorizedError("G2P-AUT-404", "Provider not found")
 
-        return {
+        return self._provider_to_api_dict(login_provider, include_secrets=True)
+
+    @staticmethod
+    def _provider_to_api_dict(login_provider, *, include_secrets: bool = False) -> dict:
+        payload = {
+            "id": getattr(login_provider, "id", None),
             "issuer": login_provider.issuer,
             "jwks_uri": login_provider.jwks_uri,
             "server_metadata_url": login_provider.server_metadata_url,
@@ -164,7 +272,21 @@ class AuthService(BaseService):
                 else login_provider.token_endpoint_auth_method
             ),
             "client_id": login_provider.client_id,
+            "authorization_endpoint": getattr(login_provider, "authorization_endpoint", None),
+            "token_endpoint": getattr(login_provider, "token_endpoint", None),
+            "userinfo_endpoint": getattr(login_provider, "userinfo_endpoint", None),
+            "extra_authorize_params": getattr(login_provider, "extra_authorize_params", None),
         }
+        if include_secrets:
+            payload.update(
+                {
+                    "client_secret": getattr(login_provider, "client_secret", None),
+                    "keymanager_app_id": getattr(login_provider, "keymanager_app_id", None),
+                    "keymanager_ref_id": getattr(login_provider, "keymanager_ref_id", None),
+                    "jwt_assertion_aud": getattr(login_provider, "jwt_assertion_aud", None),
+                }
+            )
+        return payload
 
     @classmethod
     def combine_token_dicts(cls, *token_dicts) -> dict:

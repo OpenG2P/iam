@@ -90,7 +90,7 @@ class EsignetAdapter(OIDCBase):
         claims: dict[str, Any],
         login_provider: LoginProvider,
     ) -> None:
-        # Keep strictness minimal and leave route-level authorization to dependencies.
+        # Keep strictness minimal and leave route-level authorization to route guards.
         if not (claims.get("individual_id") or claims.get("sub")):
             raise ValueError("Missing required subject claim ('individual_id' or 'sub') for e-Signet user.")
 

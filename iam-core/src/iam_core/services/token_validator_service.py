@@ -1,5 +1,6 @@
 from typing import Any
 
+from authlib.jose.errors import ExpiredTokenError as JoseExpiredTokenError
 from authlib.jose.errors import JoseError
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import ForbiddenError, UnauthorizedError
@@ -10,6 +11,7 @@ from iam_core.schemas import AuthCredentials
 from iam_core.services.provider_repository import ProviderRepository
 from iam_core.user_auth.adapters import AdapterFactory
 from iam_core.user_auth.config import ApiAuthSettings
+from iam_core.user_auth.errors import ExpiredTokenError
 
 
 class TokenValidatorService(BaseService):
@@ -106,6 +108,8 @@ class TokenValidatorService(BaseService):
                     jwt_token,
                     iss=iss,
                 )
+            except JoseExpiredTokenError as e:
+                raise ExpiredTokenError() from e
             except JoseError as e:
                 raise UnauthorizedError(message=f"Unauthorized. Invalid Jwt. {repr(e)}") from e
         else:
@@ -120,6 +124,8 @@ class TokenValidatorService(BaseService):
                     jwt_token=jwt_token,
                     iss=iss,
                 )
+            except JoseExpiredTokenError as e:
+                raise ExpiredTokenError(message="Unauthorized. ID token expired.") from e
             except JoseError as e:
                 raise UnauthorizedError(message=f"Unauthorized. Invalid Jwt ID Token. {repr(e)}") from e
 
