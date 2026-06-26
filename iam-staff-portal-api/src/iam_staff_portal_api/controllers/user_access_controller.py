@@ -12,6 +12,7 @@ from iam_core.user_auth.decorators import requires_auth
 
 from ..cache import role_cache_key
 from ..config import Settings
+from ..data import DataLoader
 from ..models import (
     StaffApplicationPermission,
     StaffPortalApplication,
@@ -125,12 +126,18 @@ class UserAccessController(BaseController):
         """
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
+            # Seed dumps / manual SQL can leave SERIAL sequences behind MAX(id).
+            # Sync before any inserts so self-registration (farmer-registry,
+            # national-social-registry, etc.) does not collide on primary keys.
+            await DataLoader().sync_staff_access_id_sequences(session)
+
             app, created = await self._upsert_application(session, payload)
             await session.flush()  # ensure app.id is available
 
             perms_by_mnemonic = await self._upsert_permissions(session, app.id, payload.permissions)
+            await session.flush()  # ensure permission ids exist before role queries autoflush
             roles_by_mnemonic = await self._upsert_roles(session, app.id, payload.roles)
-            await session.flush()  # ensure permission/role ids are available
+            await session.flush()  # ensure role ids are available
 
             await self._rebuild_role_permissions(session, payload.roles, roles_by_mnemonic, perms_by_mnemonic)
 
