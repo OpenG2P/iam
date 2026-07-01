@@ -149,6 +149,22 @@ async def test_csrf_middleware_skips_excluded_paths():
 
 
 @pytest.mark.asyncio
+async def test_csrf_middleware_skips_validation_when_disabled():
+    middleware = CsrfMiddleware(
+        app=MagicMock(),
+        enabled=False,
+        excluded_paths=_TEST_CSRF_EXCLUDED_PATHS,
+    )
+    request = _make_request(cookies={AuthCookieName.CSRF_TOKEN: "token-abc"})
+    call_next = AsyncMock(return_value=Response(status_code=200))
+
+    response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 200
+    call_next.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_csrf_middleware_uses_passed_excluded_paths():
     middleware = _middleware(excluded_paths=("/ping",))
     request = _make_request(method="POST", path="/auth/callback")

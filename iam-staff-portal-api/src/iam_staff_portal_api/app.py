@@ -52,6 +52,7 @@ class Initializer(AuthInitializer):
         self.return_app().add_middleware(ValidateAndRefreshTokenMiddleware)
         self.return_app().add_middleware(
             CsrfMiddleware,
+            enabled=_config.csrf_enabled,
             excluded_paths=IAM_STAFF_CSRF_EXCLUDED_PATHS,
         )
 

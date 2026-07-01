@@ -13,6 +13,8 @@ global:
   redisInstallationName: 'commons-redis'
   # Refresh token TTL in Redis (default 1800 = 30 minutes)
   authRefreshTokenTtlSeconds: 1800
+  # Double-submit CSRF validation on state-changing IAM staff-portal-api requests.
+  csrfEnabled: true
   # Role permission cache TTL in seconds
   cacheExpireSeconds: 10
 
@@ -144,6 +146,7 @@ iamStaffPortalApi:
     IAM_STAFF_CACHE_EXPIRE_SECONDS: '{{ .Values.global.cacheExpireSeconds }}'
     IAM_STAFF_AUTH_REFRESH_TOKEN_TTL_SECONDS: '{{ .Values.global.authRefreshTokenTtlSeconds }}'
     IAM_STAFF_AUTH_ENABLED: true
+    IAM_STAFF_CSRF_ENABLED: '{{ .Values.global.csrfEnabled }}'
     IAM_STAFF_AUTH_VERIFY_SSL: false
     IAM_STAFF_AUTH_COOKIE_HTTPONLY: true
     IAM_STAFF_AUTH_COOKIE_PATH: "/"
