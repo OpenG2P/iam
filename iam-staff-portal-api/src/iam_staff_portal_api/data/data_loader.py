@@ -265,6 +265,14 @@ class DataLoader(DataLoaderBase):
     @classmethod
     async def run(cls) -> None:
         loader = cls()
+
+        # ``migrate_database`` runs create_migrate() in its own asyncio.run()
+        # before this one, so the shared engine's pool can hold asyncpg
+        # connections bound to that earlier (now-closed) event loop. Reusing one
+        # here raises "got Future attached to a different loop" on the first
+        # query. Dispose the pool so this loop opens its own fresh connections.
+        await dbengine.get().dispose()
+
         session_factory = loader.create_session_factory()
 
         _logger.info("Starting IAM staff data loader")
