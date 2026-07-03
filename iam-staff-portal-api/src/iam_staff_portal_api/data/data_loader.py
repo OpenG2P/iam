@@ -270,8 +270,11 @@ class DataLoader(DataLoaderBase):
         # before this one, so the shared engine's pool can hold asyncpg
         # connections bound to that earlier (now-closed) event loop. Reusing one
         # here raises "got Future attached to a different loop" on the first
-        # query. Dispose the pool so this loop opens its own fresh connections.
-        await dbengine.get().dispose()
+        # query. Drop the old pool so this loop opens its own fresh connections.
+        # close=False ABANDONS the orphaned connections rather than trying to
+        # close them on their dead loop (which would just log a spurious
+        # "Event loop is closed" error); they are garbage-collected instead.
+        await dbengine.get().dispose(close=False)
 
         session_factory = loader.create_session_factory()
 
