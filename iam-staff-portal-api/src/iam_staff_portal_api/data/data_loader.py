@@ -3,7 +3,7 @@ import logging
 from abc import ABC
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence, Type
 
 from sqlalchemy import Date, DateTime, func, insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -20,6 +20,15 @@ from ..models import (
 )
 
 _logger = logging.getLogger("iam-staff-data-loader")
+
+# Tables touched by self-registration (farmer-registry, national-social-registry,
+# and any other product that POSTs to /user-access/staff_portal_applications).
+STAFF_ACCESS_SEQUENCE_MODELS = (
+    StaffPortalApplication,
+    StaffApplicationPermission,
+    StaffRole,
+    StaffRolePermission,
+)
 
 
 class DataLoaderBase(ABC):
@@ -228,7 +237,11 @@ class DataLoaderBase(ABC):
 
         return coerced_rows
 
-    async def sync_postgres_id_sequences(self, session: AsyncSession) -> None:
+    async def sync_postgres_id_sequences(
+        self,
+        session: AsyncSession,
+        models: Sequence[Type] | None = None,
+    ) -> None:
         """Align SERIAL sequences with MAX(id) after bulk seed inserts.
 
         PostgreSQL sequences are not advanced when rows are inserted with
@@ -239,7 +252,7 @@ class DataLoaderBase(ABC):
         if bind.dialect.name != "postgresql":
             return
 
-        for model in self.data_models:
+        for model in models or self.data_models:
             table_name = model.__tablename__
             if "id" not in model.__table__.c:
                 continue
@@ -251,11 +264,18 @@ class DataLoaderBase(ABC):
             if not sequence:
                 continue
 
-            await session.execute(
-                text(f"SELECT setval(:sequence, " f"COALESCE((SELECT MAX(id) FROM {table_name}), 1))"),
-                {"sequence": sequence},
+            next_id = await session.scalar(
+                text(f"SELECT COALESCE(MAX(id), 0) + 1 FROM {table_name}"),
             )
-            _logger.debug("Synced id sequence for %s", table_name)
+            await session.execute(
+                text("SELECT setval(CAST(:sequence AS regclass), :next_id, false)"),
+                {"sequence": sequence, "next_id": next_id},
+            )
+            _logger.debug("Synced id sequence for %s (next id %s)", table_name, next_id)
+
+    async def sync_staff_access_id_sequences(self, session: AsyncSession) -> None:
+        """Sync id sequences for staff portal app / role / permission tables."""
+        await self.sync_postgres_id_sequences(session, STAFF_ACCESS_SEQUENCE_MODELS)
 
     def create_session_factory(self) -> async_sessionmaker[AsyncSession]:
         return async_sessionmaker(dbengine.get(), expire_on_commit=False)

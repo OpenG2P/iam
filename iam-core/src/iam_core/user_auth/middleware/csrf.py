@@ -33,15 +33,18 @@ class CsrfMiddleware(BaseHTTPMiddleware):
 
     Register after ValidateAndRefreshTokenMiddleware so it runs first on inbound
     requests. Safe methods and ``excluded_paths`` skip validation.
+    Set ``enabled=False`` (or ``common_csrf_enabled=false``) to disable checks.
     """
 
     def __init__(
         self,
         app,
         *,
-        excluded_paths: Iterable[str],
+        enabled: bool = True,
+        excluded_paths: Iterable[str] = (),
     ):
         super().__init__(app)
+        self._enabled = enabled
         self._excluded_paths = frozenset(_normalize_path(path) for path in excluded_paths)
 
     def _should_skip(self, request: Request) -> bool:
@@ -60,6 +63,9 @@ class CsrfMiddleware(BaseHTTPMiddleware):
             raise ForbiddenError(message=_CSRF_FORBIDDEN_MESSAGE)
 
     async def dispatch(self, request: Request, call_next):
+        if not self._enabled:
+            return await call_next(request)
+
         try:
             if not self._should_skip(request):
                 self._validate_csrf(request)

@@ -56,3 +56,9 @@ questions:
   type: boolean
   label: Enable HPA
   group: Scaling
+
+- variable: global.csrfEnabled
+  description: Enable double-submit CSRF validation on state-changing IAM staff-portal-api requests. Set false for local/dev troubleshooting only.
+  type: boolean
+  label: CSRF Enabled
+  group: Security

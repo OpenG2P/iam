@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     openapi_version: str = __version__
 
     auth_enabled: bool = True
+    csrf_enabled: bool = True
 
     # Whether to verify SSL certificates for authentication requests
     # Set to False for self-signed certificates or when using a proxy
