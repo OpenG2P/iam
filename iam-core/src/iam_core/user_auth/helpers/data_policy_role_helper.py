@@ -12,7 +12,7 @@ def strip_dp_prefix(role: str) -> str:
     """Remove the DP_ prefix from a role name, returning the mnemonic portion."""
     cleaned_role = str(role).strip()
     if cleaned_role.upper().startswith(DP_ROLE_PREFIX):
-        return cleaned_role[len(DP_ROLE_PREFIX):].strip()
+        return cleaned_role[len(DP_ROLE_PREFIX) :].strip()
     return cleaned_role
 
 
