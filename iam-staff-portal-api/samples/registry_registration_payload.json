@@ -400,9 +400,13 @@
       "permissions": [
         "changeRequest:create",
         "changeRequest:view",
+        "referenceData:view",
         "register:authenticate",
         "register:view",
-        "registerHistory:view"
+        "registerDefinition:view",
+        "registerHistory:view",
+        "registerSection:view",
+        "registerTab:view"
       ]
     },
     {
@@ -411,8 +415,12 @@
       "active": true,
       "permissions": [
         "changeRequest:view",
+        "referenceData:view",
         "register:view",
+        "registerDefinition:view",
         "registerHistory:view",
+        "registerSection:view",
+        "registerTab:view",
         "verificationChangeRequest:create",
         "verificationChangeRequest:view"
       ]
@@ -423,9 +431,13 @@
       "active": true,
       "permissions": [
         "changeRequest:view",
+        "referenceData:view",
         "register:view",
+        "registerDefinition:view",
         "registerHistory:view",
         "registerScore:view",
+        "registerSection:view",
+        "registerTab:view",
         "verificationChangeRequest:view"
       ]
     },
@@ -451,8 +463,12 @@
         "intakeSubmission:edit",
         "intakeSubmission:view",
         "outgoingMessage:view",
+        "referenceData:view",
         "register:view",
+        "registerDefinition:view",
         "registerHistory:view",
+        "registerSection:view",
+        "registerTab:view",
         "verificationChangeRequest:create",
         "verificationChangeRequest:view",
         "verificationIntakeForm:create",
