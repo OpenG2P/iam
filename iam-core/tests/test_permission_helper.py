@@ -17,16 +17,18 @@ class _StubStaffPortalController:
 def test_require_permissions_accepts_varargs():
     @require_permissions("one", "two")
     def endpoint():
-        return None
+        return "ok"
 
+    assert endpoint() == "ok"
     assert get_required_permissions(endpoint) == {"one", "two"}
 
 
 def test_require_permissions_accepts_set_and_normalizes_values():
     @require_permissions({" one ", "", "two"})
     def endpoint():
-        return None
+        return "ok"
 
+    assert endpoint() == "ok"
     assert get_required_permissions(endpoint) == {"one", "two"}
 
 
@@ -44,6 +46,7 @@ def test_enforce_resource_access_uses_or_semantics_for_multiple_permissions():
 
 def test_staff_portal_single_permission_metadata_is_set():
     controller = _StubStaffPortalController()
+    assert controller.get_intake_form() is None
     assert get_required_permissions(controller.get_intake_form) == {
         "intakeFormDefinition:view",
     }
@@ -51,6 +54,7 @@ def test_staff_portal_single_permission_metadata_is_set():
 
 def test_staff_portal_multi_permission_metadata_is_set():
     controller = _StubStaffPortalController()
+    assert controller.get_number_of_requests_pending() is None
     assert get_required_permissions(controller.get_number_of_requests_pending) == {
         "registryConfiguration:view",
         "changeRequest:view",

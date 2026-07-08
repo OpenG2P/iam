@@ -477,16 +477,27 @@ def _auth_credentials(access_token: str = "valid-access") -> AuthCredentials:
 
 @requires_auth
 def _requires_auth_endpoint():
-    return None
+    return "auth"
 
 
 def _public_endpoint():
-    return None
+    return "public"
 
 
 @require_permissions({"admin"})
 def _requires_permissions_endpoint():
-    return None
+    return "admin"
+
+
+def test_decorator_stub_endpoints_are_callable():
+    assert _requires_auth_endpoint() == "auth"
+    assert _public_endpoint() == "public"
+    assert _requires_permissions_endpoint() == "admin"
+
+
+def test_make_request_supports_authorization_header():
+    request = _make_request(authorization="Bearer header-token")
+    assert request.headers.get("authorization") == "Bearer header-token"
 
 
 @pytest.mark.asyncio
