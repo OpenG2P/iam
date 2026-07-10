@@ -3,6 +3,13 @@ name: Publish IAM Service Helm chart
 # Publishes the openg2p-iam-service chart under deployments/charts/.
 # Triggered only when the charts (or this workflow) change; each chart found is
 # packaged and pushed to the openg2p-helm gh-pages branch.
+#
+# The published chart VERSION is derived at package time (overridden via
+# `helm package --version`) rather than taken from Chart.yaml, so:
+#   * develop builds get a unique `0.0.0-develop.<run-number>` version — no two
+#     runs collide and Rancher / the GH-Pages CDN never serve a stale cache.
+#   * release tags (vN.N.N) publish the frozen `N.N.N`.
+#   * a manual run can publish any explicit version (e.g. 1.0.0-g2p5466).
 on:
   push:
     tags:
@@ -13,6 +20,11 @@ on:
       - 'deployments/charts/**'
       - '.github/workflows/helm-publish.yml'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Explicit chart version (e.g. 1.0.0-g2p5466). Empty = derive from branch/tag. Must be valid SemVer.'
+        required: false
+        type: string
 
 env:
   CHARTS_DIR: deployments/charts
@@ -30,7 +42,44 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v3
 
+    - name: Resolve chart version (branch/tag-gated, with manual override)
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        # The published chart version is derived from the ref (branch or release
+        # tag), overridden at package time via `helm package --version`, with a
+        # unique run-number suffix on develop builds so Rancher / the GH-Pages CDN
+        # never serve a stale cached chart.
+        REF_NAME="${GITHUB_REF_NAME}"
+        SUFFIX="${GITHUB_RUN_NUMBER}"          # monotonic + unique per run
+        if [ -n "${INPUT_VERSION}" ]; then
+          VER="${INPUT_VERSION}"               # manual override -> publish from any ref
+        elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+          # Release tags are vN.N.N (see tag.yml) -> frozen version N.N.N (no suffix).
+          TAG="${REF_NAME#v}"
+          if printf '%s' "$TAG" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            VER="${TAG}"
+          else
+            echo "::warning::Tag '${REF_NAME}' is not vN.N.N and no explicit version was given — skipping."
+            echo "SKIP=TRUE" >> "$GITHUB_ENV"
+            VER=""
+          fi
+        elif [ "$REF_NAME" = "develop" ]; then
+          VER="0.0.0-develop.${SUFFIX}"
+        elif printf '%s' "$REF_NAME" | grep -qE '^[0-9]+\.[0-9]+$'; then
+          VER="${REF_NAME}.0-develop.${SUFFIX}"  # active release line (Helm needs 3-part SemVer)
+        elif printf '%s' "$REF_NAME" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          VER="${REF_NAME}"                       # frozen release branch, no suffix
+        else
+          echo "::warning::Ref '${REF_NAME}' is not develop/N.N/N.N.N/vN.N.N and no explicit version was given — skipping."
+          echo "SKIP=TRUE" >> "$GITHUB_ENV"
+          VER=""
+        fi
+        echo "CHART_VERSION=${VER}" >> "$GITHUB_ENV"
+        echo "Resolved chart version for ref '${REF_NAME}': ${VER:-<skipped>}"
+
     - name: Package charts
+      if: env.SKIP != 'TRUE'
       run: |
         # Publish every chart that actually exists under deployments/charts/.
         # (Enumerating real chart dirs is robust to renames/deletions and to
@@ -40,9 +89,9 @@ jobs:
         for chartdir in "$CHARTS_DIR"/*/; do
           [ -f "${chartdir}Chart.yaml" ] || continue
           chartname=$(basename "${chartdir%/}")
-          echo "Packaging chart: $chartname"
+          echo "Packaging chart: $chartname (version ${CHART_VERSION})"
           helm dep up "$CHARTS_DIR/$chartname"
-          helm package "$CHARTS_DIR/$chartname"
+          helm package "$CHARTS_DIR/$chartname" --version "${CHART_VERSION}"
           published=$((published + 1))
           is_rancher_chart=$(grep "$RANCHER_CHART_FILTER" "$CHARTS_DIR/$chartname/Chart.yaml" || true)
           if [ -n "$is_rancher_chart" ]; then

@@ -2,7 +2,10 @@ apiVersion: v2
 name: openg2p-iam-service
 description: A Helm chart for OpenG2P IAM Service
 type: application
-version: 1.2.0-develop
+# Placeholder baseline only — the published version is injected at package time
+# by .github/workflows/helm-publish.yml (`helm package --version`):
+#   develop -> 0.0.0-develop.<run-number>, release tag vN.N.N -> N.N.N.
+version: 0.0.0-develop
 dependencies:
 - name: common
   repository: https://openg2p.github.io/openg2p-helm
