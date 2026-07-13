@@ -71,7 +71,9 @@ iamStaffPortalApi:
 
   image:
     repository: openg2p/iam-staff-portal-api
-    tag: "1.2.1"
+    # Placeholder — the real tag is injected at publish time by the Build &
+    # Publish CI (.github/workflows/build-publish.yml -> openg2p-packaging@v1).
+    tag: "develop"
     pullPolicy: Always
 
   podSecurityContext:
