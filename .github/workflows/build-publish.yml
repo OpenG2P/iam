@@ -71,8 +71,14 @@ jobs:
       # bene APIs are built/published but scaffolded, not yet wired into the
       # chart). jbergknoff/postgresql-client is third-party and stays pinned in
       # values.yaml.
+      #
+      # NB: the path is the key in values.yaml, NOT the template's scoped view.
+      # deployment.yaml re-scopes (`$values := .Values.iamStaffPortalApi`), so the
+      # template's `.Values.image` lives at `.iamStaffPortalApi.image` on disk.
+      # `.image.tag` silently created a stray root key and left the real tag at
+      # the moving `develop` alias -- i.e. the chart shipped unpinned.
       chart-image-paths: |
-        [".image.tag"]
+        [".iamStaffPortalApi.image.tag"]
 
       packaging-ref: v1
 
