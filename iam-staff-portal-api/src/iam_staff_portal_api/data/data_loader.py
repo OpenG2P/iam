@@ -30,6 +30,29 @@ STAFF_ACCESS_SEQUENCE_MODELS = (
     StaffRolePermission,
 )
 
+IAM_STAFF_UI_APPLICATION_MNEMONIC = "iam-staff-ui"
+IAM_STAFF_UI_ADMIN_ROLE = "IAM_ADMIN"
+IAM_STAFF_UI_PERMISSIONS = (
+    "application:view",
+    "application:create",
+    "application:edit",
+    "role:view",
+    "role:create",
+    "role:delete",
+    "permission:view",
+    "permission:create",
+    "permission:delete",
+    "rolePermission:view",
+    "rolePermission:create",
+    "rolePermission:delete",
+    "dataPolicy:view",
+    "dataPolicy:create",
+    "dataPolicy:delete",
+    "loginProvider:view",
+    "loginProvider:create",
+    "loginProvider:edit",
+)
+
 
 class DataLoaderBase(ABC):
     data_models = (
@@ -143,6 +166,8 @@ class DataLoaderBase(ABC):
             else:
                 await self.seed_if_empty(session, model, rows)
 
+        await self.seed_iam_staff_ui_catalog(session)
+
     async def seed_applications_by_mnemonic(
         self,
         session: AsyncSession,
@@ -184,6 +209,102 @@ class DataLoaderBase(ABC):
         if new_rows:
             _logger.info("Seeding %s with %s new rows", StaffPortalApplication.__tablename__, len(new_rows))
             await session.execute(insert(StaffPortalApplication), new_rows)
+
+    async def seed_iam_staff_ui_catalog(self, session: AsyncSession) -> None:
+        """Idempotently seed IAM_ADMIN role + low-level permissions for iam-staff-ui.
+
+        Resolves ``application_id`` by mnemonic so seed works regardless of the
+        numeric id assigned to the ``iam-staff-ui`` application row.
+        """
+        app = (
+            await session.execute(
+                select(StaffPortalApplication).where(
+                    StaffPortalApplication.application_mnemonic == IAM_STAFF_UI_APPLICATION_MNEMONIC
+                )
+            )
+        ).scalars().first()
+        if app is None:
+            _logger.warning(
+                "Skipping iam-staff-ui catalog seed; application '%s' not found",
+                IAM_STAFF_UI_APPLICATION_MNEMONIC,
+            )
+            return
+
+        existing_perms = (
+            await session.execute(
+                select(StaffApplicationPermission).where(
+                    StaffApplicationPermission.application_id == app.id
+                )
+            )
+        ).scalars().all()
+        perms_by_mnemonic = {p.permission_mnemonic: p for p in existing_perms}
+
+        for mnemonic in IAM_STAFF_UI_PERMISSIONS:
+            row = perms_by_mnemonic.get(mnemonic)
+            if row is None:
+                row = StaffApplicationPermission(
+                    application_id=app.id,
+                    permission_mnemonic=mnemonic,
+                    permission_description=mnemonic,
+                    active=True,
+                )
+                session.add(row)
+                perms_by_mnemonic[mnemonic] = row
+            else:
+                row.permission_description = row.permission_description or mnemonic
+                row.active = True
+
+        await session.flush()
+
+        existing_roles = (
+            await session.execute(select(StaffRole).where(StaffRole.application_id == app.id))
+        ).scalars().all()
+        roles_by_mnemonic = {r.role_mnemonic: r for r in existing_roles}
+
+        admin_role = roles_by_mnemonic.get(IAM_STAFF_UI_ADMIN_ROLE)
+        if admin_role is None:
+            admin_role = StaffRole(
+                application_id=app.id,
+                role_mnemonic=IAM_STAFF_UI_ADMIN_ROLE,
+                role_description="IAM staff UI administrator",
+                active=True,
+            )
+            session.add(admin_role)
+            roles_by_mnemonic[IAM_STAFF_UI_ADMIN_ROLE] = admin_role
+        else:
+            admin_role.role_description = admin_role.role_description or "IAM staff UI administrator"
+            admin_role.active = True
+
+        await session.flush()
+
+        existing_mappings = (
+            await session.execute(
+                select(StaffRolePermission).where(StaffRolePermission.role_id == admin_role.id)
+            )
+        ).scalars().all()
+        mapped_permission_ids = {m.permission_id for m in existing_mappings}
+
+        for mnemonic in IAM_STAFF_UI_PERMISSIONS:
+            perm = perms_by_mnemonic[mnemonic]
+            await session.flush()
+            if perm.id is None:
+                continue
+            if perm.id in mapped_permission_ids:
+                continue
+            session.add(
+                StaffRolePermission(
+                    role_id=admin_role.id,
+                    permission_id=perm.id,
+                    active=True,
+                )
+            )
+            mapped_permission_ids.add(perm.id)
+
+        _logger.info(
+            "Ensured iam-staff-ui catalog: role=%s permissions=%s",
+            IAM_STAFF_UI_ADMIN_ROLE,
+            len(IAM_STAFF_UI_PERMISSIONS),
+        )
 
     async def seed_if_empty(
         self,

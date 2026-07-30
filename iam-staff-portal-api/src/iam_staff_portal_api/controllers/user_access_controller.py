@@ -22,7 +22,7 @@ from ..models import (
 from ..schemas import (
     ApplicationPermissionResponse,
     GetPermissionsForRolesRequest,
-    PermissionsResponse,
+    PermissionsForRolesResponse,
     RegisterStaffPortalApplicationRequest,
     RegisterStaffPortalApplicationResponse,
     StaffPortalApplicationResponse,
@@ -57,7 +57,7 @@ class UserAccessController(BaseController):
         self.router.add_api_route(
             "/get_permissions_for_roles",
             self.get_permissions_for_roles,
-            response_model=PermissionsResponse,
+            response_model=PermissionsForRolesResponse,
             methods=["POST"],
         )
         self.router.add_api_route(
@@ -348,13 +348,13 @@ class UserAccessController(BaseController):
     async def get_permissions_for_roles(
         self,
         request: GetPermissionsForRolesRequest,
-    ) -> PermissionsResponse:
+    ) -> PermissionsForRolesResponse:
         permissions: List[str] = []
 
         for role_mnemonic in request.role_mnemonics:
             permissions.extend(await self.get_permission_mnemonics_for_role(role_mnemonic))
 
-        return PermissionsResponse(permissions=sorted(set(permissions)))
+        return PermissionsForRolesResponse(permissions=sorted(set(permissions)))
 
     @cache(expire=_config.cache_expire_seconds, key_builder=role_cache_key)
     async def get_permission_mnemonics_for_role(

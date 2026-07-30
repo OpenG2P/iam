@@ -35,6 +35,7 @@ global:
   registryApplicationUrl: 'https://registry.{{ .Release.Namespace }}.openg2p.org'
   minioApplicationUrl: 'https://minio.{{ .Release.Namespace }}.openg2p.org'
   supersetApplicationUrl: 'https://superset.{{ .Release.Namespace }}.openg2p.org'
+  iamStaffUiApplicationUrl: 'https://iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
 
 postgres-init:
   enabled: true
@@ -159,9 +160,12 @@ iamStaffPortalApi:
     IAM_STAFF_DATA_APPLICATION_URLS__REGISTRY_APPLICATION_URL: '{{ tpl .Values.global.registryApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__MINIO_APPLICATION_URL: '{{ tpl .Values.global.minioApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__SUPERSET_APPLICATION_URL: '{{ tpl .Values.global.supersetApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__IAM_STAFF_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
+    IAM_STAFF_KEYCLOAK_CLIENT_ID: "iam-staff-ui"
+    IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
 
     # API specific middleware configs
-    IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) | toJson }}'
+    IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) (tpl .Values.global.iamStaffUiApplicationUrl $) | toJson }}'
 
   envVarsFrom:
     IAM_STAFF_DB_PASSWORD:
@@ -219,3 +223,44 @@ iamStaffPortalApi:
       - 'until psql "postgresql://${IAM_STAFF_DB_USERNAME}:${IAM_STAFF_DB_PASSWORD}@${IAM_STAFF_DB_HOSTNAME}:${IAM_STAFF_DB_PORT}/${IAM_STAFF_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_STAFF_DB_DBNAME} to be ready..."; sleep 3; done'
     containerSecurityContext:
       enabled: false
+
+# ---------------------------------------------------------------------------
+# IAM Staff UI (Next.js BFF) — Applications / Login Providers admin
+# ---------------------------------------------------------------------------
+iamStaffUi:
+  enabled: true
+  nameOverride: iam-staff-ui
+  hostname: 'iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
+  replicaCount: 1
+
+  image:
+    repository: openg2p/iam-staff-ui
+    tag: "develop"
+    pullPolicy: Always
+
+  containerPort: 3000
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      host: '{{ tpl .Values.iamStaffUi.hostname $ }}'
+      gateway: "internal"
+      destination: ""
+      destinationPort: '{{ .Values.iamStaffUi.service.port }}'
+      prefix: /
+      rewriteUri: ""
+
+  envVars:
+    HOSTNAME: "0.0.0.0"
+    PORT: "3000"
+    NODE_ENV: "production"
+    BACKEND_API_URL: 'https://{{ tpl .Values.iamStaffPortalApi.hostname $ }}'
+    LOGIN_PROVIDER_ID: "2"
+    APPLICATION_MNEMONIC: "iam-staff-ui"
+    COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
+    PAGE_SIZE: "20"

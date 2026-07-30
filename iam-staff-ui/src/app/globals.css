@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+:root {
+  --color-yellow: #f5bb1a;
+  --color-black: #061327;
+  --color-white: #ffffff;
+  --color-orange: #f07b1a;
+  --color-magenta: #88498f;
+  --color-grey: #c4c4c4;
+  --color-light-grey: #f6f6f6;
+  --color-blue: #2a477a;
+
+  --color-bg: var(--color-light-grey);
+  --color-surface: var(--color-white);
+  --color-text: var(--color-black);
+  --color-text-muted: #4a5568;
+  --color-border: var(--color-grey);
+  --color-accent: var(--color-yellow);
+  --color-accent-hover: #e0a800;
+  --color-danger: #c0392b;
+  --color-success: #27ae60;
+
+  --font-body: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: var(--font-roboto-slab), "Roboto Slab", Georgia, serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-sm: 0 1px 2px rgba(6, 19, 39, 0.05);
+  --shadow-md: 0 4px 12px rgba(6, 19, 39, 0.08);
+  --sidebar-width: 280px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}

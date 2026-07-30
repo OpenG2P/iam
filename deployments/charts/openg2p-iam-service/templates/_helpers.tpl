@@ -37,3 +37,7 @@ Render Env values section
 {{- $envVars := merge (deepCopy .Values.envVars) (deepCopy .Values.envVarsFrom) -}}
 {{- include "iamStaffPortalApi.baseEnvVars" (dict "envVars" $envVars "context" $) }}
 {{- end -}}
+
+{{- define "iamStaffUi.envVars" -}}
+{{- include "iamStaffPortalApi.baseEnvVars" (dict "envVars" .Values.envVars "context" $) }}
+{{- end -}}
