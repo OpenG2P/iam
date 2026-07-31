@@ -22,9 +22,7 @@ class RequestResponseHelper(BaseService):
             return 0
         return int(ceil(total / page_size)) if total else 0
 
-    def pagination_from_request(
-        self, request: G2PRequest, default_page_size: int = 20
-    ) -> tuple[int, int]:
+    def pagination_from_request(self, request: G2PRequest, default_page_size: int = 20) -> tuple[int, int]:
         pagination = request.request_body.pagination_request if request.request_body else None
         if pagination is None:
             return 1, default_page_size
@@ -95,9 +93,7 @@ class RequestResponseHelper(BaseService):
             ),
         )
 
-    def construct_error_response(
-        self, error: Exception, request: G2PRequest | None = None
-    ) -> G2PResponse:
+    def construct_error_response(self, error: Exception, request: G2PRequest | None = None) -> G2PResponse:
         message = getattr(error, "message", None) or str(error) or "Unexpected error"
         code = getattr(error, "code", None) or "G2P-IAM-400"
         request_id = ""

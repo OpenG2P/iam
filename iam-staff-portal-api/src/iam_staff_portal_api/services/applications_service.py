@@ -14,7 +14,6 @@ from ..schemas import (
     ApplicationDeletePayload,
     ApplicationIdPayload,
     ApplicationUpdatePayload,
-    OkPayload,
 )
 
 
@@ -34,9 +33,7 @@ class ApplicationsService(BaseService):
             updated_at=dt_iso(app.updated_at),
         )
 
-    async def get_applications(
-        self, page: int, page_size: int
-    ) -> tuple[list[ApplicationData], int]:
+    async def get_applications(self, page: int, page_size: int) -> tuple[list[ApplicationData], int]:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             stmt = select(StaffPortalApplication).order_by(
@@ -62,12 +59,16 @@ class ApplicationsService(BaseService):
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             existing = (
-                await session.execute(
-                    select(StaffPortalApplication).where(
-                        StaffPortalApplication.application_mnemonic == mnemonic
+                (
+                    await session.execute(
+                        select(StaffPortalApplication).where(
+                            StaffPortalApplication.application_mnemonic == mnemonic
+                        )
                     )
                 )
-            ).scalars().first()
+                .scalars()
+                .first()
+            )
             if existing is not None:
                 raise BadRequestError(message=f"Application '{mnemonic}' already exists")
 
@@ -110,7 +111,7 @@ class ApplicationsService(BaseService):
             await session.refresh(app)
             return self._to_data(app)
 
-    async def delete_application(self, payload: ApplicationDeletePayload) -> OkPayload:
+    async def delete_application(self, payload: ApplicationDeletePayload) -> ApplicationData:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             app = await session.get(StaffPortalApplication, payload.id)
@@ -120,27 +121,32 @@ class ApplicationsService(BaseService):
                 raise BadRequestError(
                     message="Self-registered applications cannot be deleted from the staff UI"
                 )
+            app_data = self._to_data(app)
             # Delete related roles and permissions
             from ..models import StaffRole, StaffApplicationPermission, StaffRolePermission
-            
+
             # Get all roles for this application
             roles = (
-                await session.execute(
-                    select(StaffRole).where(StaffRole.application_id == app.id)
-                )
-            ).scalars().all()
+                (await session.execute(select(StaffRole).where(StaffRole.application_id == app.id)))
+                .scalars()
+                .all()
+            )
             role_ids = [r.id for r in roles]
-            
+
             # Get all permissions for this application
             perms = (
-                await session.execute(
-                    select(StaffApplicationPermission).where(
-                        StaffApplicationPermission.application_id == app.id
+                (
+                    await session.execute(
+                        select(StaffApplicationPermission).where(
+                            StaffApplicationPermission.application_id == app.id
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             perm_ids = [p.id for p in perms]
-            
+
             # Delete role-permission mappings
             if role_ids:
                 await session.execute(
@@ -150,18 +156,18 @@ class ApplicationsService(BaseService):
                 await session.execute(
                     delete(StaffRolePermission).where(StaffRolePermission.permission_id.in_(perm_ids))
                 )
-            
+
             # Delete roles
             if role_ids:
                 await session.execute(delete(StaffRole).where(StaffRole.id.in_(role_ids)))
-            
+
             # Delete permissions
             if perm_ids:
                 await session.execute(
                     delete(StaffApplicationPermission).where(StaffApplicationPermission.id.in_(perm_ids))
                 )
-            
+
             # Delete the application
             await session.delete(app)
             await session.commit()
-        return OkPayload()
+        return app_data

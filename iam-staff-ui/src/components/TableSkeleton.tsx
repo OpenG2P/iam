@@ -22,12 +22,12 @@ export default function TableSkeleton({
 
   return (
     <div className="overflow-x-auto" aria-hidden>
-      <table className="w-full border-collapse bg-[var(--color-surface)]">
+      <table className="w-full border-collapse bg-(--color-surface)">
         {headers && (
           <thead>
             <tr>
               {headers.map((h, i) => (
-                <th key={i} className="text-left pb-3 px-9 border-b border-[var(--color-border)] font-medium text-[var(--color-text-muted)] text-[16px] uppercase tracking-wider bg-gray-50">
+                <th key={i} className="text-left pb-3 px-9 border-b border-(--color-border) font-semibold text-[#ED7C22] text-[16px] tracking-wider">
                   {h}
                 </th>
               ))}
@@ -36,11 +36,11 @@ export default function TableSkeleton({
         )}
         <tbody>
           {Array.from({ length: rows }).map((_, rowIndex) => (
-            <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+            <tr key={rowIndex} className={rowIndex % 2 === 1 ? 'bg-white' : 'bg-gray-50'}>
               {Array.from({ length: colCount }).map((__, colIndex) => (
                 <td key={colIndex} className="py-4 px-9 align-middle">
                   <div
-                    className="h-[14px] rounded-md bg-gradient-to-r from-[rgba(196,196,196,0.25)] via-[rgba(196,196,196,0.12)] to-[rgba(196,196,196,0.25)] bg-[length:200%_100%] animate-[shimmer_1.2s_ease-in-out_infinite]"
+                    className="h-3.5 rounded-md bg-linear-to-r from-[rgba(196,196,196,0.25)] via-[rgba(196,196,196,0.12)] to-[rgba(196,196,196,0.25)] bg-size-[200%_100%] animate-[shimmer_1.2s_ease-in-out_infinite]"
                     style={{ width: getWidth(colIndex) }}
                   />
                 </td>

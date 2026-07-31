@@ -180,7 +180,7 @@ export default function ApplicationsPage() {
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="font-[var(--font-heading)] text-[24px] font-bold text-[var(--color-black)]">{t("applications")}</h1>
+        <h1 className="font-(--font-heading) text-[24px] text-black">{t("applications")}</h1>
         <Can action="application:create">
           <AddButton onClick={() => setModalOpen(true)} />
         </Can>
@@ -282,7 +282,7 @@ export default function ApplicationsPage() {
               <label htmlFor="description" className="text-[16px] font-medium text-gray-600">Description</label>
               <textarea
                 id="description"
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[80px] resize-y"
+                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.application_description}
                 onChange={(e) =>
                   setForm((f) => ({

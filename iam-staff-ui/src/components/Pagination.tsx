@@ -22,13 +22,13 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-end gap-3 pt-4 px-9">
-      <span className="text-[16px] text-[var(--color-text-muted)]">
+      <span className="text-[16px] text-(--color-text-muted)">
         {start} - {end} of {total}
       </span>
 
       <button
         type="button"
-        className="flex items-center justify-center min-w-[40px] h-[34px] px-3 rounded bg-[var(--color-accent)] text-[var(--color-black)] text-[16px] font-medium cursor-pointer transition-colors duration-150 disabled:bg-[var(--color-grey)] disabled:text-[var(--color-white)] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center justify-center min-w-10 h-8.5 px-3 rounded bg-(--color-accent) text-black text-[16px] font-medium cursor-pointer transition-colors duration-150 disabled:bg-(--color-grey) disabled:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
         aria-label="Previous page"
@@ -44,7 +44,7 @@ export default function Pagination({
 
       <button
         type="button"
-        className="flex items-center justify-center min-w-[40px] h-[34px] px-3 rounded bg-[var(--color-accent)] text-[var(--color-black)] text-[16px] font-medium cursor-pointer transition-colors duration-150 disabled:bg-[var(--color-grey)] disabled:text-[var(--color-white)] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center justify-center min-w-10 h-8.5 px-3 rounded bg-(--color-accent) text-black text-[16px] font-medium cursor-pointer transition-colors duration-150 disabled:bg-(--color-grey) disabled:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
         aria-label="Next page"

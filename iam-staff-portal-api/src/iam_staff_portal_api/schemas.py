@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -80,6 +79,7 @@ class GetPermissionsForRolesRequest(BaseModel):
 
 class PermissionsForRolesResponse(BaseModel):
     """Plain JSON for ResolvePermissionMiddleware (not G2P envelope)."""
+
     permissions: List[str]
 
 
@@ -310,10 +310,6 @@ class LoginProviderIdPayload(BaseModel):
     id: int
 
 
-class OkPayload(BaseModel):
-    ok: bool = True
-
-
 class EmptyRequestPayload(BaseModel):
     pass
 
@@ -457,14 +453,6 @@ class LoginProviderResponseBody(G2PResponseBody):
 
 class LoginProviderResponse(G2PResponse):
     response_body: Optional[LoginProviderResponseBody] = None
-
-
-class OkResponseBody(G2PResponseBody):
-    response_payload: Optional[OkPayload] = None
-
-
-class OkResponse(G2PResponse):
-    response_body: Optional[OkResponseBody] = None
 
 
 class GetRolesRequestBody(G2PRequestBody):

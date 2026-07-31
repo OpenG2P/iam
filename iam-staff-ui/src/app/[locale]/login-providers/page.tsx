@@ -214,7 +214,7 @@ export default function LoginProvidersPage() {
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="font-[var(--font-heading)] text-[24px] font-bold text-[var(--color-black)]">{t("loginProviders")}</h1>
+        <h1 className="font-(--font-heading) text-[24px] text-black">{t("loginProviders")}</h1>
         <Can action="loginProvider:create">
           <AddButton onClick={() => setModalOpen(true)} />
         </Can>
@@ -327,7 +327,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5 col-span-full">
               <label className="text-[16px] font-medium text-gray-600">Description</label>
               <textarea
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[80px] resize-y"
+                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.description}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
@@ -379,7 +379,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Client private key</label>
               <textarea
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[80px] resize-y"
+                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.client_private_key}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -521,7 +521,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5 col-span-full">
               <label className="text-[16px] font-medium text-gray-600">Extra authorize params</label>
               <textarea
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[80px] resize-y"
+                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.extra_authorize_params}
                 onChange={(e) =>
                   setForm((f) => ({

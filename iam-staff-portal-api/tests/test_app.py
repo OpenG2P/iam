@@ -21,18 +21,24 @@ def test_initializer_initialize_registers_middleware_and_controllers():
         patch("iam_staff_portal_api.app.OAuthCallbackController") as oauth_controller,
         patch("iam_staff_portal_api.app.UserAccessController") as access_controller,
         patch("iam_staff_portal_api.app.IdentityProviderController") as idp_controller,
+        patch("iam_staff_portal_api.app.ApplicationsController") as applications_controller,
+        patch("iam_staff_portal_api.app.ApplicationAccessController") as application_access_controller,
+        patch("iam_staff_portal_api.app.LoginProvidersController") as login_providers_controller,
         patch("iam_staff_portal_api.app.ValidateAndRefreshTokenMiddleware"),
         patch("iam_staff_portal_api.app.CsrfMiddleware"),
         patch.object(Initializer, "return_app", return_value=mock_app),
     ):
         Initializer.initialize(init)
 
-    assert mock_app.add_middleware.call_count == 2
+    assert mock_app.add_middleware.call_count == 3
     init_cache.assert_called_once()
     auth_controller.return_value.post_init.assert_called_once()
     oauth_controller.return_value.post_init.assert_called_once()
     access_controller.return_value.post_init.assert_called_once()
     idp_controller.return_value.post_init.assert_called_once()
+    applications_controller.return_value.post_init.assert_called_once()
+    application_access_controller.return_value.post_init.assert_called_once()
+    login_providers_controller.return_value.post_init.assert_called_once()
 
 
 def test_initializer_migrate_database_runs_model_migrations_and_data_loader():

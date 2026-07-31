@@ -480,10 +480,10 @@ export default function ApplicationDetailPage() {
           credentials: "include",
         }),
       ]);
-      
+
       const rolesData = await rolesRes.json();
       const permsData = await permsRes.json();
-      
+
       const roles = extractList<Role>(rolesData).items;
       const perms = extractList<Permission>(permsData).items;
       setAllRoles(roles);
@@ -555,14 +555,14 @@ export default function ApplicationDetailPage() {
       <div>
         {/* <BackLink href="/applications" /> */}
         <div className="flex items-center justify-between gap-4 mb-3">
-          <div className="animate-pulse bg-gray-200 w-[200px] h-[28px] rounded-[8px]" />
+          <div className="animate-pulse bg-gray-200 w-50 h-7 rounded-lg" />
         </div>
         <div className="bg-white rounded-[10px] p-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col gap-1.5">
-                <div className="animate-pulse bg-gray-200 w-[80px] h-[12px] mb-2 rounded-[4px]" />
-                <div className="animate-pulse bg-gray-200 w-full h-[38px] rounded-[8px]" />
+                <div className="animate-pulse bg-gray-200 w-20 h-3 mb-2 rounded-sm" />
+                <div className="animate-pulse bg-gray-200 w-full h-9.5 rounded-lg" />
               </div>
             ))}
           </div>
@@ -600,7 +600,7 @@ export default function ApplicationDetailPage() {
     <div>
       {/* <BackLink href="/applications" /> */}
       <div className="flex items-center justify-between gap-4 mb-3">
-        <h1 className="font-[var(--font-heading)] text-[24px] font-bold text-[var(--color-black)] mb-4">{app.application_mnemonic}</h1>
+        <h1 className="text-[24px] font-bold text-black mb-4">{app.application_mnemonic}</h1>
       </div>
 
       <Tabs
@@ -724,7 +724,7 @@ export default function ApplicationDetailPage() {
 
       {tab === "roles" && (
         <div className="bg-white rounded-[10px] pb-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
-          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
             <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">Roles</h2>
             <Can action="role:create">
               <AddButton onClick={() => setRoleModal(true)} />
@@ -805,7 +805,7 @@ export default function ApplicationDetailPage() {
 
       {tab === "permissions" && (
         <div className="bg-white rounded-[10px] pb-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
-          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
             <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">Permissions</h2>
             <Can action="permission:create">
               <AddButton onClick={() => setPermModal(true)} />
@@ -886,7 +886,7 @@ export default function ApplicationDetailPage() {
 
       {tab === "role-permissions" && (
         <div className="bg-white rounded-[10px] pb-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
-          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
             <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">Roles to Permissions</h2>
             <Can action="rolePermission:create">
               <AddButton onClick={openRolePermModal} />
@@ -967,8 +967,8 @@ export default function ApplicationDetailPage() {
 
       {tab === "data-policies" && (
         <div className="bg-white rounded-[10px] pb-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
-          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4 border-b border-gray-200">
-            <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">Data Policies</h2>
+          <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
+            <h2 className="text-[20px] font-semibold text-black">Data Policies</h2>
             <Can action="dataPolicy:create">
               <AddButton onClick={() => setDpModal(true)} />
             </Can>

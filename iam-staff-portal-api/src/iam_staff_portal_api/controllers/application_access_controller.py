@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 from openg2p_fastapi_common.controller import BaseController
-from openg2p_fastapi_common.schemas import G2PResponse
 
 from iam_core.user_auth.decorators import require_permissions
 
@@ -70,7 +69,7 @@ class ApplicationAccessController(BaseController):
         self.router.add_api_route(
             "/delete_role",
             self.delete_role,
-            responses={200: {"model": G2PResponse}},
+            responses={200: {"model": RoleResponse}},
             methods=["POST"],
         )
         self.router.add_api_route(
@@ -88,7 +87,7 @@ class ApplicationAccessController(BaseController):
         self.router.add_api_route(
             "/delete_permission",
             self.delete_permission,
-            responses={200: {"model": G2PResponse}},
+            responses={200: {"model": PermissionResponse}},
             methods=["POST"],
         )
         self.router.add_api_route(
@@ -106,7 +105,7 @@ class ApplicationAccessController(BaseController):
         self.router.add_api_route(
             "/delete_role_permission",
             self.delete_role_permission,
-            responses={200: {"model": G2PResponse}},
+            responses={200: {"model": RolePermissionResponse}},
             methods=["POST"],
         )
         self.router.add_api_route(
@@ -124,7 +123,7 @@ class ApplicationAccessController(BaseController):
         self.router.add_api_route(
             "/delete_data_policy",
             self.delete_data_policy,
-            responses={200: {"model": G2PResponse}},
+            responses={200: {"model": DataPolicyResponse}},
             methods=["POST"],
         )
 
@@ -166,12 +165,17 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, create_request)
 
     @require_permissions({"role:delete"})
-    async def delete_role(self, delete_request: DeleteRoleRequest) -> G2PResponse:
+    async def delete_role(self, delete_request: DeleteRoleRequest) -> RoleResponse:
         try:
-            result = await self.application_access_service.delete_role(
+            role = await self.application_access_service.delete_role(
                 delete_request.request_body.request_payload
             )
-            return self.helper.construct_success_response(delete_request, result)
+            return self.helper.construct_payload_response(
+                delete_request,
+                role,
+                RoleResponseBody,
+                RoleResponse,
+            )
         except Exception as error_exception:
             _logger.exception("delete_role failed")
             return self.helper.construct_error_response(error_exception, delete_request)
@@ -198,9 +202,7 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, get_request)
 
     @require_permissions({"permission:create"})
-    async def create_permission(
-        self, create_request: CreatePermissionRequest
-    ) -> PermissionResponse:
+    async def create_permission(self, create_request: CreatePermissionRequest) -> PermissionResponse:
         try:
             permission = await self.application_access_service.create_permission(
                 create_request.request_body.request_payload
@@ -216,20 +218,23 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, create_request)
 
     @require_permissions({"permission:delete"})
-    async def delete_permission(self, delete_request: DeletePermissionRequest) -> G2PResponse:
+    async def delete_permission(self, delete_request: DeletePermissionRequest) -> PermissionResponse:
         try:
-            result = await self.application_access_service.delete_permission(
+            permission = await self.application_access_service.delete_permission(
                 delete_request.request_body.request_payload
             )
-            return self.helper.construct_success_response(delete_request, result)
+            return self.helper.construct_payload_response(
+                delete_request,
+                permission,
+                PermissionResponseBody,
+                PermissionResponse,
+            )
         except Exception as error_exception:
             _logger.exception("delete_permission failed")
             return self.helper.construct_error_response(error_exception, delete_request)
 
     @require_permissions({"rolePermission:view"})
-    async def get_role_permissions(
-        self, get_request: GetRolePermissionsRequest
-    ) -> RolePermissionsResponse:
+    async def get_role_permissions(self, get_request: GetRolePermissionsRequest) -> RolePermissionsResponse:
         try:
             page, page_size = self.helper.pagination_from_request(
                 get_request, default_page_size=_config.default_page_size
@@ -270,20 +275,23 @@ class ApplicationAccessController(BaseController):
     @require_permissions({"rolePermission:delete"})
     async def delete_role_permission(
         self, delete_request: DeleteRolePermissionRequest
-    ) -> G2PResponse:
+    ) -> RolePermissionResponse:
         try:
-            result = await self.application_access_service.delete_role_permission(
+            role_permission = await self.application_access_service.delete_role_permission(
                 delete_request.request_body.request_payload
             )
-            return self.helper.construct_success_response(delete_request, result)
+            return self.helper.construct_payload_response(
+                delete_request,
+                role_permission,
+                RolePermissionResponseBody,
+                RolePermissionResponse,
+            )
         except Exception as error_exception:
             _logger.exception("delete_role_permission failed")
             return self.helper.construct_error_response(error_exception, delete_request)
 
     @require_permissions({"dataPolicy:view"})
-    async def get_data_policies(
-        self, get_request: GetDataPoliciesRequest
-    ) -> DataPoliciesResponse:
+    async def get_data_policies(self, get_request: GetDataPoliciesRequest) -> DataPoliciesResponse:
         try:
             page, page_size = self.helper.pagination_from_request(
                 get_request, default_page_size=_config.default_page_size
@@ -304,9 +312,7 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, get_request)
 
     @require_permissions({"dataPolicy:create"})
-    async def create_data_policy(
-        self, create_request: CreateDataPolicyRequest
-    ) -> DataPolicyResponse:
+    async def create_data_policy(self, create_request: CreateDataPolicyRequest) -> DataPolicyResponse:
         try:
             data_policy = await self.application_access_service.create_data_policy(
                 create_request.request_body.request_payload
@@ -322,12 +328,17 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, create_request)
 
     @require_permissions({"dataPolicy:delete"})
-    async def delete_data_policy(self, delete_request: DeleteDataPolicyRequest) -> G2PResponse:
+    async def delete_data_policy(self, delete_request: DeleteDataPolicyRequest) -> DataPolicyResponse:
         try:
-            result = await self.application_access_service.delete_data_policy(
+            data_policy = await self.application_access_service.delete_data_policy(
                 delete_request.request_body.request_payload
             )
-            return self.helper.construct_success_response(delete_request, result)
+            return self.helper.construct_payload_response(
+                delete_request,
+                data_policy,
+                DataPolicyResponseBody,
+                DataPolicyResponse,
+            )
         except Exception as error_exception:
             _logger.exception("delete_data_policy failed")
             return self.helper.construct_error_response(error_exception, delete_request)

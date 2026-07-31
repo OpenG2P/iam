@@ -18,7 +18,6 @@ from ..schemas import (
     DeleteApplicationRequest,
     GetApplicationRequest,
     GetApplicationsRequest,
-    OkResponse,
     UpdateApplicationRequest,
 )
 from ..services.applications_service import ApplicationsService
@@ -62,7 +61,7 @@ class ApplicationsController(BaseController):
         self.router.add_api_route(
             "/delete_application",
             self.delete_application,
-            responses={200: {"model": OkResponse}},
+            responses={200: {"model": ApplicationResponse}},
             methods=["POST"],
         )
 
@@ -74,9 +73,7 @@ class ApplicationsController(BaseController):
             )
             applications: list[ApplicationData]
             total: int
-            applications, total = await self.applications_service.get_applications(
-                page, page_size
-            )
+            applications, total = await self.applications_service.get_applications(page, page_size)
             return self.helper.construct_payload_response(
                 get_request,
                 applications,
@@ -106,9 +103,7 @@ class ApplicationsController(BaseController):
             return self.helper.construct_error_response(error_exception, get_request)
 
     @require_permissions({"application:create"})
-    async def create_application(
-        self, create_request: CreateApplicationRequest
-    ) -> ApplicationResponse:
+    async def create_application(self, create_request: CreateApplicationRequest) -> ApplicationResponse:
         try:
             application: ApplicationData = await self.applications_service.create_application(
                 create_request.request_body.request_payload
@@ -124,9 +119,7 @@ class ApplicationsController(BaseController):
             return self.helper.construct_error_response(error_exception, create_request)
 
     @require_permissions({"application:edit"})
-    async def update_application(
-        self, update_request: UpdateApplicationRequest
-    ) -> ApplicationResponse:
+    async def update_application(self, update_request: UpdateApplicationRequest) -> ApplicationResponse:
         try:
             application: ApplicationData = await self.applications_service.update_application(
                 update_request.request_body.request_payload
@@ -142,15 +135,16 @@ class ApplicationsController(BaseController):
             return self.helper.construct_error_response(error_exception, update_request)
 
     @require_permissions({"application:delete"})
-    async def delete_application(
-        self, delete_request: DeleteApplicationRequest
-    ) -> OkResponse:
+    async def delete_application(self, delete_request: DeleteApplicationRequest) -> ApplicationResponse:
         try:
-            await self.applications_service.delete_application(
+            application = await self.applications_service.delete_application(
                 delete_request.request_body.request_payload
             )
-            return self.helper.construct_success_response(
-                delete_request, {"ok": True}
+            return self.helper.construct_payload_response(
+                delete_request,
+                application,
+                ApplicationResponseBody,
+                ApplicationResponse,
             )
         except Exception as error_exception:
             _logger.exception("delete_application failed")

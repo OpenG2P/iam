@@ -3,7 +3,7 @@ from __future__ import annotations
 from openg2p_fastapi_common.context import dbengine
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError, NotFoundError
 from openg2p_fastapi_common.service import BaseService
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from iam_core.models import LoginProvider
@@ -15,7 +15,6 @@ from ..schemas import (
     LoginProviderDeletePayload,
     LoginProviderIdPayload,
     LoginProviderUpdatePayload,
-    OkPayload,
 )
 
 
@@ -56,9 +55,7 @@ class LoginProvidersService(BaseService):
             updated_at=dt_iso(provider.updated_at),
         )
 
-    async def get_login_providers(
-        self, page: int, page_size: int
-    ) -> tuple[list[LoginProviderData], int]:
+    async def get_login_providers(self, page: int, page_size: int) -> tuple[list[LoginProviderData], int]:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             stmt = select(LoginProvider).order_by(LoginProvider.id.desc())
@@ -73,9 +70,7 @@ class LoginProvidersService(BaseService):
                 raise NotFoundError(message="Login provider not found")
             return self._to_data(provider)
 
-    async def create_login_provider(
-        self, payload: LoginProviderCreatePayload
-    ) -> LoginProviderData:
+    async def create_login_provider(self, payload: LoginProviderCreatePayload) -> LoginProviderData:
         if not payload.provider_name.strip():
             raise BadRequestError(message="provider_name is required")
         if not payload.client_id.strip():
@@ -116,9 +111,7 @@ class LoginProvidersService(BaseService):
             await session.refresh(provider)
             return self._to_data(provider)
 
-    async def update_login_provider(
-        self, payload: LoginProviderUpdatePayload
-    ) -> LoginProviderData:
+    async def update_login_provider(self, payload: LoginProviderUpdatePayload) -> LoginProviderData:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             provider = await session.get(LoginProvider, payload.id)
@@ -159,12 +152,13 @@ class LoginProvidersService(BaseService):
             await session.refresh(provider)
             return self._to_data(provider)
 
-    async def delete_login_provider(self, payload: LoginProviderDeletePayload) -> OkPayload:
+    async def delete_login_provider(self, payload: LoginProviderDeletePayload) -> LoginProviderData:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             provider = await session.get(LoginProvider, payload.id)
             if provider is None:
                 raise NotFoundError(message="Login provider not found")
+            provider_data = self._to_data(provider)
             await session.delete(provider)
             await session.commit()
-        return OkPayload()
+        return provider_data

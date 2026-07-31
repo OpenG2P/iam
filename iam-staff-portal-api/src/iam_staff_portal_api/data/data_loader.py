@@ -216,13 +216,12 @@ class DataLoaderBase(ABC):
         Resolves ``application_id`` by mnemonic so seed works regardless of the
         numeric id assigned to the ``iam-staff-ui`` application row.
         """
-        app = (
-            await session.execute(
-                select(StaffPortalApplication).where(
-                    StaffPortalApplication.application_mnemonic == IAM_STAFF_UI_APPLICATION_MNEMONIC
-                )
+        result = await session.execute(
+            select(StaffPortalApplication).where(
+                StaffPortalApplication.application_mnemonic == IAM_STAFF_UI_APPLICATION_MNEMONIC
             )
-        ).scalars().first()
+        )
+        app = result.scalars().first()
         if app is None:
             _logger.warning(
                 "Skipping iam-staff-ui catalog seed; application '%s' not found",
@@ -230,13 +229,10 @@ class DataLoaderBase(ABC):
             )
             return
 
-        existing_perms = (
-            await session.execute(
-                select(StaffApplicationPermission).where(
-                    StaffApplicationPermission.application_id == app.id
-                )
-            )
-        ).scalars().all()
+        result = await session.execute(
+            select(StaffApplicationPermission).where(StaffApplicationPermission.application_id == app.id)
+        )
+        existing_perms = result.scalars().all()
         perms_by_mnemonic = {p.permission_mnemonic: p for p in existing_perms}
 
         for mnemonic in IAM_STAFF_UI_PERMISSIONS:
@@ -257,8 +253,10 @@ class DataLoaderBase(ABC):
         await session.flush()
 
         existing_roles = (
-            await session.execute(select(StaffRole).where(StaffRole.application_id == app.id))
-        ).scalars().all()
+            (await session.execute(select(StaffRole).where(StaffRole.application_id == app.id)))
+            .scalars()
+            .all()
+        )
         roles_by_mnemonic = {r.role_mnemonic: r for r in existing_roles}
 
         admin_role = roles_by_mnemonic.get(IAM_STAFF_UI_ADMIN_ROLE)
@@ -278,10 +276,14 @@ class DataLoaderBase(ABC):
         await session.flush()
 
         existing_mappings = (
-            await session.execute(
-                select(StaffRolePermission).where(StaffRolePermission.role_id == admin_role.id)
+            (
+                await session.execute(
+                    select(StaffRolePermission).where(StaffRolePermission.role_id == admin_role.id)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         mapped_permission_ids = {m.permission_id for m in existing_mappings}
 
         for mnemonic in IAM_STAFF_UI_PERMISSIONS:

@@ -30,13 +30,13 @@ export default function Table<T>({
   }
 
   return (
-    <table className="w-full border-collapse bg-[var(--color-surface)]">
+    <table className="w-full border-collapse bg-(--color-surface)">
       <thead>
         <tr>
           {columns.map((column) => (
             <th
               key={column.key}
-              className="text-left py-3 px-9 border-b border-[var(--color-border)] font-medium text-[var(--color-text-muted)] text-[16px] uppercase tracking-wider bg-gray-50"
+              className="text-left pb-3 px-9 border-b border-(--color-border) font-semibold text-[#ED7C22] text-[16px] tracking-wider"
             >
               {column.header}
             </th>
@@ -47,7 +47,7 @@ export default function Table<T>({
         {data.map((item, index) => (
           <tr
             key={index}
-            className={`cursor-pointer transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+            className={`cursor-pointer transition-colors duration-150 ${index % 2 === 1 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
             onClick={() => onRowClick?.(item)}
           >
             {columns.map((column) => (
