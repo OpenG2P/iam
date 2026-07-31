@@ -32,6 +32,8 @@ export default function PermissionsTab({ applicationId, isActive = false }: Perm
   // Confirm dialog state
   const [confirm, setConfirm] = useState<{
     open: boolean;
+    title?: string;
+    warningText?: string;
     message: string;
     onConfirm: () => Promise<void>;
   }>({ open: false, message: "", onConfirm: async () => {} });
@@ -76,8 +78,8 @@ export default function PermissionsTab({ applicationId, isActive = false }: Perm
     }
   }
 
-  function openDelete(message: string, onConfirm: () => Promise<void>) {
-    setConfirm({ open: true, message, onConfirm });
+  function openDelete(title: string, warningText: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, title, warningText, message: "", onConfirm });
   }
 
   async function runConfirm() {
@@ -95,7 +97,8 @@ export default function PermissionsTab({ applicationId, isActive = false }: Perm
 
   async function handleDeletePermission(perm: Permission) {
     openDelete(
-      `Delete permission "${perm.permission_mnemonic}"?`,
+      t("deletePermission"),
+      t("deleteWillRemoveAllData"),
       async () => {
         const res = await permissions.execute("/api/applications/permissions/delete", {
           method: "POST",
@@ -157,6 +160,8 @@ export default function PermissionsTab({ applicationId, isActive = false }: Perm
 
       {confirm.open && (
         <ConfirmModal
+          title={confirm.title}
+          warningText={confirm.warningText}
           confirming={confirming}
           onConfirm={runConfirm}
           onCancel={() => setConfirm((c) => ({ ...c, open: false }))}

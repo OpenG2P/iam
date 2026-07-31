@@ -26,6 +26,7 @@ export default function TextAreaField({
       {label && (
         <label className="text-[16px] font-medium text-gray-600">
           {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <textarea

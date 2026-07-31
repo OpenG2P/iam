@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import {
   Button,
   CheckboxField,
+  FormActions,
   IconBase64Field,
   InputField,
   Modal,
@@ -86,7 +87,7 @@ export default function LoginProviderModal({
   const t = useTranslations();
 
   return (
-    <Modal title="Add Login Provider" onClose={onClose} wide>
+    <Modal title="Add Login Provider" onClose={onClose} width="800">
       <form onSubmit={onSave}>
         <div className="grid grid-cols-2 gap-4">
           <InputField
@@ -216,14 +217,14 @@ export default function LoginProviderModal({
             onChange={(checked) => onChange("enable_pkce", checked)}
           />
         </div>
-        <div className="flex gap-3 justify-end mt-5">
+        <FormActions>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   );

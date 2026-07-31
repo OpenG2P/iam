@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
+import { SecondaryButton } from "@/components";
 import { fileToBase64, iconDataUrl } from "@/shared/utils/iconBase64";
 
 type IconBase64FieldProps = {
@@ -58,22 +59,18 @@ export default function IconBase64Field({
             disabled={disabled}
             onChange={handleFileChange}
           />
-          <button
-            type="button"
-            className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-[var(--color-black)] border border-[var(--color-border)] hover:bg-[var(--color-light-grey)] disabled:opacity-50 disabled:not-allowed"
+          <SecondaryButton
             disabled={disabled}
             onClick={() => inputRef.current?.click()}
           >
             {previewSrc ? t("changeIcon") : t("uploadIcon")}
-          </button>
+          </SecondaryButton>
           {previewSrc && !disabled && (
-            <button
-              type="button"
-              className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-[var(--color-black)] border border-[var(--color-border)] hover:bg-[var(--color-light-grey)] disabled:opacity-50 disabled:not-allowed"
+            <SecondaryButton
               onClick={() => onClear?.()}
             >
               {t("removeIcon")}
-            </button>
+            </SecondaryButton>
           )}
         </div>
         <span className="text-[16px] text-[var(--color-text-muted)]">{t("iconHint")}</span>

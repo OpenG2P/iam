@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import {
   Button,
+  FormActions,
   IconBase64Field,
   InputField,
   Modal,
@@ -95,7 +96,7 @@ export default function ApplicationModal({
             }}
           />
         </div>
-        <div className="flex gap-3 justify-end mt-5">
+        <FormActions>
           <Button
             type="button"
             variant="secondary"
@@ -106,7 +107,7 @@ export default function ApplicationModal({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   );

@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import {
   AddButton,
   Can,
+  Card,
   Pagination,
   Table,
   TableSkeleton,
@@ -47,7 +48,7 @@ export default function TabContent<T>({
   const { pageSize } = useConfig();
 
   return (
-    <div className="bg-white rounded-[10px] pb-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
+    <Card padding="sm" className="pb-6">
       <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
         {loading && !loadedOnce ? (
           <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
@@ -78,6 +79,6 @@ export default function TabContent<T>({
           onPageChange={onPageChange}
         />
       )}
-    </div>
+    </Card>
   );
 }

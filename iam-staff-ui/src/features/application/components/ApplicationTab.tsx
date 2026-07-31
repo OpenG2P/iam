@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useRbac } from "@/context/RbacContext";
 import {
   Button,
+  Card,
+  FormActions,
   IconBase64Field,
   InputField,
   TextAreaField,
@@ -31,7 +33,7 @@ export default function ApplicationTab({
   const isDisabled = isSelfRegistered || !can("application:edit") || saving;
 
   return (
-    <div className="bg-white rounded-[10px] p-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
+    <Card>
       <form onSubmit={saveApplication}>
         <div className="grid grid-cols-2 gap-4">
           <InputField
@@ -118,13 +120,13 @@ export default function ApplicationTab({
           </div>
         </div>
         {!isSelfRegistered && (
-          <div className="flex gap-3 justify-end mt-5 pt-4 border-t border-gray-100">
+          <FormActions withBorder>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving ? t("saving") : t("save")}
             </Button>
-          </div>
+          </FormActions>
         )}
       </form>
-    </div>
+    </Card>
   );
 }

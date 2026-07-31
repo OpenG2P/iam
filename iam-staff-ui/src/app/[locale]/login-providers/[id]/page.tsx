@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { useRbac } from "@/context/RbacContext";
 import { useLoginProviderData } from "@/features/login-providers/hooks/useLoginProviderData";
 import {
+  Card,
+  ErrorAlert,
+} from "@/components";
+import {
   LoginProviderForm,
   LoginProviderPageSkeleton,
   LoginProviderNotFound,
@@ -51,12 +55,10 @@ export default function LoginProviderDetailPage() {
       </div>
 
       {error && (
-        <div className="bg-[rgba(192,57,43,0.1)] text-[#c0392b] p-3.5 rounded mb-4 text-[16px] font-medium">
-          {error}
-        </div>
+        <ErrorAlert className="p-3.5 text-[16px] font-medium">{error}</ErrorAlert>
       )}
 
-      <div className="bg-white rounded-[10px] p-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)] border border-gray-100">
+      <Card className="border border-gray-100">
         <LoginProviderForm
           form={form}
           provider={provider}
@@ -65,7 +67,7 @@ export default function LoginProviderDetailPage() {
           onChange={(field, value) => setForm((f: any) => ({ ...f, [field]: value }))}
           onSave={handleSave}
         />
-      </div>
+      </Card>
     </div>
   );
 }

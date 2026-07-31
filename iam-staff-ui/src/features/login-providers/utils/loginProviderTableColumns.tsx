@@ -1,4 +1,4 @@
-import { Can } from "@/components";
+import { Can, DeleteButton, StatusBadge } from "@/components";
 
 interface LoginProvider {
   id: number;
@@ -44,11 +44,11 @@ export function getLoginProviderColumns({
       key: "status",
       header: "Status",
       render: (lp: LoginProvider) => (
-        <span
-          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${lp.active !== false ? "bg-[rgba(39,174,96,0.12)] text-[#27ae60]" : "bg-[rgba(196,196,196,0.3)] text-gray-600"}`}
-        >
-          {lp.active !== false ? t("active") : t("inactive")}
-        </span>
+        <StatusBadge
+          active={lp.active}
+          activeLabel={t("active")}
+          inactiveLabel={t("inactive")}
+        />
       ),
     },
     {
@@ -56,17 +56,12 @@ export function getLoginProviderColumns({
       header: "Actions",
       render: (lp: LoginProvider) => (
         <Can action="loginProvider:delete">
-          <button
-            type="button"
-            className="inline-block text-[16px] font-medium px-3 py-1.5 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[rgba(192,57,43,0.1)] text-[#c0392b] hover:bg-[rgba(192,57,43,0.2)] disabled:opacity-50 disabled:not-allowed"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(lp);
-            }}
+          <DeleteButton
+            onClick={() => onDelete(lp)}
             title="Delete login provider"
           >
             {t("delete")}
-          </button>
+          </DeleteButton>
         </Can>
       ),
     },

@@ -21,13 +21,13 @@ export default function ConfirmModal({
   const t = useTranslations();
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-      <div className="relative w-full max-w-[450px] bg-white rounded-[20px] shadow-lg flex flex-col items-center p-8 border-4 border-yellow-500">
+    <div className="fixed inset-0 bg-black/50 z-100 flex items-center justify-center p-4">
+      <div className="relative w-full max-w-150 bg-white rounded-[20px] shadow-lg flex flex-col items-center p-8 border-4 border-yellow-500">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <X size={24} strokeWidth={2} />
+          <X size={30} />
         </button>
 
         <div className="mb-6 mt-4">
@@ -39,21 +39,21 @@ export default function ConfirmModal({
         </div>
 
         <h2 className="text-[22px] font-bold text-black mb-2 text-center">{title || t("confirm")}</h2>
-        <p className="text-gray-500 text-[14px] text-center mb-8 px-4">
+        <p className="text-gray-500 text-[18px] text-center mb-8 px-4">
           {warningText}
         </p>
 
         <div className="flex gap-4 w-full justify-center">
           <button
             onClick={onCancel}
-            className="px-8 py-2.5 bg-gray-100 text-black font-semibold rounded-full hover:bg-gray-200 transition-colors text-[14px]"
+            className="px-8 py-2 bg-gray-300 text-black font-semibold rounded-[10px] hover:bg-gray-200 transition-colors text-[16px]"
             disabled={confirming}
           >
             {t("cancel")}
           </button>
           <button
             onClick={onConfirm}
-            className="px-8 py-2.5 bg-black text-white font-semibold rounded-full hover:bg-gray-800 transition-colors text-[14px] flex items-center gap-2"
+            className="px-8 py-2 bg-black text-white font-semibold rounded-[10px] hover:bg-gray-800 transition-colors text-[16px] flex items-center gap-2"
             disabled={confirming}
           >
             {confirming && (

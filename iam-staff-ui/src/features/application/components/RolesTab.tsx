@@ -32,6 +32,8 @@ export default function RolesTab({ applicationId, isActive = false }: RolesTabPr
   // Confirm dialog state
   const [confirm, setConfirm] = useState<{
     open: boolean;
+    title?: string;
+    warningText?: string;
     message: string;
     onConfirm: () => Promise<void>;
   }>({ open: false, message: "", onConfirm: async () => {} });
@@ -76,8 +78,8 @@ export default function RolesTab({ applicationId, isActive = false }: RolesTabPr
     }
   }
 
-  function openDelete(message: string, onConfirm: () => Promise<void>) {
-    setConfirm({ open: true, message, onConfirm });
+  function openDelete(title: string, warningText: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, title, warningText, message: "", onConfirm });
   }
 
   async function runConfirm() {
@@ -95,7 +97,8 @@ export default function RolesTab({ applicationId, isActive = false }: RolesTabPr
 
   async function handleDeleteRole(role: Role) {
     openDelete(
-      `Delete role "${role.role_mnemonic}"?`,
+      t("deleteRole"),
+      t("deleteWillRemoveAllData"),
       async () => {
         const res = await roles.execute("/api/applications/roles/delete", {
           method: "POST",
@@ -157,6 +160,8 @@ export default function RolesTab({ applicationId, isActive = false }: RolesTabPr
 
       {confirm.open && (
         <ConfirmModal
+          title={confirm.title}
+          warningText={confirm.warningText}
           confirming={confirming}
           onConfirm={runConfirm}
           onCancel={() => setConfirm((c) => ({ ...c, open: false }))}

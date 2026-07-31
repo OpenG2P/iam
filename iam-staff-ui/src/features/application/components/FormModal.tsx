@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import {
   Button,
+  FormActions,
   InputField,
   Modal,
   SelectField,
@@ -79,14 +80,14 @@ export default function FormModal({
             </div>
           ))}
         </div>
-        <div className="flex gap-3 justify-end mt-5 pt-4 border-t border-gray-100">
+        <FormActions withBorder>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   );

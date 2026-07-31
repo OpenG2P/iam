@@ -1,4 +1,5 @@
 import Can from "@/components/Can";
+import DeleteButton from "@/components/DeleteButton";
 import { Role, Permission, RolePermission, DataPolicy } from "../types";
 
 export function createDeleteButton(
@@ -8,13 +9,9 @@ export function createDeleteButton(
 ) {
   return (
     <Can action={action}>
-      <button
-        type="button"
-        className="inline-flex items-center justify-center gap-1 text-[16px] font-semibold px-2.5 py-1 rounded cursor-pointer bg-red-50 text-[#c0392b] border border-red-200 hover:bg-red-100 transition-colors duration-150"
-        onClick={onDelete}
-      >
+      <DeleteButton onClick={onDelete}>
         {t("delete")}
-      </button>
+      </DeleteButton>
     </Can>
   );
 }

@@ -9,6 +9,7 @@ import {
   AddButton,
   Can,
   ConfirmModal,
+  ErrorAlert,
   Pagination,
   Table,
   TableSkeleton,
@@ -180,7 +181,7 @@ export default function ApplicationsPage() {
         </Can>
       </div>
 
-      {error && <div className="bg-[rgba(192,57,43,0.1)] text-[#c0392b] p-2.5 px-3.5 rounded mb-4">{error}</div>}
+      {error && <ErrorAlert>{error}</ErrorAlert>}
 
       <div className="bg-white rounded-[10px] py-6 shadow-sm">
         {loading || !loadedOnce ? (

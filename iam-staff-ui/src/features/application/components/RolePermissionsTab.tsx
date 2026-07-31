@@ -34,6 +34,8 @@ export default function RolePermissionsTab({ applicationId, isActive = false }: 
   // Confirm dialog state
   const [confirm, setConfirm] = useState<{
     open: boolean;
+    title?: string;
+    warningText?: string;
     message: string;
     onConfirm: () => Promise<void>;
   }>({ open: false, message: "", onConfirm: async () => {} });
@@ -116,8 +118,8 @@ export default function RolePermissionsTab({ applicationId, isActive = false }: 
     }
   }
 
-  function openDelete(message: string, onConfirm: () => Promise<void>) {
-    setConfirm({ open: true, message, onConfirm });
+  function openDelete(title: string, warningText: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, title, warningText, message: "", onConfirm });
   }
 
   async function runConfirm() {
@@ -135,7 +137,8 @@ export default function RolePermissionsTab({ applicationId, isActive = false }: 
 
   async function handleDeleteRolePermission(rp: RolePermission) {
     openDelete(
-      "Delete this role–permission mapping?",
+      t("deleteRolePermission"),
+      t("deleteWillRemoveAllData"),
       async () => {
         const res = await rolePerms.execute("/api/applications/role-permissions/delete", {
           method: "POST",
@@ -202,6 +205,8 @@ export default function RolePermissionsTab({ applicationId, isActive = false }: 
 
       {confirm.open && (
         <ConfirmModal
+          title={confirm.title}
+          warningText={confirm.warningText}
           confirming={confirming}
           onConfirm={runConfirm}
           onCancel={() => setConfirm((c) => ({ ...c, open: false }))}

@@ -22,15 +22,18 @@ export default function Table<T>({
   emptyMessage = "No records found.",
 }: TableProps<T>) {
   return (
-    <table className="w-full border-collapse bg-white">
+    <table className="w-full border-collapse bg-white table-fixed">
       <thead>
         <tr>
           {columns.map((column) => (
             <th
               key={column.key}
               className="text-left pb-3 px-9 border-b border-gray-200 font-semibold text-[#ED7C22] text-[16px] tracking-wider"
+              style={{ width: `${100 / columns.length}%` }}
             >
-              {column.header}
+              <div className="truncate" title={column.header}>
+                {column.header}
+              </div>
             </th>
           ))}
         </tr>
@@ -51,7 +54,9 @@ export default function Table<T>({
             >
               {columns.map((column) => (
                 <td key={column.key} className="py-4 px-9 align-middle">
-                  {column.render(item)}
+                  <div className="truncate" title={String(column.render(item))}>
+                    {column.render(item)}
+                  </div>
                 </td>
               ))}
             </tr>
