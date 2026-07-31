@@ -72,7 +72,7 @@ export default function Tabs({ tabs, active, onChange }: TabsProps) {
         <div className="relative" ref={moreMenuRef}>
           <button
             type="button"
-            className={`inline-flex items-center justify-center gap-1.5 min-w-30 max-w-45 px-4 py-2 border-none rounded-t-[10px] rounded-b-none bg-[#e1e1e1] text-black font-sans text-lg font-medium leading-[1.3] cursor-pointer transition-colors duration-150 ${isMoreActive ? "bg-[#f5bb1a]" : "hover:bg-[#d4d4d4]"}`}
+            className={`inline-flex items-center justify-center gap-1.5 min-w-30 max-w-45 px-4 py-2 border-none rounded-t-[10px] rounded-b-none bg-[#e1e1e1] text-black text-lg font-medium leading-[1.3] cursor-pointer transition-colors duration-150 ${isMoreActive ? "bg-[#f5bb1a]" : "hover:bg-[#d4d4d4]"}`}
             onClick={() => setIsMoreOpen((prev) => !prev)}
             aria-expanded={isMoreOpen}
             aria-haspopup="listbox"
@@ -96,7 +96,7 @@ export default function Tabs({ tabs, active, onChange }: TabsProps) {
                     type="button"
                     role="option"
                     aria-selected={isActive}
-                    className={`block w-full px-4 py-2 border-none bg-transparent text-black font-sans text-lg font-medium text-left cursor-pointer transition-colors duration-150 ${isActive ? "bg-[rgba(245,187,26,0.25)] font-semibold" : "hover:bg-[rgba(245,187,26,0.25)]"}`}
+                    className={`block w-full px-4 py-2 border-none bg-transparent text-black text-lg font-medium text-left cursor-pointer transition-colors duration-150 ${isActive ? "bg-[rgba(245,187,26,0.25)] font-semibold" : "hover:bg-[rgba(245,187,26,0.25)]"}`}
                     onClick={() => onChange(tab.id)}
                   >
                     {tab.label}

@@ -47,17 +47,24 @@ export default function TabContent<T>({
   return (
     <div className="bg-white rounded-[10px] pb-6 shadow-[0_1px_2px_rgba(6,19,39,0.05)]">
       <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
-        <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">
-          {title}
-        </h2>
-        {showAddButton && (
+        {loading ? (
+          <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
+        ) : (
+          <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">
+            {title}
+          </h2>
+        )}
+        {showAddButton && !loading && (
           <Can action={createAction}>
             <AddButton onClick={onAdd} />
           </Can>
         )}
+        {loading && showAddButton && (
+          <div className="h-10 w-32 bg-gray-200 rounded animate-pulse" />
+        )}
       </div>
       {loading ? (
-        <TableSkeleton rows={5} columns={columns.length} />
+        <TableSkeleton rows={5} headers={columns.map(c => c.header)} />
       ) : (
         <Table columns={columns} data={data} emptyMessage={t("noData")} />
       )}

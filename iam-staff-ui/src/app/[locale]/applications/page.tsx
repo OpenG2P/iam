@@ -227,7 +227,7 @@ export default function ApplicationsPage() {
                   <Can action="application:delete">
                     <button
                       type="button"
-                      className="inline-block font-sans text-[16px] font-medium px-3 py-1.5 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[rgba(192,57,43,0.1)] text-[#c0392b] hover:bg-[rgba(192,57,43,0.2)] disabled:opacity-50 disabled:not-allowed"
+                      className="inline-block text-[16px] font-medium px-3 py-1.5 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[rgba(192,57,43,0.1)] text-[#c0392b] hover:bg-[rgba(192,57,43,0.2)] disabled:opacity-50 disabled:not-allowed"
                       onClick={(e) => {
                         e.stopPropagation();
                         openDeleteModal(app);
@@ -268,7 +268,7 @@ export default function ApplicationsPage() {
               <input
                 id="mnemonic"
                 required
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.application_mnemonic}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -282,7 +282,7 @@ export default function ApplicationsPage() {
               <label htmlFor="description" className="text-[16px] font-medium text-gray-600">Description</label>
               <textarea
                 id="description"
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.application_description}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -296,7 +296,7 @@ export default function ApplicationsPage() {
               <label htmlFor="url" className="text-[16px] font-medium text-gray-600">URL</label>
               <input
                 id="url"
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.application_url}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, application_url: e.target.value }))
@@ -308,7 +308,7 @@ export default function ApplicationsPage() {
               <input
                 id="order"
                 type="number"
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.order}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, order: e.target.value }))
@@ -320,7 +320,7 @@ export default function ApplicationsPage() {
               <input
                 id="width"
                 type="number"
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.width}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, width: e.target.value }))
@@ -349,12 +349,12 @@ export default function ApplicationsPage() {
           <div className="flex gap-3 justify-end mt-5">
             <button
               type="button"
-              className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-black border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
+              className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-black border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
               onClick={() => setModalOpen(false)}
             >
               {t("cancel")}
             </button>
-            <button type="submit" className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed" disabled={saving}>
+            <button type="submit" className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed" disabled={saving}>
               {saving ? t("saving") : t("save")}
             </button>
           </div>

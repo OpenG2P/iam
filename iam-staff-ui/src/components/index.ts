@@ -6,3 +6,7 @@ export { default as Can } from "./Can";
 export { default as Forbidden } from "./Forbidden";
 export { default as RequireAction } from "./RequireAction";
 export { default as Tabs } from "./Tabs";
+export { default as InputField } from "./InputField";
+export { default as TextAreaField } from "./TextAreaField";
+export { default as SelectField } from "./SelectField";
+export { default as Button } from "./Button";

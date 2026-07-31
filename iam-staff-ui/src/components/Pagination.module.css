@@ -17,7 +17,7 @@
   min-width: 40px;
   height: 34px;
   padding: 0 12px;
-  font-family: var(--font-body), "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Roboto", sans-serif;
   cursor: pointer;
   border: none;
   border-radius: 4px;

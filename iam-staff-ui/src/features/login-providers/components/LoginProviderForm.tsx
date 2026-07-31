@@ -30,7 +30,7 @@ export default function LoginProviderForm({
           <label className="text-[16px] font-medium text-gray-600">Provider name *</label>
           <input
             required
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.provider_name}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("provider_name", e.target.value)}
@@ -40,7 +40,7 @@ export default function LoginProviderForm({
           <label className="text-[16px] font-medium text-gray-600">Client ID *</label>
           <input
             required
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.client_id}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("client_id", e.target.value)}
@@ -49,7 +49,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5 col-span-full">
           <label className="text-[16px] font-medium text-gray-600">Description</label>
           <textarea
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[80px] resize-y disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[80px] resize-y disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.description}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("description", e.target.value)}
@@ -59,7 +59,7 @@ export default function LoginProviderForm({
           <label className="text-[16px] font-medium text-gray-600">Token endpoint auth method *</label>
           <select
             required
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.token_endpoint_auth_method}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("token_endpoint_auth_method", e.target.value)}
@@ -75,7 +75,7 @@ export default function LoginProviderForm({
           <label className="text-[16px] font-medium text-gray-600">Issuer *</label>
           <input
             required
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.issuer}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("issuer", e.target.value)}
@@ -84,7 +84,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Authorization endpoint</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.authorization_endpoint}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("authorization_endpoint", e.target.value)}
@@ -93,7 +93,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Token endpoint</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.token_endpoint}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("token_endpoint", e.target.value)}
@@ -102,7 +102,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Userinfo endpoint</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.userinfo_endpoint}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("userinfo_endpoint", e.target.value)}
@@ -111,7 +111,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Server metadata URL</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.server_metadata_url}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("server_metadata_url", e.target.value)}
@@ -120,7 +120,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">JWKS URI</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.jwks_uri}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("jwks_uri", e.target.value)}
@@ -129,7 +129,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Adapter name</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.adapter_name}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("adapter_name", e.target.value)}
@@ -138,7 +138,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Scope</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.scope}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("scope", e.target.value)}
@@ -157,7 +157,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Extra authorize params</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.extra_authorize_params}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("extra_authorize_params", e.target.value)}
@@ -166,7 +166,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">JWT assertion audience</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.jwt_assertion_aud}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("jwt_assertion_aud", e.target.value)}
@@ -175,7 +175,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Audiences</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.audiences}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("audiences", e.target.value)}
@@ -185,7 +185,7 @@ export default function LoginProviderForm({
           <label className="text-[16px] font-medium text-gray-600">OAuth callback URL *</label>
           <input
             required
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.oauth_callback_url}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("oauth_callback_url", e.target.value)}
@@ -194,7 +194,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Default redirect URI</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.default_redirect_uri}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("default_redirect_uri", e.target.value)}
@@ -203,7 +203,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Keymanager app ID</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.keymanager_app_id}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("keymanager_app_id", e.target.value)}
@@ -212,7 +212,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-[16px] font-medium text-gray-600">Keymanager ref ID</label>
           <input
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             value={form.keymanager_ref_id}
             disabled={!canEdit || saving}
             onChange={(e) => onChange("keymanager_ref_id", e.target.value)}
@@ -223,7 +223,7 @@ export default function LoginProviderForm({
           <input
             type="password"
             autoComplete="new-password"
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             placeholder={
               provider?.has_client_secret
                 ? "•••••••• (leave blank to keep)"
@@ -243,7 +243,7 @@ export default function LoginProviderForm({
         <div className="flex flex-col gap-1.5 col-span-full">
           <label className="text-[16px] font-medium text-gray-600">Client private key</label>
           <textarea
-            className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[120px] resize-y disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-mono text-sm"
+            className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-[120px] resize-y disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-mono text-sm"
             placeholder={
               provider?.has_client_private_key
                 ? "(leave blank to keep)"
@@ -278,7 +278,7 @@ export default function LoginProviderForm({
         <div className="flex gap-3 justify-end mt-5 pt-4 border-t border-gray-100">
           <button
             type="submit"
-            className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed"
+            className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed"
             disabled={saving}
           >
             {saving ? t("saving") : t("save")}

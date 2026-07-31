@@ -22,25 +22,31 @@ export default function TableSkeleton({
 
   return (
     <div className="overflow-x-auto" aria-hidden>
-      <table className="w-full border-collapse bg-(--color-surface)">
-        {headers && (
-          <thead>
-            <tr>
-              {headers.map((h, i) => (
-                <th key={i} className="text-left pb-3 px-9 border-b border-(--color-border) font-semibold text-[#ED7C22] text-[16px] tracking-wider">
+      <table className="w-full border-collapse bg-white">
+        <thead>
+          <tr>
+            {headers ? (
+              headers.map((h, i) => (
+                <th key={i} className="text-left pb-3 px-9 border-b border-gray-200 font-semibold text-[#ED7C22] text-[16px] tracking-wider">
                   {h}
                 </th>
-              ))}
-            </tr>
-          </thead>
-        )}
+              ))
+            ) : (
+              Array.from({ length: colCount }).map((_, i) => (
+                <th key={i} className="text-left pb-3 px-9 border-b border-gray-200">
+                  <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
+                </th>
+              ))
+            )}
+          </tr>
+        </thead>
         <tbody>
           {Array.from({ length: rows }).map((_, rowIndex) => (
             <tr key={rowIndex} className={rowIndex % 2 === 1 ? 'bg-white' : 'bg-gray-50'}>
               {Array.from({ length: colCount }).map((__, colIndex) => (
                 <td key={colIndex} className="py-4 px-9 align-middle">
                   <div
-                    className="h-3.5 rounded-md bg-linear-to-r from-[rgba(196,196,196,0.25)] via-[rgba(196,196,196,0.12)] to-[rgba(196,196,196,0.25)] bg-size-[200%_100%] animate-[shimmer_1.2s_ease-in-out_infinite]"
+                    className="h-3.5 rounded-md bg-gray-200 animate-pulse"
                     style={{ width: getWidth(colIndex) }}
                   />
                 </td>

@@ -266,7 +266,7 @@ export default function LoginProvidersPage() {
                   <Can action="loginProvider:delete">
                     <button
                       type="button"
-                      className="inline-block font-sans text-[16px] font-medium px-3 py-1.5 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[rgba(192,57,43,0.1)] text-[#c0392b] hover:bg-[rgba(192,57,43,0.2)] disabled:opacity-50 disabled:not-allowed"
+                      className="inline-block text-[16px] font-medium px-3 py-1.5 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[rgba(192,57,43,0.1)] text-[#c0392b] hover:bg-[rgba(192,57,43,0.2)] disabled:opacity-50 disabled:not-allowed"
                       onClick={(e) => {
                         e.stopPropagation();
                         openDeleteModal(lp);
@@ -306,7 +306,7 @@ export default function LoginProvidersPage() {
               <label className="text-[16px] font-medium text-gray-600">Provider name *</label>
               <input
                 required
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.provider_name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, provider_name: e.target.value }))
@@ -317,7 +317,7 @@ export default function LoginProvidersPage() {
               <label className="text-[16px] font-medium text-gray-600">Client ID *</label>
               <input
                 required
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.client_id}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, client_id: e.target.value }))
@@ -327,7 +327,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5 col-span-full">
               <label className="text-[16px] font-medium text-gray-600">Description</label>
               <textarea
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.description}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
@@ -338,7 +338,7 @@ export default function LoginProvidersPage() {
               <label className="text-[16px] font-medium text-gray-600">Issuer *</label>
               <input
                 required
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.issuer}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, issuer: e.target.value }))
@@ -348,7 +348,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Auth method *</label>
               <select
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.token_endpoint_auth_method}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -369,7 +369,7 @@ export default function LoginProvidersPage() {
               <input
                 type="password"
                 autoComplete="new-password"
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.client_secret}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, client_secret: e.target.value }))
@@ -379,7 +379,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Client private key</label>
               <textarea
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.client_private_key}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -393,7 +393,7 @@ export default function LoginProvidersPage() {
               <label className="text-[16px] font-medium text-gray-600">OAuth callback URL *</label>
               <input
                 required
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.oauth_callback_url}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -406,7 +406,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Server metadata URL</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.server_metadata_url}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -419,7 +419,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Default redirect URI</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.default_redirect_uri}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -432,7 +432,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Authorization endpoint</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.authorization_endpoint}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -445,7 +445,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Token endpoint</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.token_endpoint}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, token_endpoint: e.target.value }))
@@ -455,7 +455,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Userinfo endpoint</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.userinfo_endpoint}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -468,7 +468,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">JWKS URI</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.jwks_uri}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, jwks_uri: e.target.value }))
@@ -478,7 +478,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Scope</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.scope}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, scope: e.target.value }))
@@ -488,7 +488,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">Adapter name</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.adapter_name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, adapter_name: e.target.value }))
@@ -498,7 +498,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[16px] font-medium text-gray-600">JWT assertion audience</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.jwt_assertion_aud}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -511,7 +511,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5 col-span-full">
               <label className="text-[16px] font-medium text-gray-600">Audiences</label>
               <input
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
                 value={form.audiences}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, audiences: e.target.value }))
@@ -521,7 +521,7 @@ export default function LoginProvidersPage() {
             <div className="flex flex-col gap-1.5 col-span-full">
               <label className="text-[16px] font-medium text-gray-600">Extra authorize params</label>
               <textarea
-                className="font-sans text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
+                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
                 value={form.extra_authorize_params}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -565,12 +565,12 @@ export default function LoginProvidersPage() {
           <div className="flex gap-3 justify-end mt-5">
             <button
               type="button"
-              className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-black border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
+              className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-black border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
               onClick={() => setModalOpen(false)}
             >
               {t("cancel")}
             </button>
-            <button type="submit" className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed" disabled={saving}>
+            <button type="submit" className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed" disabled={saving}>
               {saving ? t("saving") : t("save")}
             </button>
           </div>

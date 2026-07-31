@@ -11,7 +11,7 @@ export function createDeleteButton(
     <Can action={action}>
       <button
         type="button"
-        className="inline-flex items-center justify-center gap-1 font-sans text-[16px] font-semibold px-2.5 py-1 rounded cursor-pointer bg-red-50 text-[#c0392b] border border-red-200 hover:bg-red-100 transition-colors duration-150"
+        className="inline-flex items-center justify-center gap-1 text-[16px] font-semibold px-2.5 py-1 rounded cursor-pointer bg-red-50 text-[#c0392b] border border-red-200 hover:bg-red-100 transition-colors duration-150"
         onClick={onDelete}
       >
         {t("delete")}

@@ -30,8 +30,8 @@
   --color-danger: #c0392b;
   --color-success: #27ae60;
 
-  --font-body: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: var(--font-roboto-slab), "Roboto Slab", Georgia, serif;
+  --font-body: "Roboto", sans-serif;
+  --font-heading: "Roboto", sans-serif;
 
   --radius-sm: 4px;
   --radius-md: 8px;
