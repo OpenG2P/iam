@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     initAuth();
-  }, [handleUnauthorized]);
+  }, []);
 
   if (isLoading) {
     return <LoadingState fullScreen />;

@@ -63,7 +63,7 @@ export function RbacProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadActions();
-  }, [loadActions]);
+  }, [isLoggedIn]);
 
   const can = useCallback(
     (action: string) => actionSet.has(action),
@@ -91,7 +91,7 @@ export function RbacProvider({ children }: { children: ReactNode }) {
       canAll,
       refresh: loadActions,
     }),
-    [loading, actionSet, can, canAny, canAll, loadActions],
+    [loading, actionSet, loadActions],
   );
 
   if (loading) {

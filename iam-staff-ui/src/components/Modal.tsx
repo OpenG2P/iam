@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { X } from "lucide-react";
 
 interface ModalProps {
   open: boolean;
@@ -21,27 +22,24 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-6"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className={`bg-white rounded-[10px] shadow-lg w-full max-h-[90vh] overflow-auto p-6 ${wide ? "max-w-[720px]" : "max-w-[560px]"}`}
+        className={`relative w-full bg-white rounded-[20px] shadow-lg max-h-[90vh] overflow-auto p-8 ${wide ? "max-w-[720px]" : "max-w-[560px]"}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="m-0 font-[var(--font-heading)] text-[20px] font-medium text-[var(--color-black)]">{title}</h2>
-          <button
-            type="button"
-            className="bg-transparent border-none p-1 hover:opacity-70 transition-opacity"
-            onClick={onClose}
-          >
-            <img src="/edit.png" alt="Close" className="w-5 h-5" />
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X size={24} strokeWidth={2} />
+        </button>
+        <h2 className="text-[22px] font-bold text-black mb-6 mt-4">{title}</h2>
         {children}
       </div>
     </div>

@@ -38,7 +38,7 @@ export default function NotFound() {
           alt="left arrow"
           priority
         />
-        {t("go_back")}
+        {t("goBack")}
       </button>
     </div>
   );

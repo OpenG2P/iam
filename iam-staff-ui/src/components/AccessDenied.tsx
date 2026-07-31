@@ -35,7 +35,7 @@ export default function AccessDenied() {
             alt="left arrow"
             priority
           />
-          {t("go_back")}
+          {t("goBack")}
         </button>
       </Link>
     </div>

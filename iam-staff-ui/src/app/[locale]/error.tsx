@@ -33,7 +33,7 @@ export default function Error({
     if (error.message.includes("500")) {
       return "Server error. Please try again later.";
     }
-    return error.message || t("something_went_wrong_subtitle");
+    return error.message || t("somethingWentWrongSubtitle");
   };
 
   return (
@@ -48,7 +48,7 @@ export default function Error({
       />
 
       <h1 className="mb-2 text-[40px] font-semibold leading-11.75 text-gray-900">
-        {t("something_went_wrong")}
+        {t("somethingWentWrong")}
       </h1>
 
       <p className="mb-6 text-[20px] font-light leading-6 text-gray-600 max-w-md text-center">
@@ -66,7 +66,7 @@ export default function Error({
           onClick={() => window.location.href = "/"}
           className="flex items-center justify-center rounded-full border border-gray-900 px-8 py-1.5 text-lg font-medium text-gray-900 transition-all hover:bg-gray-100"
         >
-          {t("go_back")}
+          {t("goBack")}
         </button>
       </div>
 

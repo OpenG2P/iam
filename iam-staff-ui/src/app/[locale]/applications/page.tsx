@@ -110,7 +110,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     load(page);
-  }, [page, load]);
+  }, [page]);
 
 
   async function handleCreate(e: React.FormEvent) {

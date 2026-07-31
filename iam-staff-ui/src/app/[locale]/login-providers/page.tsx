@@ -128,7 +128,7 @@ export default function LoginProvidersPage() {
 
   useEffect(() => {
     load(page);
-  }, [page, load]);
+  }, [page]);
 
 
   async function handleCreate(e: React.FormEvent) {

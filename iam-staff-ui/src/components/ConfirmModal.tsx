@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import Modal from "./Modal";
+import { X } from 'lucide-react';
+import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -22,56 +23,70 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   const t = useTranslations();
 
+  if (!open) return null;
+
   return (
-    <Modal open={open} title={title || t("confirm")} onClose={onCancel}>
-      {warningText && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
-          <p className="text-[16px] text-yellow-800 m-0">
-            <span className="font-semibold">{t("warning")}: </span>
-            {warningText}
-          </p>
-        </div>
-      )}
-      <div className="flex gap-3 justify-end">
+    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+      <div className="relative w-full max-w-[450px] bg-white rounded-[20px] shadow-lg flex flex-col items-center p-8 border-4 border-yellow-500">
         <button
-          type="button"
-          className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-black border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
           onClick={onCancel}
-          disabled={confirming}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          {t("cancel")}
+          <X size={24} strokeWidth={2} />
         </button>
-        <button
-          type="button"
-          className="inline-block font-sans text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[var(--color-danger)] text-white hover:bg-[#a93226] disabled:opacity-50 disabled:not-allowed flex items-center gap-2"
-          onClick={onConfirm}
-          disabled={confirming}
-        >
-          {confirming && (
-            <svg
-              className="animate-spin h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-          )}
-          {t("delete")}
-        </button>
+
+        <div className="mb-6 mt-4">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+            <div className="w-14 h-14 bg-yellow-400 rounded-full flex items-center justify-center">
+              <span className="text-white text-[32px] font-bold">!</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 className="text-[22px] font-bold text-black mb-2 text-center">{title || t("confirm")}</h2>
+        <p className="text-gray-500 text-[14px] text-center mb-8 px-4">
+          {warningText}
+        </p>
+
+        <div className="flex gap-4 w-full justify-center">
+          <button
+            onClick={onCancel}
+            className="px-8 py-2.5 bg-gray-100 text-black font-semibold rounded-full hover:bg-gray-200 transition-colors text-[14px]"
+            disabled={confirming}
+          >
+            {t("cancel")}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-8 py-2.5 bg-black text-white font-semibold rounded-full hover:bg-gray-800 transition-colors text-[14px] flex items-center gap-2"
+            disabled={confirming}
+          >
+            {confirming && (
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            )}
+            {t("delete")}
+          </button>
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 }

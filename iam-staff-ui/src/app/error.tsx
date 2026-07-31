@@ -29,11 +29,11 @@ export default function GlobalError({
       />
 
       <h1 className="mb-2 text-[40px] font-semibold leading-11.75 text-gray-900">
-        {t("something_went_wrong")}
+        {t("somethingWentWrong")}
       </h1>
 
       <p className="mb-6 text-[20px] font-light leading-6 text-gray-600 max-w-md text-center">
-        {t("something_went_wrong_subtitle")}
+        {t("somethingWentWrongSubtitle")}
       </p>
 
       <div className="flex gap-4">
@@ -47,7 +47,7 @@ export default function GlobalError({
           onClick={() => window.location.href = "/"}
           className="flex items-center justify-center rounded-full border border-gray-900 px-8 py-1.5 text-lg font-medium text-gray-900 transition-all hover:bg-gray-100"
         >
-          {t("go_back")}
+          {t("goBack")}
         </button>
       </div>
 
