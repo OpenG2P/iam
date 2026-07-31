@@ -2,10 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { useRbac } from "@/context/RbacContext";
-import InputField from "@/components/InputField";
-import TextAreaField from "@/components/TextAreaField";
-import IconBase64Field from "@/components/IconBase64Field";
-import Button from "@/components/Button";
+import {
+  Button,
+  IconBase64Field,
+  InputField,
+  TextAreaField,
+} from "@/components";
 import { Application, ApplicationForm } from "@/features/application/types";
 
 interface ApplicationTabProps {

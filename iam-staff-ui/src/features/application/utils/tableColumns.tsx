@@ -1,4 +1,3 @@
-import { useTranslations } from "next-intl";
 import Can from "@/components/Can";
 import { Role, Permission, RolePermission, DataPolicy } from "../types";
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import Forbidden from "@/components/Forbidden";
-import LoadingState from "@/components/LoadingState";
+import { Forbidden, LoadingState } from "@/components";
 import { useRbac } from "@/context/RbacContext";
 import { checkPermission } from "@/shared/utils/checkPermission";
 

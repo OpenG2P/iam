@@ -1,9 +1,11 @@
 import { useTranslations } from "next-intl";
-import Modal from "@/components/Modal";
-import InputField from "@/components/InputField";
-import TextAreaField from "@/components/TextAreaField";
-import SelectField from "@/components/SelectField";
-import Button from "@/components/Button";
+import {
+  Button,
+  InputField,
+  Modal,
+  SelectField,
+  TextAreaField,
+} from "@/components";
 
 interface FormField {
   name: string;
@@ -16,7 +18,6 @@ interface FormField {
 }
 
 interface FormModalProps {
-  open: boolean;
   title: string;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
@@ -27,7 +28,6 @@ interface FormModalProps {
 }
 
 export default function FormModal({
-  open,
   title,
   onClose,
   onSubmit,
@@ -39,7 +39,7 @@ export default function FormModal({
   const t = useTranslations();
 
   return (
-    <Modal open={open} title={title} onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-2 gap-4">
           {fields.map((field) => (

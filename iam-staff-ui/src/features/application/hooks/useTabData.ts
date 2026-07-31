@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { useFetch } from "@/shared/hooks/useFetch";
 import { useConfig } from "@/context/ConfigContext";
 
@@ -26,12 +26,18 @@ export function useTabData<T>({ endpoint, applicationId }: UseTabDataOptions) {
   const [data, setData] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadedOnce, setLoadedOnce] = useState(false);
+
+  // Use ref to store latest values for stable callback
+  const latestValues = useRef({ applicationId, endpoint, pageSize, execute });
+  latestValues.current = { applicationId, endpoint, pageSize, execute };
 
   const loadData = useCallback(
     async (p: number) => {
       setLoading(true);
       try {
+        const { applicationId, endpoint, pageSize, execute } = latestValues.current;
         const result = await execute(endpoint, {
           method: "POST",
           body: JSON.stringify({
@@ -43,17 +49,19 @@ export function useTabData<T>({ endpoint, applicationId }: UseTabDataOptions) {
         const { items, total } = extractList<T>(result);
         setData(items);
         setTotal(total);
+        setLoadedOnce(true);
       } finally {
         setLoading(false);
       }
     },
-    [applicationId, execute, endpoint, pageSize],
+    [],
   );
 
   const reset = useCallback(() => {
     setData([]);
     setTotal(0);
     setPage(1);
+    setLoadedOnce(false);
   }, []);
 
   return {
@@ -61,6 +69,7 @@ export function useTabData<T>({ endpoint, applicationId }: UseTabDataOptions) {
     total,
     page,
     loading,
+    loadedOnce,
     loadData,
     setPage,
     reset,

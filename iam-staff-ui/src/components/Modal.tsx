@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
-  open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
@@ -12,14 +11,11 @@ interface ModalProps {
 }
 
 export default function Modal({
-  open,
   title,
   onClose,
   children,
   wide,
 }: ModalProps) {
-  if (!open) return null;
-
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"

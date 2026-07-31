@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/context/Authcontext";
-import LoadingState from "@/components/LoadingState";
+import { LoadingState } from "@/components";
 
 interface RbacContextType {
   loading: boolean;

@@ -1,6 +1,6 @@
 "use client";
 
-import BackLink from "@/components/BackLink";
+import { BackLink } from "@/components";
 
 export default function LoginProviderPageSkeleton() {
   return (

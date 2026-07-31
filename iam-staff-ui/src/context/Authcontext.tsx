@@ -9,7 +9,7 @@ import {
   ReactNode,
 } from "react";
 import { useTranslations } from "next-intl";
-import LoadingState from "@/components/LoadingState";
+import { LoadingState } from "@/components";
 
 interface AuthContextType {
   isLoggedIn: boolean;

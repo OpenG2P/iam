@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import RequireAction from "@/components/RequireAction";
+import { RequireAction } from "@/components";
 
 export default function ApplicationsLayout({
   children,

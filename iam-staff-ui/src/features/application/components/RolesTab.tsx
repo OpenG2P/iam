@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
-import FormModal from "@/features/application/components/FormModal";
+import { ConfirmModal } from "@/components";
+import { FormModal } from "@/features/application/components";
 import TabContent from "@/features/application/components/TabContent";
 import { getRoleColumns } from "@/features/application/utils/tableColumns";
 import { Role, RoleForm } from "@/features/application/types";
@@ -12,10 +13,10 @@ import { ROLE_ACTIONS } from "@/shared/permissions/actions";
 
 interface RolesTabProps {
   applicationId: number;
-  onDelete: (role: Role) => void;
+  isActive?: boolean;
 }
 
-export default function RolesTab({ applicationId, onDelete }: RolesTabProps) {
+export default function RolesTab({ applicationId, isActive = false }: RolesTabProps) {
   const t = useTranslations();
   const roles = useTabData<Role>({
     endpoint: "/api/applications/roles",
@@ -28,10 +29,27 @@ export default function RolesTab({ applicationId, onDelete }: RolesTabProps) {
     role_description: "",
   });
 
-  // Load data on mount
+  // Confirm dialog state
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({ open: false, message: "", onConfirm: async () => {} });
+  const [confirming, setConfirming] = useState(false);
+  const wasActive = useRef(false);
+
+  // Load data only when tab becomes active, reset when inactive
   useEffect(() => {
-    roles.loadData(roles.page);
-  }, [applicationId]);
+    if (isActive && !wasActive.current) {
+      // Tab just became active - load data
+      roles.loadData(roles.page);
+    } else if (!isActive && wasActive.current) {
+      // Tab just became inactive - reset data
+      roles.reset();
+    }
+    wasActive.current = isActive;
+  }, [isActive, applicationId]);
+
 
   async function createRole(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +76,44 @@ export default function RolesTab({ applicationId, onDelete }: RolesTabProps) {
     }
   }
 
+  function openDelete(message: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, message, onConfirm });
+  }
+
+  async function runConfirm() {
+    setConfirming(true);
+    try {
+      await confirm.onConfirm();
+      setConfirm((c) => ({ ...c, open: false }));
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Delete failed";
+      toast.error(errorMessage);
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  async function handleDeleteRole(role: Role) {
+    openDelete(
+      `Delete role "${role.role_mnemonic}"?`,
+      async () => {
+        const res = await roles.execute("/api/applications/roles/delete", {
+          method: "POST",
+          body: JSON.stringify({
+            application_id: applicationId,
+            id: role.id,
+          }),
+        });
+        if (res?.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Role deleted successfully");
+        await roles.loadData(roles.page);
+      },
+    );
+  }
+
 
   return (
     <>
@@ -67,20 +123,21 @@ export default function RolesTab({ applicationId, onDelete }: RolesTabProps) {
         total={roles.total}
         page={roles.page}
         loading={roles.loading}
+        loadedOnce={roles.loadedOnce}
         createAction={ROLE_ACTIONS.create}
         deleteAction={ROLE_ACTIONS.delete}
-        columns={getRoleColumns(onDelete, t)}
+        columns={getRoleColumns(handleDeleteRole, t)}
         onPageChange={roles.setPage}
         onAdd={() => setRoleModal(true)}
       />
 
-      <FormModal
-        open={roleModal}
-        title="Add Role"
-        onClose={() => setRoleModal(false)}
-        onSubmit={createRole}
-        saving={false}
-        fields={[
+      {roleModal && (
+        <FormModal
+          title="Add Role"
+          onClose={() => setRoleModal(false)}
+          onSubmit={createRole}
+          saving={false}
+          fields={[
           {
             name: "role_mnemonic",
             label: "Mnemonic",
@@ -96,6 +153,15 @@ export default function RolesTab({ applicationId, onDelete }: RolesTabProps) {
         formData={roleForm}
         onChange={(name, value) => setRoleForm((f: any) => ({ ...f, [name]: value }))}
       />
+      )}
+
+      {confirm.open && (
+        <ConfirmModal
+          confirming={confirming}
+          onConfirm={runConfirm}
+          onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
+        />
+      )}
     </>
   );
 }

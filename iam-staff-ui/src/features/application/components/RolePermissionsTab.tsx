@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
-import FormModal from "@/features/application/components/FormModal";
+import { ConfirmModal } from "@/components";
+import { FormModal } from "@/features/application/components";
 import TabContent from "@/features/application/components/TabContent";
 import { getRolePermissionColumns } from "@/features/application/utils/tableColumns";
 import { RolePermission, RolePermissionForm, Role, Permission } from "@/features/application/types";
@@ -12,10 +13,10 @@ import { ROLE_PERMISSION_ACTIONS } from "@/shared/permissions/actions";
 
 interface RolePermissionsTabProps {
   applicationId: number;
-  onDelete: (rp: RolePermission) => void;
+  isActive?: boolean;
 }
 
-export default function RolePermissionsTab({ applicationId, onDelete }: RolePermissionsTabProps) {
+export default function RolePermissionsTab({ applicationId, isActive = false }: RolePermissionsTabProps) {
   const t = useTranslations();
   const rolePerms = useTabData<RolePermission>({
     endpoint: "/api/applications/role-permissions",
@@ -30,10 +31,27 @@ export default function RolePermissionsTab({ applicationId, onDelete }: RolePerm
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [allPerms, setAllPerms] = useState<Permission[]>([]);
 
-  // Load data on mount
+  // Confirm dialog state
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({ open: false, message: "", onConfirm: async () => {} });
+  const [confirming, setConfirming] = useState(false);
+  const wasActive = useRef(false);
+
+  // Load data only when tab becomes active, reset when inactive
   useEffect(() => {
-    rolePerms.loadData(rolePerms.page);
-  }, [applicationId]);
+    if (isActive && !wasActive.current) {
+      // Tab just became active - load data
+      rolePerms.loadData(rolePerms.page);
+    } else if (!isActive && wasActive.current) {
+      // Tab just became inactive - reset data
+      rolePerms.reset();
+    }
+    wasActive.current = isActive;
+  }, [isActive, applicationId]);
+
 
   async function openRolePermModal() {
     setRpModal(true);
@@ -98,6 +116,44 @@ export default function RolePermissionsTab({ applicationId, onDelete }: RolePerm
     }
   }
 
+  function openDelete(message: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, message, onConfirm });
+  }
+
+  async function runConfirm() {
+    setConfirming(true);
+    try {
+      await confirm.onConfirm();
+      setConfirm((c) => ({ ...c, open: false }));
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Delete failed";
+      toast.error(errorMessage);
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  async function handleDeleteRolePermission(rp: RolePermission) {
+    openDelete(
+      "Delete this role–permission mapping?",
+      async () => {
+        const res = await rolePerms.execute("/api/applications/role-permissions/delete", {
+          method: "POST",
+          body: JSON.stringify({
+            application_id: applicationId,
+            id: rp.id,
+          }),
+        });
+        if (res?.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Role permission mapping deleted successfully");
+        await rolePerms.loadData(rolePerms.page);
+      },
+    );
+  }
+
 
   return (
     <>
@@ -107,20 +163,21 @@ export default function RolePermissionsTab({ applicationId, onDelete }: RolePerm
         total={rolePerms.total}
         page={rolePerms.page}
         loading={rolePerms.loading}
+        loadedOnce={rolePerms.loadedOnce}
         createAction={ROLE_PERMISSION_ACTIONS.create}
         deleteAction={ROLE_PERMISSION_ACTIONS.delete}
-        columns={getRolePermissionColumns(onDelete, t)}
+        columns={getRolePermissionColumns(handleDeleteRolePermission, t)}
         onPageChange={rolePerms.setPage}
         onAdd={openRolePermModal}
       />
 
-      <FormModal
-        open={rpModal}
-        title="Map Role to Permission"
-        onClose={() => setRpModal(false)}
-        onSubmit={createRolePermission}
-        saving={false}
-        fields={[
+      {rpModal && (
+        <FormModal
+          title="Map Role to Permission"
+          onClose={() => setRpModal(false)}
+          onSubmit={createRolePermission}
+          saving={false}
+          fields={[
           {
             name: "role_id",
             label: "Role",
@@ -141,6 +198,15 @@ export default function RolePermissionsTab({ applicationId, onDelete }: RolePerm
         formData={rpForm}
         onChange={(name, value) => setRpForm((f: any) => ({ ...f, [name]: value }))}
       />
+      )}
+
+      {confirm.open && (
+        <ConfirmModal
+          confirming={confirming}
+          onConfirm={runConfirm}
+          onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
+        />
+      )}
     </>
   );
 }

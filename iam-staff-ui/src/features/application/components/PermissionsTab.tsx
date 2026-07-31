@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
-import FormModal from "@/features/application/components/FormModal";
+import { ConfirmModal } from "@/components";
+import { FormModal } from "@/features/application/components";
 import TabContent from "@/features/application/components/TabContent";
 import { getPermissionColumns } from "@/features/application/utils/tableColumns";
 import { Permission, PermissionForm } from "@/features/application/types";
@@ -12,10 +13,10 @@ import { PERMISSION_ACTIONS } from "@/shared/permissions/actions";
 
 interface PermissionsTabProps {
   applicationId: number;
-  onDelete: (perm: Permission) => void;
+  isActive?: boolean;
 }
 
-export default function PermissionsTab({ applicationId, onDelete }: PermissionsTabProps) {
+export default function PermissionsTab({ applicationId, isActive = false }: PermissionsTabProps) {
   const t = useTranslations();
   const permissions = useTabData<Permission>({
     endpoint: "/api/applications/permissions",
@@ -28,10 +29,27 @@ export default function PermissionsTab({ applicationId, onDelete }: PermissionsT
     permission_description: "",
   });
 
-  // Load data on mount
+  // Confirm dialog state
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({ open: false, message: "", onConfirm: async () => {} });
+  const [confirming, setConfirming] = useState(false);
+  const wasActive = useRef(false);
+
+  // Load data only when tab becomes active, reset when inactive
   useEffect(() => {
-    permissions.loadData(permissions.page);
-  }, [applicationId]);
+    if (isActive && !wasActive.current) {
+      // Tab just became active - load data
+      permissions.loadData(permissions.page);
+    } else if (!isActive && wasActive.current) {
+      // Tab just became inactive - reset data
+      permissions.reset();
+    }
+    wasActive.current = isActive;
+  }, [isActive, applicationId]);
+
 
   async function createPermission(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +76,44 @@ export default function PermissionsTab({ applicationId, onDelete }: PermissionsT
     }
   }
 
+  function openDelete(message: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, message, onConfirm });
+  }
+
+  async function runConfirm() {
+    setConfirming(true);
+    try {
+      await confirm.onConfirm();
+      setConfirm((c) => ({ ...c, open: false }));
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Delete failed";
+      toast.error(errorMessage);
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  async function handleDeletePermission(perm: Permission) {
+    openDelete(
+      `Delete permission "${perm.permission_mnemonic}"?`,
+      async () => {
+        const res = await permissions.execute("/api/applications/permissions/delete", {
+          method: "POST",
+          body: JSON.stringify({
+            application_id: applicationId,
+            id: perm.id,
+          }),
+        });
+        if (res?.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Permission deleted successfully");
+        await permissions.loadData(permissions.page);
+      },
+    );
+  }
+
 
   return (
     <>
@@ -67,20 +123,21 @@ export default function PermissionsTab({ applicationId, onDelete }: PermissionsT
         total={permissions.total}
         page={permissions.page}
         loading={permissions.loading}
+        loadedOnce={permissions.loadedOnce}
         createAction={PERMISSION_ACTIONS.create}
         deleteAction={PERMISSION_ACTIONS.delete}
-        columns={getPermissionColumns(onDelete, t)}
+        columns={getPermissionColumns(handleDeletePermission, t)}
         onPageChange={permissions.setPage}
         onAdd={() => setPermModal(true)}
       />
 
-      <FormModal
-        open={permModal}
-        title="Add Permission"
-        onClose={() => setPermModal(false)}
-        onSubmit={createPermission}
-        saving={false}
-        fields={[
+      {permModal && (
+        <FormModal
+          title="Add Permission"
+          onClose={() => setPermModal(false)}
+          onSubmit={createPermission}
+          saving={false}
+          fields={[
           {
             name: "permission_mnemonic",
             label: "Mnemonic",
@@ -96,6 +153,15 @@ export default function PermissionsTab({ applicationId, onDelete }: PermissionsT
         formData={permForm}
         onChange={(name, value) => setPermForm((f: any) => ({ ...f, [name]: value }))}
       />
+      )}
+
+      {confirm.open && (
+        <ConfirmModal
+          confirming={confirming}
+          onConfirm={runConfirm}
+          onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
+        />
+      )}
     </>
   );
 }

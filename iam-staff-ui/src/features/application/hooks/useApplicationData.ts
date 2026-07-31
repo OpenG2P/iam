@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useFetch } from "@/shared/hooks/useFetch";
 import { toast } from "react-toastify";
 import { Application, ApplicationForm } from "../types";

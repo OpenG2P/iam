@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import BackLink from "@/components/BackLink";
+import { BackLink } from "@/components";
 
 interface LoginProviderNotFoundProps {
   backHref: string;

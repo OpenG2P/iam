@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import Image from "next/image";
-import { toast } from "react-toastify";
-import BackLink from "@/components/BackLink";
-import ConfirmModal from "@/components/ConfirmModal";
-import IconBase64Field from "@/components/IconBase64Field";
-import Tabs from "@/components/Tabs";
+import { Tabs } from "@/components";
 import { useRbac } from "@/context/RbacContext";
 import {
   APPLICATION_ACTIONS,
@@ -31,10 +26,6 @@ import {
 import {
   TabId,
   TabDefinition,
-  Role,
-  Permission,
-  RolePermission,
-  DataPolicy,
 } from "@/features/application/types";
 
 const TAB_DEFINITIONS: TabDefinition[] = [
@@ -57,6 +48,8 @@ export default function ApplicationDetailPage() {
   const t = useTranslations();
   const { can } = useRbac();
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const applicationId = Number(params.id);
 
   // Application data hook
@@ -72,18 +65,11 @@ export default function ApplicationDetailPage() {
     reset: resetApp,
   } = useApplicationData(applicationId);
 
-
-
-  // Confirm dialog state
-  const [confirm, setConfirm] = useState<{
-    open: boolean;
-    message: string;
-    onConfirm: () => Promise<void>;
-  }>({ open: false, message: "", onConfirm: async () => {} });
-  const [confirming, setConfirming] = useState(false);
-
-  // Tab state
-  const [tab, setTab] = useState<TabId>("application");
+  // Tab state from URL, default to "application"
+  const [tab, setTab] = useState<TabId>(() => {
+    const tabParam = searchParams.get("tab");
+    return (tabParam as TabId) || "application";
+  });
 
   // Reset on application change
   useLayoutEffect(() => {
@@ -99,6 +85,14 @@ export default function ApplicationDetailPage() {
   // Filter visible tabs based on permissions
   const visibleTabs = TAB_DEFINITIONS.filter((item) => can(item.action));
 
+  // Sync tab state with URL changes
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && tabParam !== tab) {
+      setTab(tabParam as TabId);
+    }
+  }, [searchParams]);
+
   // Set default tab if current tab is not visible
   useEffect(() => {
     if (
@@ -109,104 +103,6 @@ export default function ApplicationDetailPage() {
     }
   }, [visibleTabs, tab]);
 
-
-  // Helper to open delete confirmation
-  function openDelete(message: string, onConfirm: () => Promise<void>) {
-    setConfirm({ open: true, message, onConfirm });
-  }
-
-  // Run delete confirmation
-  async function runConfirm() {
-    setConfirming(true);
-    try {
-      await confirm.onConfirm();
-      setConfirm((c) => ({ ...c, open: false }));
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Delete failed";
-      toast.error(errorMessage);
-    } finally {
-      setConfirming(false);
-    }
-  }
-
-  // CRUD operations - shared execute function for delete handlers
-  const execute = async (url: string, options: RequestInit) => {
-    const res = await fetch(url, {
-      ...options,
-      headers: { "Content-Type": "application/json", ...options.headers },
-      credentials: "include",
-    });
-    return res.json();
-  };
-
-  // Delete handlers
-  const handleDeleteRole = (role: Role) => {
-    openDelete(
-      `Delete role "${role.role_mnemonic}"?`,
-      async () => {
-        const res = await execute("/api/applications/roles/delete", {
-          method: "POST",
-          body: JSON.stringify({
-            application_id: applicationId,
-            id: role.id,
-          }),
-        });
-        if (res?.error) throw new Error(res.error);
-        toast.success("Role deleted successfully");
-      },
-    );
-  };
-
-  const handleDeletePermission = (perm: Permission) => {
-    openDelete(
-      `Delete permission "${perm.permission_mnemonic}"?`,
-      async () => {
-        const res = await execute("/api/applications/permissions/delete", {
-          method: "POST",
-          body: JSON.stringify({
-            application_id: applicationId,
-            id: perm.id,
-          }),
-        });
-        if (res?.error) throw new Error(res.error);
-        toast.success("Permission deleted successfully");
-      },
-    );
-  };
-
-  const handleDeleteRolePermission = (rp: RolePermission) => {
-    openDelete(
-      "Delete this role–permission mapping?",
-      async () => {
-        const res = await execute("/api/applications/role-permissions/delete", {
-          method: "POST",
-          body: JSON.stringify({
-            application_id: applicationId,
-            id: rp.id,
-          }),
-        });
-        if (res?.error) throw new Error(res.error);
-        toast.success("Role permission mapping deleted successfully");
-      },
-    );
-  };
-
-  const handleDeleteDataPolicy = (dp: DataPolicy) => {
-    openDelete(
-      `Delete data policy "${dp.data_policy_mnemonic}"?`,
-      async () => {
-        const res = await execute("/api/applications/data-policies/delete", {
-          method: "POST",
-          body: JSON.stringify({
-            application_id: applicationId,
-            id: dp.id,
-          }),
-        });
-        if (res?.error) throw new Error(res.error);
-        toast.success("Data policy deleted successfully");
-      },
-    );
-  };
 
   if (loading && !loadedOnce) {
     return <ApplicationPageSkeleton />;
@@ -225,10 +121,16 @@ export default function ApplicationDetailPage() {
       <Tabs
         tabs={visibleTabs}
         active={tab}
-        onChange={(id) => setTab(id as TabId)}
+        onChange={(id) => {
+          setTab(id as TabId);
+          // Update URL with new tab
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.set("tab", id);
+          router.push(`?${newParams.toString()}`, { scroll: false });
+        }}
       />
 
-      {tab === "application" && (
+      <div style={{ display: tab === "application" ? "block" : "none" }}>
         <ApplicationTab
           app={app}
           appForm={appForm}
@@ -236,22 +138,24 @@ export default function ApplicationDetailPage() {
           setAppForm={setAppForm}
           saveApplication={saveApplication}
         />
-      )}
+      </div>
 
-      {tab === "roles" && <RolesTab applicationId={applicationId} onDelete={handleDeleteRole} />}
+      <div style={{ display: tab === "roles" ? "block" : "none" }}>
+        <RolesTab applicationId={applicationId} isActive={tab === "roles"} />
+      </div>
 
-      {tab === "permissions" && <PermissionsTab applicationId={applicationId} onDelete={handleDeletePermission} />}
+      <div style={{ display: tab === "permissions" ? "block" : "none" }}>
+        <PermissionsTab applicationId={applicationId} isActive={tab === "permissions"} />
+      </div>
 
-      {tab === "role-permissions" && <RolePermissionsTab applicationId={applicationId} onDelete={handleDeleteRolePermission} />}
+      <div style={{ display: tab === "role-permissions" ? "block" : "none" }}>
+        <RolePermissionsTab applicationId={applicationId} isActive={tab === "role-permissions"} />
+      </div>
 
-      {tab === "data-policies" && <DataPoliciesTab applicationId={applicationId} onDelete={handleDeleteDataPolicy} />}
+      <div style={{ display: tab === "data-policies" ? "block" : "none" }}>
+        <DataPoliciesTab applicationId={applicationId} isActive={tab === "data-policies"} />
+      </div>
 
-      <ConfirmModal
-        open={confirm.open}
-        confirming={confirming}
-        onConfirm={runConfirm}
-        onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
-      />
     </div>
   );
 }

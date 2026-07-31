@@ -5,25 +5,19 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useFetch } from "@/shared/hooks/useFetch";
 import { toast } from "react-toastify";
-import Can from "@/components/Can";
-import AddButton from "@/components/AddButton";
-import ConfirmModal from "@/components/ConfirmModal";
-import IconBase64Field from "@/components/IconBase64Field";
-import Modal from "@/components/Modal";
-import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
-import TableSkeleton from "@/components/TableSkeleton";
+import {
+  AddButton,
+  Can,
+  ConfirmModal,
+  Pagination,
+  Table,
+  TableSkeleton,
+} from "@/components";
+import { ApplicationModal, emptyApplicationForm } from "@/features/application/components";
+import { getApplicationColumns } from "@/features/application/utils/applicationTableColumns";
 import { useConfig } from "@/context/ConfigContext";
 
-const emptyForm = {
-  application_mnemonic: "",
-  application_description: "",
-  application_url: "",
-  order: "",
-  width: "",
-  icon_base64: "",
-  icon_mime_type: "image/png",
-};
+const emptyForm = emptyApplicationForm;
 
 interface Application {
   id: number;
@@ -193,54 +187,7 @@ export default function ApplicationsPage() {
           <TableSkeleton rows={pageSize} headers={["Mnemonic", "Description", "URL", "Status", "Actions"]} />
         ) : (
           <Table
-            columns={[
-              {
-                key: "mnemonic",
-                header: "Mnemonic",
-                render: (app) => app.application_mnemonic,
-              },
-              {
-                key: "description",
-                header: "Description",
-                render: (app) => app.application_description || "—",
-              },
-              {
-                key: "url",
-                header: "URL",
-                render: (app) => app.application_url || "—",
-              },
-              {
-                key: "status",
-                header: "Status",
-                render: (app) => (
-                  <span
-                    className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${app.active !== false ? "bg-[rgba(39,174,96,0.12)] text-[#27ae60]" : "bg-[rgba(196,196,196,0.3)] text-gray-600"}`}
-                  >
-                    {app.active !== false ? t("active") : t("inactive")}
-                  </span>
-                ),
-              },
-              {
-                key: "actions",
-                header: "Actions",
-                render: (app) => (
-                  <Can action="application:delete">
-                    <button
-                      type="button"
-                      className="inline-block text-[16px] font-medium px-3 py-1.5 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[rgba(192,57,43,0.1)] text-[#c0392b] hover:bg-[rgba(192,57,43,0.2)] disabled:opacity-50 disabled:not-allowed"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteModal(app);
-                      }}
-                      disabled={app.is_self_registered}
-                      title={app.is_self_registered ? "Cannot delete self-registered applications" : "Delete application"}
-                    >
-                      {t("delete")}
-                    </button>
-                  </Can>
-                ),
-              },
-            ]}
+            columns={getApplicationColumns({ onDelete: openDeleteModal, t })}
             data={items}
             onRowClick={(app) => router.push(`/applications/${app.id}`)}
             emptyMessage={t("noData")}
@@ -256,122 +203,28 @@ export default function ApplicationsPage() {
         )}
       </div>
 
-      <Modal
-        open={modalOpen}
-        title="Add Application"
-        onClose={() => setModalOpen(false)}
-      >
-        <form onSubmit={handleCreate}>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5 col-span-full">
-              <label htmlFor="mnemonic" className="text-[16px] font-medium text-gray-600">Mnemonic *</label>
-              <input
-                id="mnemonic"
-                required
-                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
-                value={form.application_mnemonic}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    application_mnemonic: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-1.5 col-span-full">
-              <label htmlFor="description" className="text-[16px] font-medium text-gray-600">Description</label>
-              <textarea
-                id="description"
-                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] min-h-20 resize-y"
-                value={form.application_description}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    application_description: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-1.5 col-span-full">
-              <label htmlFor="url" className="text-[16px] font-medium text-gray-600">URL</label>
-              <input
-                id="url"
-                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
-                value={form.application_url}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, application_url: e.target.value }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="order" className="text-[16px] font-medium text-gray-600">Order</label>
-              <input
-                id="order"
-                type="number"
-                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
-                value={form.order}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, order: e.target.value }))
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="width" className="text-[16px] font-medium text-gray-600">Width</label>
-              <input
-                id="width"
-                type="number"
-                className="text-[16px] p-2 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a]"
-                value={form.width}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, width: e.target.value }))
-                }
-              />
-            </div>
-            <IconBase64Field
-              value={form.icon_base64}
-              mimeType={form.icon_mime_type}
-              onChange={(base64, mimeType) =>
-                setForm((f) => ({
-                  ...f,
-                  icon_base64: base64,
-                  icon_mime_type: mimeType,
-                }))
-              }
-              onClear={() =>
-                setForm((f) => ({
-                  ...f,
-                  icon_base64: "",
-                  icon_mime_type: "image/png",
-                }))
-              }
-            />
-          </div>
-          <div className="flex gap-3 justify-end mt-5">
-            <button
-              type="button"
-              className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-black border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
-              onClick={() => setModalOpen(false)}
-            >
-              {t("cancel")}
-            </button>
-            <button type="submit" className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-[#f5bb1a] text-black hover:bg-[#e0a800] disabled:opacity-50 disabled:not-allowed" disabled={saving}>
-              {saving ? t("saving") : t("save")}
-            </button>
-          </div>
-        </form>
-      </Modal>
+      {modalOpen && (
+        <ApplicationModal
+          onClose={() => setModalOpen(false)}
+          form={form}
+          onChange={(field, value) => setForm((f) => ({ ...f, [field]: value }))}
+          onSave={handleCreate}
+          saving={saving}
+        />
+      )}
 
-      <ConfirmModal
-        open={deleteModalOpen}
-        title={t("deleteApplication")}
-        warningText={itemToDelete?.is_self_registered ? t("cannotDeleteSelfRegistered") : t("deleteWillRemoveAllData")}
-        confirming={deleting}
-        onConfirm={handleDelete}
-        onCancel={() => {
-          setDeleteModalOpen(false);
-          setItemToDelete(null);
-        }}
-      />
+      {deleteModalOpen && (
+        <ConfirmModal
+          title={t("deleteApplication")}
+          warningText={itemToDelete?.is_self_registered ? t("cannotDeleteSelfRegistered") : t("deleteWillRemoveAllData")}
+          confirming={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => {
+            setDeleteModalOpen(false);
+            setItemToDelete(null);
+          }}
+        />
+      )}
     </div>
   );
 }

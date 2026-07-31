@@ -1,11 +1,9 @@
 "use client";
 
 import { X } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 interface ConfirmModalProps {
-  open: boolean;
   title?: string;
   warningText?: string;
   confirming?: boolean;
@@ -14,7 +12,6 @@ interface ConfirmModalProps {
 }
 
 export default function ConfirmModal({
-  open,
   title,
   warningText,
   confirming,
@@ -22,8 +19,6 @@ export default function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const t = useTranslations();
-
-  if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">

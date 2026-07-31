@@ -2,8 +2,6 @@
 
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import Image from "next/image";
-import BackLink from "@/components/BackLink";
 import { useRbac } from "@/context/RbacContext";
 import { useLoginProviderData } from "@/features/login-providers/hooks/useLoginProviderData";
 import {
@@ -48,7 +46,6 @@ export default function LoginProviderDetailPage() {
 
   return (
     <div>
-      <BackLink href="/login-providers" />
       <div className="flex items-center justify-between gap-4 mb-6">
         <h1 className="font-(--font-heading) text-[24px] text-black mb-4">{provider.provider_name}</h1>
       </div>

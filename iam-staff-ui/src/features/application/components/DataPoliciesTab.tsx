@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
-import FormModal from "@/features/application/components/FormModal";
+import { ConfirmModal } from "@/components";
+import { FormModal } from "@/features/application/components";
 import TabContent from "@/features/application/components/TabContent";
 import { getDataPolicyColumns } from "@/features/application/utils/tableColumns";
 import { DataPolicy, DataPolicyForm } from "@/features/application/types";
@@ -12,10 +13,10 @@ import { DATA_POLICY_ACTIONS } from "@/shared/permissions/actions";
 
 interface DataPoliciesTabProps {
   applicationId: number;
-  onDelete: (dp: DataPolicy) => void;
+  isActive?: boolean;
 }
 
-export default function DataPoliciesTab({ applicationId, onDelete }: DataPoliciesTabProps) {
+export default function DataPoliciesTab({ applicationId, isActive = false }: DataPoliciesTabProps) {
   const t = useTranslations();
   const policies = useTabData<DataPolicy>({
     endpoint: "/api/applications/data-policies",
@@ -28,10 +29,27 @@ export default function DataPoliciesTab({ applicationId, onDelete }: DataPolicie
     role_description: "",
   });
 
-  // Load data on mount
+  // Confirm dialog state
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({ open: false, message: "", onConfirm: async () => {} });
+  const [confirming, setConfirming] = useState(false);
+  const wasActive = useRef(false);
+
+  // Load data only when tab becomes active, reset when inactive
   useEffect(() => {
-    policies.loadData(policies.page);
-  }, [applicationId]);
+    if (isActive && !wasActive.current) {
+      // Tab just became active - load data
+      policies.loadData(policies.page);
+    } else if (!isActive && wasActive.current) {
+      // Tab just became inactive - reset data
+      policies.reset();
+    }
+    wasActive.current = isActive;
+  }, [isActive, applicationId]);
+
 
   async function createDataPolicy(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +76,44 @@ export default function DataPoliciesTab({ applicationId, onDelete }: DataPolicie
     }
   }
 
+  function openDelete(message: string, onConfirm: () => Promise<void>) {
+    setConfirm({ open: true, message, onConfirm });
+  }
+
+  async function runConfirm() {
+    setConfirming(true);
+    try {
+      await confirm.onConfirm();
+      setConfirm((c) => ({ ...c, open: false }));
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Delete failed";
+      toast.error(errorMessage);
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  async function handleDeleteDataPolicy(dp: DataPolicy) {
+    openDelete(
+      `Delete data policy "${dp.data_policy_mnemonic}"?`,
+      async () => {
+        const res = await policies.execute("/api/applications/data-policies/delete", {
+          method: "POST",
+          body: JSON.stringify({
+            application_id: applicationId,
+            id: dp.id,
+          }),
+        });
+        if (res?.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Data policy deleted successfully");
+        await policies.loadData(policies.page);
+      },
+    );
+  }
+
 
   return (
     <>
@@ -67,20 +123,21 @@ export default function DataPoliciesTab({ applicationId, onDelete }: DataPolicie
         total={policies.total}
         page={policies.page}
         loading={policies.loading}
+        loadedOnce={policies.loadedOnce}
         createAction={DATA_POLICY_ACTIONS.create}
         deleteAction={DATA_POLICY_ACTIONS.delete}
-        columns={getDataPolicyColumns(onDelete, t)}
+        columns={getDataPolicyColumns(handleDeleteDataPolicy, t)}
         onPageChange={policies.setPage}
         onAdd={() => setDpModal(true)}
       />
 
-      <FormModal
-        open={dpModal}
-        title="Add Data Policy"
-        onClose={() => setDpModal(false)}
-        onSubmit={createDataPolicy}
-        saving={false}
-        fields={[
+      {dpModal && (
+        <FormModal
+          title="Add Data Policy"
+          onClose={() => setDpModal(false)}
+          onSubmit={createDataPolicy}
+          saving={false}
+          fields={[
           {
             name: "data_policy_mnemonic",
             label: "Mnemonic",
@@ -97,6 +154,15 @@ export default function DataPoliciesTab({ applicationId, onDelete }: DataPolicie
         formData={dpForm}
         onChange={(name, value) => setDpForm((f: any) => ({ ...f, [name]: value }))}
       />
+      )}
+
+      {confirm.open && (
+        <ConfirmModal
+          confirming={confirming}
+          onConfirm={runConfirm}
+          onCancel={() => setConfirm((c) => ({ ...c, open: false }))}
+        />
+      )}
     </>
   );
 }
