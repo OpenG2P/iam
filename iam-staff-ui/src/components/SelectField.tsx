@@ -24,7 +24,7 @@ export default function SelectField({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="text-[16px] font-medium text-gray-600">
+        <label className="text-[16px] font-medium text-black">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -34,7 +34,7 @@ export default function SelectField({
         disabled={disabled}
         required={required}
         onChange={(e) => onChange(e.target.value)}
-        className="text-[16px] p-2.5 border border-gray-300 rounded bg-white text-black focus:outline-2 focus:outline-[rgba(245,187,26,0.45)] focus:border-[#f5bb1a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+        className="text-[16px] p-2.5 border border-[#ED7C22] rounded-[10px] bg-white text-black focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
       >
         <option value="">{placeholder}</option>
         {options.map((opt) => (

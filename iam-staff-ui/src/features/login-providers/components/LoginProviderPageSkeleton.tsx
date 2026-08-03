@@ -5,7 +5,6 @@ import { BackLink, Card, SkeletonInput, SkeletonLabel, SkeletonTitle } from "@/c
 export default function LoginProviderPageSkeleton() {
   return (
     <div>
-      <BackLink href="/login-providers" />
       <div className="flex items-center justify-between gap-4 mb-6">
         <SkeletonTitle />
       </div>

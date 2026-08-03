@@ -8,7 +8,7 @@ export default function SecondaryButton({ children, disabled = false, onClick, .
   return (
     <button
       type="button"
-      className="inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 bg-transparent text-[var(--color-black)] border border-[var(--color-border)] hover:bg-[var(--color-light-grey)] disabled:opacity-50 disabled:not-allowed"
+      className="inline-block text-[16px] font-medium px-4 py-2 border border-[#ED7C22] rounded-[10px] cursor-pointer text-decoration-none leading-[1.2] transition-colors duration-150 bg-transparent text-black hover:bg-gray-100 disabled:opacity-50 disabled:not-allowed"
       disabled={disabled}
       onClick={onClick}
       {...props}

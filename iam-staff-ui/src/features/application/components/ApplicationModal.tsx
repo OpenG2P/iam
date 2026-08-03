@@ -63,7 +63,7 @@ export default function ApplicationModal({
             value={form.application_description}
             onChange={(value) => onChange("application_description", value)}
             className="col-span-full"
-            rows={3}
+            rows={2}
           />
           <InputField
             label="URL"

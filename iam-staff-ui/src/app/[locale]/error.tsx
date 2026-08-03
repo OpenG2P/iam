@@ -72,7 +72,7 @@ export default function Error({
 
       {process.env.NODE_ENV === "development" && error.message && (
         <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-[10px] max-w-2xl">
-          <p className="text-sm text-red-800 font-mono break-words">
+          <p className="text-sm text-red-800 font-mono wrap-break-word">
             {error.message}
           </p>
           {error.stack && (

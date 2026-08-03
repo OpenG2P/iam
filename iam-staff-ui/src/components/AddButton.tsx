@@ -19,7 +19,7 @@ export default function AddButton({
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-2 bg-(--color-accent) text-black text-[16px] font-medium px-4 py-2 rounded cursor-pointer border-none transition-colors duration-150 hover:bg-(--color-accent-hover) disabled:opacity-50 disabled:not-allowed"
+      className="inline-flex items-center gap-2 bg-(--color-accent) text-black text-[16px] font-medium px-4 py-2 rounded-[10px] cursor-pointer border-none transition-colors duration-150 hover:bg-(--color-accent-hover) disabled:opacity-50 disabled:not-allowed"
       onClick={onClick}
       disabled={disabled}
     >

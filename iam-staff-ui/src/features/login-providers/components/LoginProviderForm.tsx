@@ -55,7 +55,7 @@ export default function LoginProviderForm({
           onChange={(value) => onChange("description", value)}
           disabled={!canEdit || saving}
           className="col-span-full"
-          rows={4}
+          rows={1}
         />
         <SelectField
           label="Token endpoint auth method"
@@ -114,12 +114,6 @@ export default function LoginProviderForm({
           onChange={(value) => onChange("scope", value)}
           disabled={!canEdit || saving}
         />
-        <CheckboxField
-          label="Enable PKCE"
-          checked={form.enable_pkce}
-          onChange={(checked) => onChange("enable_pkce", checked)}
-          disabled={!canEdit || saving}
-        />
         <InputField
           label="Extra authorize params"
           value={form.extra_authorize_params}
@@ -163,8 +157,14 @@ export default function LoginProviderForm({
           onChange={(value) => onChange("keymanager_ref_id", value)}
           disabled={!canEdit || saving}
         />
+        <CheckboxField
+          label="Enable PKCE"
+          checked={form.enable_pkce}
+          onChange={(checked) => onChange("enable_pkce", checked)}
+          disabled={!canEdit || saving}
+        />
         <div className="flex flex-col gap-1.5 col-span-full">
-          <label className="text-[16px] font-medium text-gray-600">Client secret</label>
+          <label className="text-[16px] font-medium text-black">Client secret</label>
           <InputField
             type="password"
             placeholder={
@@ -179,12 +179,12 @@ export default function LoginProviderForm({
           {provider?.has_client_secret && (
             <span className="inline-block text-[16px] font-medium text-[#27ae60] mt-1">{t("secretConfigured")}</span>
           )}
-          <span className="text-[16px] text-gray-400 mt-0.5">
+          <span className="text-[16px] text-gray-500 mt-0.5">
             {t("writeOnlySecretHint")}
           </span>
         </div>
         <div className="flex flex-col gap-1.5 col-span-full">
-          <label className="text-[16px] font-medium text-gray-600">Client private key</label>
+          <label className="text-[16px] font-medium text-black">Client private key</label>
           <TextAreaField
             placeholder={
               provider?.has_client_private_key
@@ -194,13 +194,13 @@ export default function LoginProviderForm({
             value={form.client_private_key}
             onChange={(value) => onChange("client_private_key", value)}
             disabled={!canEdit || saving}
-            rows={6}
+            rows={2}
             className="font-mono text-sm"
           />
           {provider?.has_client_private_key && (
             <span className="inline-block text-[16px] font-medium text-[#27ae60] mt-1">{t("privateKeyConfigured")}</span>
           )}
-          <span className="text-[16px] text-gray-400 mt-0.5">
+          <span className="text-[16px] text-gray-500 mt-0.5">
             {t("writeOnlyKeyHint")}
           </span>
         </div>
@@ -219,7 +219,7 @@ export default function LoginProviderForm({
         />
       </div>
       {canEdit && (
-        <FormActions withBorder>
+        <FormActions>
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>

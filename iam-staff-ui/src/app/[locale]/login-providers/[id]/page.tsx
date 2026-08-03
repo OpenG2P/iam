@@ -50,7 +50,7 @@ export default function LoginProviderDetailPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex items-center justify-between gap-4 mb-2">
         <h1 className="font-(--font-heading) text-[24px] text-black mb-4">{provider.provider_name}</h1>
       </div>
 

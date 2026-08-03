@@ -23,7 +23,7 @@ export default function Modal({
       role="presentation"
     >
       <div
-        className={`relative w-full bg-white rounded-[10px] shadow-lg max-h-[80vh] p-8`}
+        className={`relative w-full bg-white rounded-[10px] shadow-lg max-h-[80vh] p-8 border-4 border-[#EABB13]`}
         style={{ maxWidth: `${width}px` }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -31,10 +31,10 @@ export default function Modal({
         aria-label={title}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[22px] font-bold text-black">{title}</h2>
+          <h2 className="text-[22px] font-bold text-[#ED7C22]">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-500 hover:text-gray-800 transition-colors"
           >
             <X size={30} />
           </button>

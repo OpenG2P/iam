@@ -60,7 +60,7 @@ export default function ApplicationTab({
               }))
             }
             disabled={isDisabled}
-            rows={4}
+            rows={1}
             className="col-span-full"
           />
 
@@ -120,7 +120,7 @@ export default function ApplicationTab({
           </div>
         </div>
         {!isSelfRegistered && (
-          <FormActions withBorder>
+          <FormActions>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving ? t("saving") : t("save")}
             </Button>

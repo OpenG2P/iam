@@ -73,14 +73,14 @@ export default function FormModal({
                 />
               )}
               {field.helperText && (
-                <span className="text-[16px] text-gray-400 mt-0.5">
+                <span className="text-[16px] text-gray-600 mt-0.5">
                   {field.helperText}
                 </span>
               )}
             </div>
           ))}
         </div>
-        <FormActions withBorder>
+        <FormActions>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t("cancel")}
           </Button>
