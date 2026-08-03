@@ -2,12 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import {
-  Button,
-  FormActions,
   IconBase64Field,
   InputField,
   Modal,
   TextAreaField,
+  Button,
 } from "@/components";
 
 interface ApplicationForm {
@@ -96,18 +95,14 @@ export default function ApplicationModal({
             }}
           />
         </div>
-        <FormActions>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-          >
+        <div className="flex gap-3 justify-end mt-5">
+          <Button type="button" variant="secondary" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>
-        </FormActions>
+        </div>
       </form>
     </Modal>
   );

@@ -146,7 +146,7 @@ export default function DataPoliciesTab({ applicationId, isActive = false }: Dat
             label: "Mnemonic",
             type: "text",
             required: true,
-            helperText: "Without DP_ prefix - the API applies it on create.",
+            helperText: "DP_ prefix will be added automatically.",
           },
           {
             name: "role_description",
@@ -156,7 +156,7 @@ export default function DataPoliciesTab({ applicationId, isActive = false }: Dat
         ]}
         formData={dpForm}
         onChange={(name, value) => setDpForm((f: any) => ({ ...f, [name]: value }))}
-      />
+        />
       )}
 
       {confirm.open && (

@@ -128,13 +128,16 @@ export default function ApplicationsPage() {
       });
       if (res?.error) {
         setError(res.error);
+        toast.error(res.error);
         return;
       }
       setModalOpen(false);
       setForm(emptyForm);
       await load(page);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      const errorMessage = err instanceof Error ? err.message : "Create failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -175,7 +178,7 @@ export default function ApplicationsPage() {
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="font-(--font-heading) text-[24px] text-black">{t("applications")}</h1>
+        <h1 className="font-semibold text-[24px] text-black">{t("applications")}</h1>
         <Can action="application:create">
           <AddButton onClick={() => setModalOpen(true)} />
         </Can>

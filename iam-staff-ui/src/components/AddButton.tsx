@@ -23,7 +23,7 @@ export default function AddButton({
       onClick={onClick}
       disabled={disabled}
     >
-      <Plus size={16} strokeWidth={2.5} aria-hidden />
+      <Plus size={18} strokeWidth={3} aria-hidden />
       <span>{label ?? t("add")}</span>
     </button>
   );

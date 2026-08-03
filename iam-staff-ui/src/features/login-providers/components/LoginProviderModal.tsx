@@ -2,14 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import {
-  Button,
   CheckboxField,
-  FormActions,
   IconBase64Field,
   InputField,
   Modal,
   SelectField,
   TextAreaField,
+  Button,
 } from "@/components";
 
 const AUTH_METHODS = [
@@ -217,14 +216,14 @@ export default function LoginProviderModal({
             onChange={(checked) => onChange("enable_pkce", checked)}
           />
         </div>
-        <FormActions>
+        <div className="flex gap-3 justify-end mt-5">
           <Button type="button" variant="secondary" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? t("saving") : t("save")}
           </Button>
-        </FormActions>
+        </div>
       </form>
     </Modal>
   );

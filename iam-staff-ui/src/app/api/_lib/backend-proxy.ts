@@ -60,10 +60,15 @@ export async function proxyToBackend({
 
     const backendUrl = `${backendConfig.backendApiUrl}${targetEndpoint}`;
 
-    const defaultPayloadBuilder: PayloadBuilder = (b) => ({
-      pagination_request: undefined,
-      request_payload: b ?? {},
-    });
+    const defaultPayloadBuilder: PayloadBuilder = (b) => {
+      const { current_page, page_size, ...rest } = b || {};
+      return {
+        pagination_request: (current_page !== undefined || page_size !== undefined)
+          ? { current_page: current_page || 1, page_size: page_size || 20 }
+          : undefined,
+        request_payload: rest ?? {},
+      };
+    };
 
     const payload = (buildPayload || defaultPayloadBuilder)(body);
 

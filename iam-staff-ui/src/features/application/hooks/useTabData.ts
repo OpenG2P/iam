@@ -64,6 +64,14 @@ export function useTabData<T>({ endpoint, applicationId }: UseTabDataOptions) {
     setLoadedOnce(false);
   }, []);
 
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      setPage(newPage);
+      loadData(newPage);
+    },
+    [loadData],
+  );
+
   return {
     data,
     total,
@@ -71,7 +79,7 @@ export function useTabData<T>({ endpoint, applicationId }: UseTabDataOptions) {
     loading,
     loadedOnce,
     loadData,
-    setPage,
+    setPage: handlePageChange,
     reset,
     execute,
   };

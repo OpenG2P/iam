@@ -1,18 +1,16 @@
 from __future__ import annotations
 
+import logging
+
 from openg2p_fastapi_common.context import dbengine
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError, NotFoundError
 from openg2p_fastapi_common.service import BaseService
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from iam_core.user_auth.helpers.data_policy_role_helper import (
-    DP_ROLE_PREFIX,
-    is_dp_role,
-    strip_dp_prefix,
-)
 
-from ..helpers.query_helper import dt_iso, ensure_dp_role_mnemonic, paginate
+from ..helpers.query_helper import dt_iso, paginate
+from ..helpers.keycloak_helper import KeycloakHelper
 from ..models import (
     StaffApplicationPermission,
     StaffPortalApplication,
@@ -35,6 +33,9 @@ from ..schemas import (
     RolePermissionDeletePayload,
     RolePermissionListPayload,
 )
+
+
+_logger = logging.getLogger("iam-application-access-service")
 
 
 class ApplicationAccessService(BaseService):
@@ -66,17 +67,6 @@ class ApplicationAccessService(BaseService):
             updated_at=dt_iso(perm.updated_at),
         )
 
-    def _dp_data(self, role: StaffRole) -> DataPolicyData:
-        return DataPolicyData(
-            id=role.id,
-            data_policy_mnemonic=strip_dp_prefix(role.role_mnemonic),
-            role_description=role.role_description,
-            application_id=role.application_id,
-            active=bool(role.active),
-            created_at=dt_iso(role.created_at),
-            updated_at=dt_iso(role.updated_at),
-        )
-
     async def get_roles(
         self, payload: ApplicationScopedPayload, page: int, page_size: int
     ) -> tuple[list[RoleData], int]:
@@ -86,20 +76,17 @@ class ApplicationAccessService(BaseService):
             stmt = (
                 select(StaffRole)
                 .where(
-                    StaffRole.application_id == payload.application_id,
-                    ~StaffRole.role_mnemonic.ilike(f"{DP_ROLE_PREFIX}%"),
+                    StaffRole.application_id == payload.application_id, ~StaffRole.role_mnemonic.like("DP_%")
                 )
                 .order_by(StaffRole.id.desc())
             )
             rows, total = await paginate(session, stmt, page=page, page_size=page_size)
             return [self._role_data(r) for r in rows], total
 
-    async def create_role(self, payload: RoleCreatePayload) -> RoleData:
+    async def create_role(self, payload: RoleCreatePayload, auth_token: str = "") -> RoleData:
         mnemonic = payload.role_mnemonic.strip()
         if not mnemonic:
             raise BadRequestError(message="role_mnemonic is required")
-        if is_dp_role(mnemonic):
-            raise BadRequestError(message="Data-policy roles must be created via the Data Policies tab")
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
@@ -124,20 +111,49 @@ class ApplicationAccessService(BaseService):
                 active=True,
             )
             session.add(role)
+            await session.flush()
+            await session.refresh(role)
+
+            # Sync to Keycloak before commit
+            if auth_token:
+                try:
+                    kc_helper = KeycloakHelper(auth_token)
+                    app = await self._get_application(session, payload.application_id)
+                    role_name, already_existed = await kc_helper.create_role(
+                        mnemonic,
+                        app.application_mnemonic,
+                        role_description=payload.role_description,
+                    )
+                    if already_existed:
+                        await session.rollback()
+                        raise BadRequestError(message=f"Role '{mnemonic}' already exists in Keycloak")
+                except Exception as e:
+                    await session.rollback()
+                    raise BadRequestError(message=f"Failed to sync role to Keycloak: {e}")
+
             await session.commit()
             await session.refresh(role)
             return self._role_data(role)
 
-    async def delete_role(self, payload: RoleDeletePayload) -> RoleData:
+    async def delete_role(self, payload: RoleDeletePayload, auth_token: str = "") -> RoleData:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             role = await session.get(StaffRole, payload.id)
             if role is None or role.application_id != payload.application_id:
                 raise NotFoundError(message="Role not found")
-            if is_dp_role(role.role_mnemonic):
-                raise BadRequestError(message="Data-policy roles must be deleted via the Data Policies tab")
             role_data = self._role_data(role)
+            app = await self._get_application(session, payload.application_id)
+
+            # Delete from Keycloak before database commit
+            if auth_token:
+                try:
+                    kc_helper = KeycloakHelper(auth_token)
+                    await kc_helper.delete_role(role_data.role_mnemonic, app.application_mnemonic)
+                    # If role not found in Keycloak, still proceed with IAM delete (Keycloak is source of truth)
+                except Exception as e:
+                    raise BadRequestError(message=f"Failed to delete role from Keycloak: {e}")
+
             await session.execute(delete(StaffRolePermission).where(StaffRolePermission.role_id == role.id))
             await session.delete(role)
             await session.commit()
@@ -335,6 +351,17 @@ class ApplicationAccessService(BaseService):
             await session.commit()
         return mapping_data
 
+    def _dp_data(self, role: StaffRole) -> DataPolicyData:
+        return DataPolicyData(
+            id=role.id,
+            data_policy_mnemonic=role.role_mnemonic,
+            role_description=role.role_description,
+            application_id=role.application_id,
+            active=bool(role.active),
+            created_at=dt_iso(role.created_at),
+            updated_at=dt_iso(role.updated_at),
+        )
+
     async def get_data_policies(
         self, payload: ApplicationScopedPayload, page: int, page_size: int
     ) -> tuple[list[DataPolicyData], int]:
@@ -344,19 +371,24 @@ class ApplicationAccessService(BaseService):
             stmt = (
                 select(StaffRole)
                 .where(
-                    StaffRole.application_id == payload.application_id,
-                    StaffRole.role_mnemonic.ilike(f"{DP_ROLE_PREFIX}%"),
+                    StaffRole.application_id == payload.application_id, StaffRole.role_mnemonic.like("DP_%")
                 )
                 .order_by(StaffRole.id.desc())
             )
             rows, total = await paginate(session, stmt, page=page, page_size=page_size)
             return [self._dp_data(r) for r in rows], total
 
-    async def create_data_policy(self, payload: DataPolicyCreatePayload) -> DataPolicyData:
-        display = payload.data_policy_mnemonic.strip()
-        if not display:
+    async def create_data_policy(
+        self, payload: DataPolicyCreatePayload, auth_token: str = ""
+    ) -> DataPolicyData:
+        mnemonic = payload.data_policy_mnemonic.strip()
+        if not mnemonic:
             raise BadRequestError(message="data_policy_mnemonic is required")
-        mnemonic = ensure_dp_role_mnemonic(display)
+
+        # Add DP_ prefix if not already present
+        if not mnemonic.startswith("DP_"):
+            mnemonic = f"DP_{mnemonic}"
+
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
@@ -373,7 +405,7 @@ class ApplicationAccessService(BaseService):
                 .first()
             )
             if existing is not None:
-                raise BadRequestError(message=f"Data policy '{display}' already exists")
+                raise BadRequestError(message=f"Data policy '{mnemonic}' already exists")
             role = StaffRole(
                 application_id=payload.application_id,
                 role_mnemonic=mnemonic,
@@ -381,23 +413,53 @@ class ApplicationAccessService(BaseService):
                 active=True,
             )
             session.add(role)
+            await session.flush()
+            await session.refresh(role)
+
+            # Sync to Keycloak before commit
+            if auth_token:
+                try:
+                    kc_helper = KeycloakHelper(auth_token)
+                    app = await self._get_application(session, payload.application_id)
+                    role_name, already_existed = await kc_helper.create_role(
+                        mnemonic,
+                        app.application_mnemonic,
+                        role_description=payload.role_description,
+                    )
+                    if already_existed:
+                        await session.rollback()
+                        raise BadRequestError(message=f"Data policy '{mnemonic}' already exists in Keycloak")
+                except Exception as e:
+                    await session.rollback()
+                    raise BadRequestError(message=f"Failed to sync data policy to Keycloak: {e}")
+
             await session.commit()
             await session.refresh(role)
             return self._dp_data(role)
 
-    async def delete_data_policy(self, payload: DataPolicyDeletePayload) -> DataPolicyData:
+    async def delete_data_policy(
+        self, payload: DataPolicyDeletePayload, auth_token: str = ""
+    ) -> DataPolicyData:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             role = await session.get(StaffRole, payload.id)
-            if (
-                role is None
-                or role.application_id != payload.application_id
-                or not is_dp_role(role.role_mnemonic)
-            ):
+            if role is None or role.application_id != payload.application_id:
                 raise NotFoundError(message="Data policy not found")
             dp_data = self._dp_data(role)
+            app = await self._get_application(session, payload.application_id)
+
+            # Delete from Keycloak before database commit
+            if auth_token:
+                try:
+                    kc_helper = KeycloakHelper(auth_token)
+                    await kc_helper.delete_role(dp_data.data_policy_mnemonic, app.application_mnemonic)
+                    # If role not found in Keycloak, still proceed with IAM delete (Keycloak is source of truth)
+                except Exception as e:
+                    raise BadRequestError(message=f"Failed to delete data policy from Keycloak: {e}")
+
             await session.execute(delete(StaffRolePermission).where(StaffRolePermission.role_id == role.id))
             await session.delete(role)
             await session.commit()
+
         return dp_data

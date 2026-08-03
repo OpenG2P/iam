@@ -17,11 +17,11 @@ export default function Button({
   onClick,
   className = "",
 }: ButtonProps) {
-  const baseStyles = "inline-block text-[16px] font-medium px-4 py-2 rounded cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 disabled:opacity-50 disabled:not-allowed";
+  const baseStyles = "inline-block text-[16px] font-medium px-4 py-2 rounded-[10px] cursor-pointer text-decoration-none leading-[1.2] border-none transition-colors duration-150 disabled:opacity-50 disabled:not-allowed";
 
   const variantStyles = {
-    primary: "bg-[#f5bb1a] text-black hover:bg-[#e0a800]",
-    secondary: "bg-transparent text-black border border-gray-300 hover:bg-gray-100",
+    primary: "bg-black text-white hover:bg-gray-800",
+    secondary: "bg-[#e1e1e1] text-black/50 hover:bg-[#d1d1d1]",
     danger: "bg-red-500 text-white hover:bg-red-600",
   };
 

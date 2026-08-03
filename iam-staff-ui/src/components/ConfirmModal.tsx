@@ -25,7 +25,7 @@ export default function ConfirmModal({
       <div className="relative w-full max-w-150 bg-white rounded-[10px] shadow-lg flex flex-col items-center p-8 border-4 border-[#dc3545]">
         <button
           onClick={onCancel}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
         >
           <X size={30} />
         </button>
@@ -46,14 +46,14 @@ export default function ConfirmModal({
         <div className="flex gap-4 w-full justify-center">
           <button
             onClick={onCancel}
-            className="px-8 py-2 bg-black text-white font-semibold rounded-[10px] hover:bg-black/80 transition-colors text-[16px]"
+            className="px-8 py-2 bg-black text-white font-semibold rounded-[10px] hover:bg-black/80 transition-colors text-[16px] cursor-pointer"
             disabled={confirming}
           >
             {t("cancel")}
           </button>
           <button
             onClick={onConfirm}
-            className="px-8 py-2 bg-[#dc3545] text-white font-semibold rounded-[10px] hover:bg-[#dc3545]/80 transition-colors text-[16px] flex items-center gap-2"
+            className="px-8 py-2 bg-[#dc3545] text-white font-semibold rounded-[10px] hover:bg-[#dc3545]/80 transition-colors text-[16px] flex items-center gap-2 cursor-pointer"
             disabled={confirming}
           >
             {confirming && (

@@ -7,6 +7,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ..helpers.query_helper import dt_iso, paginate
+from ..helpers.keycloak_helper import KeycloakHelper
 from ..models import StaffPortalApplication
 from ..schemas import (
     ApplicationCreatePayload,
@@ -51,7 +52,9 @@ class ApplicationsService(BaseService):
                 raise NotFoundError(message="Application not found")
             return self._to_data(app)
 
-    async def create_application(self, payload: ApplicationCreatePayload) -> ApplicationData:
+    async def create_application(
+        self, payload: ApplicationCreatePayload, auth_token: str = ""
+    ) -> ApplicationData:
         mnemonic = payload.application_mnemonic.strip()
         if not mnemonic:
             raise BadRequestError(message="application_mnemonic is required")
@@ -83,6 +86,24 @@ class ApplicationsService(BaseService):
                 active=True,
             )
             session.add(app)
+            await session.flush()
+            await session.refresh(app)
+
+            # Create Keycloak client before commit
+            if auth_token:
+                try:
+                    kc_helper = KeycloakHelper(auth_token)
+                    client_id, already_existed = await kc_helper.create_client(
+                        mnemonic,
+                        description=payload.application_description,
+                    )
+                    if already_existed:
+                        await session.rollback()
+                        raise BadRequestError(message=f"Application '{mnemonic}' already exists in Keycloak")
+                except Exception as e:
+                    await session.rollback()
+                    raise BadRequestError(message=f"Failed to create Keycloak client: {e}")
+
             await session.commit()
             await session.refresh(app)
             return self._to_data(app)
@@ -111,7 +132,9 @@ class ApplicationsService(BaseService):
             await session.refresh(app)
             return self._to_data(app)
 
-    async def delete_application(self, payload: ApplicationDeletePayload) -> ApplicationData:
+    async def delete_application(
+        self, payload: ApplicationDeletePayload, auth_token: str = ""
+    ) -> ApplicationData:
         async_session = async_sessionmaker(dbengine.get())
         async with async_session() as session:
             app = await session.get(StaffPortalApplication, payload.id)
@@ -122,6 +145,17 @@ class ApplicationsService(BaseService):
                     message="Self-registered applications cannot be deleted from the staff UI"
                 )
             app_data = self._to_data(app)
+
+            # Delete Keycloak client before database commit
+            if auth_token:
+                try:
+                    kc_helper = KeycloakHelper(auth_token)
+                    await kc_helper.delete_client(app_data.application_mnemonic)
+                    # If client not found in Keycloak, still proceed with IAM delete (Keycloak is source of truth)
+                except Exception as e:
+                    await session.rollback()
+                    raise BadRequestError(message=f"Failed to delete Keycloak client: {e}")
+
             # Delete related roles and permissions
             from ..models import StaffRole, StaffApplicationPermission, StaffRolePermission
 

@@ -38,7 +38,6 @@ export interface DataPolicy {
   role_description?: string | null;
   active?: boolean;
 }
-
 export type TabId =
   | "application"
   | "roles"

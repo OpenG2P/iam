@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import Request
 from openg2p_fastapi_common.controller import BaseController
 
 from iam_core.user_auth.decorators import require_permissions
+from ..helpers.auth_token import bearer_from_request
 
 from ..config import Settings
 from ..helpers.request_response_helper import RequestResponseHelper
@@ -149,10 +151,11 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, get_request)
 
     @require_permissions({"role:create"})
-    async def create_role(self, create_request: CreateRoleRequest) -> RoleResponse:
+    async def create_role(self, create_request: CreateRoleRequest, request: Request) -> RoleResponse:
         try:
+            auth_token = bearer_from_request(request) or ""
             role = await self.application_access_service.create_role(
-                create_request.request_body.request_payload
+                create_request.request_body.request_payload, auth_token
             )
             return self.helper.construct_payload_response(
                 create_request,
@@ -165,10 +168,11 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, create_request)
 
     @require_permissions({"role:delete"})
-    async def delete_role(self, delete_request: DeleteRoleRequest) -> RoleResponse:
+    async def delete_role(self, delete_request: DeleteRoleRequest, request: Request) -> RoleResponse:
         try:
+            auth_token = bearer_from_request(request) or ""
             role = await self.application_access_service.delete_role(
-                delete_request.request_body.request_payload
+                delete_request.request_body.request_payload, auth_token
             )
             return self.helper.construct_payload_response(
                 delete_request,
@@ -312,10 +316,13 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, get_request)
 
     @require_permissions({"dataPolicy:create"})
-    async def create_data_policy(self, create_request: CreateDataPolicyRequest) -> DataPolicyResponse:
+    async def create_data_policy(
+        self, create_request: CreateDataPolicyRequest, request: Request
+    ) -> DataPolicyResponse:
         try:
+            auth_token = bearer_from_request(request) or ""
             data_policy = await self.application_access_service.create_data_policy(
-                create_request.request_body.request_payload
+                create_request.request_body.request_payload, auth_token
             )
             return self.helper.construct_payload_response(
                 create_request,
@@ -328,10 +335,13 @@ class ApplicationAccessController(BaseController):
             return self.helper.construct_error_response(error_exception, create_request)
 
     @require_permissions({"dataPolicy:delete"})
-    async def delete_data_policy(self, delete_request: DeleteDataPolicyRequest) -> DataPolicyResponse:
+    async def delete_data_policy(
+        self, delete_request: DeleteDataPolicyRequest, request: Request
+    ) -> DataPolicyResponse:
         try:
+            auth_token = bearer_from_request(request) or ""
             data_policy = await self.application_access_service.delete_data_policy(
-                delete_request.request_body.request_payload
+                delete_request.request_body.request_payload, auth_token
             )
             return self.helper.construct_payload_response(
                 delete_request,

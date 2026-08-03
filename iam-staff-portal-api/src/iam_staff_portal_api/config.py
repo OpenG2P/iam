@@ -35,5 +35,8 @@ class Settings(BaseSettings):
     auth_provider_api_url: str | None = "http://localhost:8020"
     # Keycloak client_id / application mnemonic for iam-staff-ui permission checks.
     keycloak_client_id: str = "iam-staff-ui"
+    # Keycloak admin API URL for role/client sync
+    keycloak_admin_url: str | None = None
+    keycloak_realm: str = "staff"
     # Default page size for list endpoints.
     default_page_size: int = 20

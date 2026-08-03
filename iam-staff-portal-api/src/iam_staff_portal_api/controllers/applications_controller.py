@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import Request
 from openg2p_fastapi_common.controller import BaseController
 
 from iam_core.user_auth.decorators import require_permissions
 
 from ..config import Settings
+from ..helpers.auth_token import bearer_from_request
 from ..helpers.request_response_helper import RequestResponseHelper
 from ..schemas import (
     ApplicationData,
@@ -103,10 +105,13 @@ class ApplicationsController(BaseController):
             return self.helper.construct_error_response(error_exception, get_request)
 
     @require_permissions({"application:create"})
-    async def create_application(self, create_request: CreateApplicationRequest) -> ApplicationResponse:
+    async def create_application(
+        self, create_request: CreateApplicationRequest, request: Request
+    ) -> ApplicationResponse:
         try:
+            auth_token = bearer_from_request(request) or ""
             application: ApplicationData = await self.applications_service.create_application(
-                create_request.request_body.request_payload
+                create_request.request_body.request_payload, auth_token
             )
             return self.helper.construct_payload_response(
                 create_request,
@@ -135,10 +140,13 @@ class ApplicationsController(BaseController):
             return self.helper.construct_error_response(error_exception, update_request)
 
     @require_permissions({"application:delete"})
-    async def delete_application(self, delete_request: DeleteApplicationRequest) -> ApplicationResponse:
+    async def delete_application(
+        self, delete_request: DeleteApplicationRequest, request: Request
+    ) -> ApplicationResponse:
         try:
+            auth_token = bearer_from_request(request) or ""
             application = await self.applications_service.delete_application(
-                delete_request.request_body.request_payload
+                delete_request.request_body.request_payload, auth_token
             )
             return self.helper.construct_payload_response(
                 delete_request,

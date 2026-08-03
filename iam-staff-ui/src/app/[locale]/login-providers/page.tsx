@@ -194,7 +194,7 @@ export default function LoginProvidersPage() {
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="font-(--font-heading) text-[24px] text-black">{t("loginProviders")}</h1>
+        <h1 className="font-semibold text-[24px] text-black">{t("loginProviders")}</h1>
         <Can action="loginProvider:create">
           <AddButton onClick={() => setModalOpen(true)} />
         </Can>

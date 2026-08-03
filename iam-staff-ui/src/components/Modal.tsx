@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
+import Button from "./Button";
 
 interface ModalProps {
   title: string;
@@ -34,7 +35,7 @@ export default function Modal({
           <h2 className="text-[22px] font-bold text-[#ED7C22]">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-800 transition-colors"
+            className="text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
           >
             <X size={30} />
           </button>
