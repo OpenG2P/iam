@@ -18,3 +18,34 @@ def role_cache_key(func, namespace: str, *args, **kwargs):
         role_mnemonic = call_args[1]
 
     return f"{namespace}:{role_mnemonic}"
+
+
+def data_policy_expression_key(func, namespace: str, *args, **kwargs):
+    """
+    Build a cache key for data policy expression evaluation.
+    Key is based on sorted policy mnemonics.
+    """
+    call_args = kwargs.get("args") or args
+    call_kwargs = kwargs.get("kwargs") or {}
+
+    # Get policy_mnemonics from kwargs
+    policy_mnemonics = call_kwargs.get("policy_mnemonics")
+
+    # If not in kwargs, try to get from args
+    if not policy_mnemonics and len(call_args) > 1:
+        policy_mnemonics = call_args[1]
+
+    if policy_mnemonics:
+        import hashlib
+        import json
+
+        key_parts = {
+            "policy_mnemonics": (
+                sorted(policy_mnemonics) if isinstance(policy_mnemonics, list) else [policy_mnemonics]
+            ),
+        }
+        key_string = json.dumps(key_parts, sort_keys=True)
+        hash_key = hashlib.md5(key_string.encode()).hexdigest()
+        return f"{namespace}:{hash_key}"
+
+    return f"{namespace}:unknown"

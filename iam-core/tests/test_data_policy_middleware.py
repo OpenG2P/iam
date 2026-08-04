@@ -4,7 +4,7 @@ import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
-from iam_core.user_auth.data_policy_middleware import (
+from iam_core.user_auth.middleware.data_policy import (
     STATE_KEY_DATA_POLICY_MNEMONICS,
     DataPolicyMiddleware,
 )

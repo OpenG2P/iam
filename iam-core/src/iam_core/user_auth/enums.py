@@ -7,6 +7,7 @@ class EndpointMetadataKey(StrEnum):
     REQUIRED_PERMISSIONS = "_required_permissions"
     REQUIRES_AUTH = "_requires_auth"
     REQUIRES_USER = "_requires_user"
+    DATA_POLICY = "_data_policy"
 
 
 class RequestStateKey(StrEnum):

@@ -9,7 +9,7 @@ _config = Settings.get_config()
 
 print("DB datasource:", _config.db_datasource)
 
-from iam_core.models import LoginProvider
+from iam_core.models import DataPolicy, LoginProvider
 from iam_core.user_auth.app import Initializer as AuthInitializer
 from iam_core.user_auth.middleware import (
     CsrfMiddleware,
@@ -21,11 +21,13 @@ from .helpers.request_response_helper import RequestResponseHelper
 from .services.application_access_service import ApplicationAccessService
 from .services.applications_service import ApplicationsService
 from .services.login_providers_service import LoginProvidersService
+from iam_core.services.data_policy_service import DataPolicyService
 
 from .controllers import (
     ApplicationAccessController,
     ApplicationsController,
     AuthController,
+    DataPolicyController,
     IdentityProviderController,
     LoginProvidersController,
     OAuthCallbackController,
@@ -53,6 +55,7 @@ IAM_STAFF_CSRF_EXCLUDED_PATHS = (
     "/auth/backchannel-logout",
     "/user-access/get_permissions_for_roles",
     "/user-access/staff_portal_applications",
+    "/data-policies/evaluate_expression",
 )
 
 
@@ -61,12 +64,16 @@ class Initializer(AuthInitializer):
         super().initialize()
 
         # Middleware order (last added = outermost on inbound):
-        # CSRF -> ValidateAndRefresh -> ResolvePermission -> app
+        # CSRF -> ValidateAndRefresh -> DataPolicy -> ResolvePermission -> app
         self.return_app().add_middleware(
             ResolvePermissionMiddleware,
             client_id=_config.keycloak_client_id,
             allow_by_default=True,
         )
+        # self.return_app().add_middleware(
+        #     DataPolicyMiddleware,
+        #     client_id=_config.keycloak_client_id,
+        # )
         self.return_app().add_middleware(ValidateAndRefreshTokenMiddleware)
         self.return_app().add_middleware(
             CsrfMiddleware,
@@ -80,6 +87,7 @@ class Initializer(AuthInitializer):
         ApplicationsService()
         ApplicationAccessService()
         LoginProvidersService()
+        DataPolicyService()
 
         AuthController().post_init()
         OAuthCallbackController().post_init()
@@ -88,12 +96,14 @@ class Initializer(AuthInitializer):
         ApplicationsController().post_init()
         ApplicationAccessController().post_init()
         LoginProvidersController().post_init()
+        DataPolicyController().post_init()
 
     def migrate_database(self, args):
         super().migrate_database(args)
 
         async def migrate():
             await LoginProvider.create_migrate()
+            await DataPolicy.create_migrate()
             await StaffPortalApplication.create_migrate()
             await StaffApplicationPermission.create_migrate()
             await StaffRole.create_migrate()
