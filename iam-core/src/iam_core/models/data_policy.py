@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Index, JSON, String, text
+from sqlalchemy import Index, Integer, JSON, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
@@ -13,6 +13,7 @@ class DataPolicy(BaseORMModel):
     policy_mnemonic is published to Keycloak as a client role DP_<policy_mnemonic>.
     The same mnemonic may appear on multiple rows (one per policy_target).
     register_id is required for REGISTER_RECORD policies; null for GEO/ATTRIBUTE.
+    application_id links the policy to a specific application in IAM.
     """
 
     __tablename__ = "data_policies"
@@ -33,6 +34,7 @@ class DataPolicy(BaseORMModel):
     )
     policy_type: Mapped[str] = mapped_column(String, nullable=False)
     policy_filter_expression: Mapped[JSON] = mapped_column(JSON, nullable=False)
+    application_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     __table_args__ = (
         Index(

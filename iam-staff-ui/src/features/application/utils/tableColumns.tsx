@@ -1,6 +1,6 @@
 import Can from "@/components/Can";
 import DeleteButton from "@/components/DeleteButton";
-import { Role, Permission, RolePermission, DataPolicy } from "../types";
+import { Role, Permission, RolePermission } from "../types";
 
 export function createDeleteButton(
   onDelete: () => void,
@@ -84,30 +84,6 @@ export function getRolePermissionColumns(
       header: t("actions"),
       render: (rp: RolePermission) =>
         createDeleteButton(() => onDelete(rp), "rolePermission:delete", t),
-    },
-  ];
-}
-
-export function getDataPolicyColumns(
-  onDelete: (dp: DataPolicy) => void,
-  t: any,
-) {
-  return [
-    {
-      key: "mnemonic",
-      header: "Mnemonic",
-      render: (dp: DataPolicy) => dp.data_policy_mnemonic,
-    },
-    {
-      key: "description",
-      header: "Description",
-      render: (dp: DataPolicy) => dp.role_description || "—",
-    },
-    {
-      key: "actions",
-      header: t("actions"),
-      render: (dp: DataPolicy) =>
-        createDeleteButton(() => onDelete(dp), "dataPolicy:delete", t),
     },
   ];
 }

@@ -16,6 +16,8 @@ interface BackendProxyOptions {
   transformResponse?: ResponseTransformer;
   caching?: RequestInit;
   responseHeaders?: HeadersInit;
+  backendUrl?: string;
+  backend?: "default" | "masterdata" | "registry";
 }
 
 const errorCodeMap: Record<string, number> = {
@@ -43,6 +45,8 @@ export async function proxyToBackend({
   transformResponse,
   caching,
   responseHeaders,
+  backendUrl: customBackendUrl,
+  backend,
 }: BackendProxyOptions) {
   const backendConfig = getBackendConfig();
   const auth = requireAuth(req);
@@ -58,7 +62,18 @@ export async function proxyToBackend({
       }
     }
 
-    const backendUrl = `${backendConfig.backendApiUrl}${targetEndpoint}`;
+    let baseUrl;
+    if (customBackendUrl) {
+      baseUrl = customBackendUrl;
+    } else if (backend === "masterdata") {
+      baseUrl = backendConfig.masterdataApiUrl;
+    } else if (backend === "registry") {
+      baseUrl = backendConfig.registryApiUrl;
+    } else {
+      baseUrl = backendConfig.backendApiUrl;
+    }
+
+    const backendUrl = `${baseUrl}${targetEndpoint}`;
 
     const defaultPayloadBuilder: PayloadBuilder = (b) => {
       const { current_page, page_size, ...rest } = b || {};

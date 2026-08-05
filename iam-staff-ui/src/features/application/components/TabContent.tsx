@@ -50,13 +50,9 @@ export default function TabContent<T>({
   return (
     <Card padding="none" className="pb-6">
       <div className="flex items-center justify-between gap-4 mb-0 px-9 pt-6 pb-4">
-        {loading && !loadedOnce ? (
-          <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
-        ) : (
-          <h2 className="m-0 text-[20px] font-medium text-black">
-            {title}
-          </h2>
-        )}
+        <h2 className="m-0 text-[20px] font-medium text-black">
+          {title}
+        </h2>
         {showAddButton && !(loading && !loadedOnce) && (
           <Can action={createAction}>
             <AddButton onClick={onAdd} />

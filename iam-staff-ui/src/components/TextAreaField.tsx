@@ -22,9 +22,12 @@ export default function TextAreaField({
   required = false,
 }: TextAreaFieldProps) {
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div>
       {label && (
-        <label className="text-[16px] font-medium text-black">
+        <label
+          className="block text-[16px] font-medium text-[#000000] truncate"
+          title={label}
+        >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -36,7 +39,7 @@ export default function TextAreaField({
         required={required}
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
-        className="text-[16px] p-2 border border-[#ED7C22] rounded-[10px] bg-white text-black focus:outline-none min-h-15 resize-y disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+        className={`w-full border border-[#ED7C22] py-2 px-4 rounded-[10px] outline-none text-[16px] text-[#000000] disabled:opacity-50 disabled:cursor-not-allowed ${label ? 'mt-2' : ''}`}
       />
     </div>
   );

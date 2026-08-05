@@ -1,6 +1,7 @@
 import base64
 import json
 import types
+from unittest.mock import AsyncMock, MagicMock
 
 from iam_core.schemas import TokenEndpointAuthMethod
 from starlette.requests import Request
@@ -31,6 +32,7 @@ def token_response(
 
 def make_request(
     *,
+    auth: types.SimpleNamespace | None = None,
     cookies: dict[str, str] | None = None,
     authorization: str | None = None,
     path: str = "/",
@@ -49,7 +51,10 @@ def make_request(
         "path": path,
         "headers": headers,
     }
-    return Request(scope)
+    request = Request(scope)
+    if auth:
+        request.state.auth = auth
+    return request
 
 
 class FakeRedis:
@@ -95,3 +100,85 @@ def make_login_provider(**overrides) -> types.SimpleNamespace:
     }
     defaults.update(overrides)
     return types.SimpleNamespace(**defaults)
+
+
+def make_auth(**overrides) -> types.SimpleNamespace:
+    defaults = {
+        "user_id": "user-1",
+        "username": "testuser",
+        "email": "test@example.com",
+        "roles": ["user"],
+        "credentials": fake_jwt({"sub": "user-1", "iss": "https://keycloak.example.com/realms/staff"}),
+        "client_roles": {},
+    }
+    defaults.update(overrides)
+
+    class AuthObject(types.SimpleNamespace):
+        def model_dump(self, exclude=None):
+            data = self.__dict__.copy()
+            if exclude:
+                for key in exclude:
+                    data.pop(key, None)
+            return data
+
+    return AuthObject(**defaults)
+
+
+def make_app_row(**overrides) -> types.SimpleNamespace:
+    defaults = {
+        "id": 1,
+        "application_mnemonic": "test-app",
+        "application_name": "Test Application",
+        "description": "Test Description",
+    }
+    defaults.update(overrides)
+    return types.SimpleNamespace(**defaults)
+
+
+def make_role_row(**overrides) -> types.SimpleNamespace:
+    defaults = {
+        "id": 1,
+        "role_mnemonic": "test-role",
+        "role_name": "Test Role",
+        "description": "Test Role Description",
+    }
+    defaults.update(overrides)
+    return types.SimpleNamespace(**defaults)
+
+
+def make_permission_row(**overrides) -> types.SimpleNamespace:
+    defaults = {
+        "id": 1,
+        "permission_mnemonic": "test:permission",
+        "permission_name": "Test Permission",
+        "description": "Test Permission Description",
+    }
+    defaults.update(overrides)
+    return types.SimpleNamespace(**defaults)
+
+
+def make_execute_result(**overrides) -> types.SimpleNamespace:
+    defaults = {
+        "rowcount": 1,
+        "rows": [],
+    }
+    defaults.update(overrides)
+    return types.SimpleNamespace(**defaults)
+
+
+def make_mock_session(*execute_results):
+    session = AsyncMock()
+    if execute_results:
+        session.execute = AsyncMock(side_effect=execute_results)
+    else:
+        session.execute = AsyncMock(return_value=make_execute_result())
+    session.get = AsyncMock()
+    session.add = MagicMock()
+    session.commit = AsyncMock()
+    session.refresh = AsyncMock()
+    session.delete = AsyncMock()
+    return session, session.execute
+
+
+def make_session_factory():
+    return lambda: make_mock_session()
