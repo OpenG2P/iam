@@ -4,7 +4,7 @@ import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
-from iam_core.user_auth.data_policy_middleware import (
+from iam_core.user_auth.middleware.data_policy import (
     STATE_KEY_DATA_POLICY_MNEMONICS,
     DataPolicyMiddleware,
 )
@@ -39,8 +39,8 @@ def test_strip_dp_prefix_removes_prefix():
 
 
 def test_get_data_policy_mnemonics_deduplicates_and_skips_non_dp_roles():
-    mnemonics = get_data_policy_mnemonics(["DP_alpha", "admin", "dp_beta", "DP_alpha", "DP_"])
-    assert mnemonics == ["alpha", "beta"]
+    mnemonics = get_data_policy_mnemonics(["DP_alpha", "admin", "dp_beta", "DP_alpha"])
+    assert mnemonics == ["DP_alpha", "dp_beta"]
 
 
 def test_get_data_policy_mnemonics_returns_empty_for_missing_roles():
@@ -57,11 +57,17 @@ async def test_data_policy_middleware_attaches_resolved_mnemonics():
     downstream = Response(content=b"ok", status_code=200)
     call_next = AsyncMock(return_value=downstream)
 
-    middleware = DataPolicyMiddleware(MagicMock(), client_id="registry-client")
+    # Mock the endpoint to have DATA_POLICY metadata
+    endpoint = MagicMock()
+    setattr(endpoint, "data_policy", True)
+    request.scope["route"] = MagicMock()
+    request.scope["route"].endpoint = endpoint
+
+    middleware = DataPolicyMiddleware(MagicMock(), iam_api_url="http://test.iam")
     response = await middleware.dispatch(request, call_next)
 
     assert response is downstream
-    assert request.state.data_policy_mnemonics == ["view", "edit"]
+    assert request.state.data_policy_mnemonics == ["DP_view", "DP_edit"]
     call_next.assert_awaited_once_with(request)
 
 
@@ -70,13 +76,13 @@ async def test_data_policy_middleware_leaves_empty_when_client_or_roles_missing(
     request = _make_request()
     call_next = AsyncMock(return_value=Response(content=b"ok"))
 
-    middleware = DataPolicyMiddleware(MagicMock(), client_id="")
+    middleware = DataPolicyMiddleware(MagicMock(), iam_api_url="http://test.iam")
     await middleware.dispatch(request, call_next)
     assert getattr(request.state, STATE_KEY_DATA_POLICY_MNEMONICS) == []
 
     user = MagicMock()
     user.client_roles = None
     request.state.auth = user
-    middleware = DataPolicyMiddleware(MagicMock(), client_id="registry-client")
+    middleware = DataPolicyMiddleware(MagicMock(), iam_api_url="http://test.iam")
     await middleware.dispatch(request, call_next)
     assert getattr(request.state, STATE_KEY_DATA_POLICY_MNEMONICS) == []

@@ -209,7 +209,7 @@ def test_load_dataset_from_bundled_seed_file():
     data_dir = Path(__file__).resolve().parents[1] / "src/iam_staff_portal_api/data"
     rows = loader.load_dataset(StaffPortalApplication, data_dir)
     assert rows
-    assert rows[0]["application_mnemonic"] == "keycloak"
+    assert rows[0]["application_mnemonic"] == "iam-staff-ui"
 
 
 def test_apply_config_values_routes_by_model():
@@ -315,6 +315,11 @@ async def test_seed_models_from_dir_loads_each_model(tmp_path):
         (tmp_path / f"{model.__tablename__}.json").write_text("[]", encoding="utf-8")
 
     session = AsyncMock()
+    # Mock session.execute to return a result with scalars().first() returning None
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.first.return_value = None
+    mock_result.scalars.return_value.all.return_value = []
+    session.execute.return_value = mock_result
     with (
         patch.object(loader, "seed_applications_by_mnemonic", AsyncMock()) as seed_apps,
         patch.object(loader, "seed_if_empty", AsyncMock()) as seed_empty,

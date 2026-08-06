@@ -1,0 +1,31 @@
+{{- if .Values.iamStaffUi.enabled }}
+{{- $values := .Values.iamStaffUi -}}
+{{- $context := dict "Values" (merge (deepCopy $values) (dict "global" .Values.global "iamStaffPortalApi" .Values.iamStaffPortalApi)) "Chart" .Chart "Release" .Release "Files" .Files "Capabilities" .Capabilities -}}
+{{- with $context -}}
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  labels: {{- include "common.labels.standard" (dict "customLabels" .Values.commonLabels "context" $) | nindent 4 }}
+    app.kubernetes.io/component: iam-staff-ui
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" (dict "customLabels" .Values.podLabels "context" $) | nindent 6 }}
+      app.kubernetes.io/component: iam-staff-ui
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" (dict "customLabels" .Values.podLabels "context" $) | nindent 8 }}
+        app.kubernetes.io/component: iam-staff-ui
+    spec:
+      containers:
+        - name: iam-staff-ui
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.image "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          env: {{- include "iamStaffUi.envVars" . | nindent 12 }}
+{{- end -}}
+{{- end }}

@@ -36,6 +36,12 @@ def requires_user(func: Callable[..., Any]):
     return func
 
 
+def data_policy(func: Callable[..., Any]):
+    """Mark an endpoint as requiring data policy resolution."""
+    setattr(func, EndpointMetadataKey.DATA_POLICY, True)
+    return func
+
+
 def _endpoint_candidates(endpoint: Any) -> list[Any]:
     if endpoint is None:
         return []

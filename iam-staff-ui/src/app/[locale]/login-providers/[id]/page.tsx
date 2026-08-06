@@ -1,0 +1,73 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRbac } from "@/context/RbacContext";
+import { useLoginProviderData } from "@/features/login-providers/hooks/useLoginProviderData";
+import {
+  Card,
+  ErrorAlert,
+} from "@/components";
+import {
+  LoginProviderForm,
+  LoginProviderPageSkeleton,
+  LoginProviderNotFound,
+} from "@/features/login-providers/components";
+import { toast } from "react-toastify";
+
+export default function LoginProviderDetailPage() {
+  const t = useTranslations();
+  const { can } = useRbac();
+  const params = useParams();
+  const providerId = Number(params.id);
+
+  const {
+    provider,
+    form,
+    loading,
+    saving,
+    error,
+    save,
+    setForm,
+    setError,
+  } = useLoginProviderData(providerId);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    const result = await save(form);
+    if (result) {
+      toast.success(t("loginProviderUpdated"));
+    }
+  }
+
+  if (loading) {
+    return <LoginProviderPageSkeleton />;
+  }
+
+  if (!provider) {
+    return <LoginProviderNotFound backHref="/login-providers" />;
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4 mb-2">
+        <h1 className="font-(--font-heading) text-[24px] text-black mb-4">{provider.provider_name}</h1>
+      </div>
+
+      {error && (
+        <ErrorAlert className="p-3.5 text-[16px] font-medium">{error}</ErrorAlert>
+      )}
+
+      <Card className="border border-gray-100">
+        <LoginProviderForm
+          form={form}
+          provider={provider}
+          canEdit={can("loginProvider:edit")}
+          saving={saving}
+          onChange={(field, value) => setForm((f: any) => ({ ...f, [field]: value }))}
+          onSave={handleSave}
+        />
+      </Card>
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 from iam_staff_portal_api.schemas import (
     ApplicationPermissionResponse,
     GetPermissionsForRolesRequest,
-    PermissionsResponse,
+    PermissionsForRolesResponse,
     RegisterApplicationPermission,
     RegisterApplicationRole,
     RegisterStaffPortalApplicationRequest,
@@ -58,6 +58,6 @@ def test_register_response_and_permission_models():
     assert len(perm_response.permissions) == 2
 
     roles_request = GetPermissionsForRolesRequest(role_mnemonics=["Data Editor", "Admin"])
-    permissions_response = PermissionsResponse(permissions=["register:view"])
+    permissions_response = PermissionsForRolesResponse(permissions=["register:view"])
     assert roles_request.role_mnemonics == ["Data Editor", "Admin"]
     assert permissions_response.permissions == ["register:view"]

@@ -18,7 +18,7 @@ def strip_dp_prefix(role: str) -> str:
 
 def get_data_policy_mnemonics(roles: list[str] | None) -> list[str]:
     """Given a list of client roles, return the deduplicated set of data-policy
-    mnemonics (i.e. DP_ roles with the prefix removed), preserving first-seen order."""
+    role names (with DP_ prefix preserved), preserving first-seen order."""
     if not roles:
         return []
 
@@ -28,9 +28,9 @@ def get_data_policy_mnemonics(roles: list[str] | None) -> list[str]:
     for role in roles:
         if not is_dp_role(role):
             continue
-        mnemonic = strip_dp_prefix(role)
-        if mnemonic and mnemonic not in seen:
-            seen.add(mnemonic)
-            mnemonics.append(mnemonic)
+        cleaned_role = str(role).strip()
+        if cleaned_role and cleaned_role not in seen:
+            seen.add(cleaned_role)
+            mnemonics.append(cleaned_role)
 
     return mnemonics

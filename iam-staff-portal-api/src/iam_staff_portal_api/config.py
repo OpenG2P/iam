@@ -25,8 +25,18 @@ class Settings(BaseSettings):
             "registry_application_url": "https://registry.openg2p.org",
             "minio_application_url": "https://minio.openg2p.org",
             "superset_application_url": "https://superset.openg2p.org",
+            "iam_staff_ui_application_url": "http://localhost:8035",
         }
     )
     data_client_secrets: dict[str, str] = Field(default_factory=dict)
     cache_expire_seconds: int = 7 * 24 * 60 * 60  # 7 days
     data_dir: str = "/opt/iam-staff-portal-data"
+    # IAM staff-portal-api base URL for permission resolution (self-call).
+    auth_provider_api_url: str | None = "http://localhost:8020"
+    # Keycloak client_id / application mnemonic for iam-staff-ui permission checks.
+    keycloak_client_id: str = "iam-staff-ui"
+    # Keycloak admin API URL for role/client sync
+    keycloak_admin_url: str | None = None
+    keycloak_realm: str = "staff"
+    # Default page size for list endpoints.
+    default_page_size: int = 20
