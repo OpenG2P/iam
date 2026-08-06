@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useState } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Tabs } from "@/components";
 import { useRbac } from "@/context/RbacContext";
@@ -65,16 +66,29 @@ export default function ApplicationDetailPage() {
     reset: resetApp,
   } = useApplicationData(applicationId);
 
-  // Tab state from URL, default to "application"
+  // Tab state from URL
   const [tab, setTab] = useState<TabId>(() => {
     const tabParam = searchParams.get("tab");
     return (tabParam as TabId) || "application";
   });
 
+  // Sync tab with URL
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      setTab(tabParam as TabId);
+    } else {
+      // Set default tab in URL if not present
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.set("tab", "application");
+      router.push(`?${newParams.toString()}`, { scroll: false });
+    }
+  }, [searchParams, router]);
+
   // Reset on application change
   useLayoutEffect(() => {
     resetApp();
-    setTab("application");
+    // Don't reset tab - let it be controlled by URL
   }, [applicationId, resetApp]);
 
   // Load application on mount

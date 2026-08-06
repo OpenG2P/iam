@@ -11,19 +11,12 @@ from ..helpers.auth_token import bearer_from_request
 from ..config import Settings
 from ..helpers.request_response_helper import RequestResponseHelper
 from ..schemas import (
-    CreateDataPolicyRequest,
     CreatePermissionRequest,
     CreateRolePermissionRequest,
     CreateRoleRequest,
-    DataPoliciesResponse,
-    DataPoliciesResponseBody,
-    DataPolicyResponse,
-    DataPolicyResponseBody,
-    DeleteDataPolicyRequest,
     DeletePermissionRequest,
     DeleteRolePermissionRequest,
     DeleteRoleRequest,
-    GetDataPoliciesRequest,
     GetPermissionsRequest,
     GetRolePermissionsRequest,
     GetRolesRequest,
@@ -47,7 +40,7 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 
 
 class ApplicationAccessController(BaseController):
-    """Roles, permissions, mappings, and data policies under /applications."""
+    """Roles, permissions, and mappings under /applications."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -108,24 +101,6 @@ class ApplicationAccessController(BaseController):
             "/delete_role_permission",
             self.delete_role_permission,
             responses={200: {"model": RolePermissionResponse}},
-            methods=["POST"],
-        )
-        self.router.add_api_route(
-            "/get_data_policies",
-            self.get_data_policies,
-            responses={200: {"model": DataPoliciesResponse}},
-            methods=["POST"],
-        )
-        self.router.add_api_route(
-            "/create_data_policy",
-            self.create_data_policy,
-            responses={200: {"model": DataPolicyResponse}},
-            methods=["POST"],
-        )
-        self.router.add_api_route(
-            "/delete_data_policy",
-            self.delete_data_policy,
-            responses={200: {"model": DataPolicyResponse}},
             methods=["POST"],
         )
 
@@ -292,63 +267,4 @@ class ApplicationAccessController(BaseController):
             )
         except Exception as error_exception:
             _logger.exception("delete_role_permission failed")
-            return self.helper.construct_error_response(error_exception, delete_request)
-
-    @require_permissions({"dataPolicy:view"})
-    async def get_data_policies(self, get_request: GetDataPoliciesRequest) -> DataPoliciesResponse:
-        try:
-            page, page_size = self.helper.pagination_from_request(
-                get_request, default_page_size=_config.default_page_size
-            )
-            data_policies, total = await self.application_access_service.get_data_policies(
-                get_request.request_body.request_payload, page, page_size
-            )
-            return self.helper.construct_payload_response(
-                get_request,
-                data_policies,
-                DataPoliciesResponseBody,
-                DataPoliciesResponse,
-                total=total,
-                page_size=page_size,
-            )
-        except Exception as error_exception:
-            _logger.exception("get_data_policies failed")
-            return self.helper.construct_error_response(error_exception, get_request)
-
-    @require_permissions({"dataPolicy:create"})
-    async def create_data_policy(
-        self, create_request: CreateDataPolicyRequest, request: Request
-    ) -> DataPolicyResponse:
-        try:
-            auth_token = bearer_from_request(request) or ""
-            data_policy = await self.application_access_service.create_data_policy(
-                create_request.request_body.request_payload, auth_token
-            )
-            return self.helper.construct_payload_response(
-                create_request,
-                data_policy,
-                DataPolicyResponseBody,
-                DataPolicyResponse,
-            )
-        except Exception as error_exception:
-            _logger.exception("create_data_policy failed")
-            return self.helper.construct_error_response(error_exception, create_request)
-
-    @require_permissions({"dataPolicy:delete"})
-    async def delete_data_policy(
-        self, delete_request: DeleteDataPolicyRequest, request: Request
-    ) -> DataPolicyResponse:
-        try:
-            auth_token = bearer_from_request(request) or ""
-            data_policy = await self.application_access_service.delete_data_policy(
-                delete_request.request_body.request_payload, auth_token
-            )
-            return self.helper.construct_payload_response(
-                delete_request,
-                data_policy,
-                DataPolicyResponseBody,
-                DataPolicyResponse,
-            )
-        except Exception as error_exception:
-            _logger.exception("delete_data_policy failed")
             return self.helper.construct_error_response(error_exception, delete_request)

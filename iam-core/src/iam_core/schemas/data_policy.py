@@ -125,6 +125,10 @@ class DataPolicyData(BaseModel):
         ...,
         description="Nested GROUP/CONDITION policy filter tree",
     )
+    application_id: Optional[int] = Field(
+        None,
+        description="Application ID from IAM; links policy to specific application",
+    )
 
 
 class GetPolicyRequestPayload(BaseModel):
@@ -132,7 +136,15 @@ class GetPolicyRequestPayload(BaseModel):
 
 
 class GetAllPoliciesRequestPayload(BaseModel):
-    """No filters; returns every data policy row."""
+    """Optional filters for data policies."""
+
+    application_id: Optional[int] = Field(None, description="Filter by application ID")
+    policy_target: Optional[PolicyTarget] = Field(
+        None, description="Filter by policy target (REGISTER_RECORD, GEO, ATTRIBUTE)"
+    )
+    register_id: Optional[str] = Field(
+        None, description="Filter by register ID (only for REGISTER_RECORD target)"
+    )
 
 
 class GetPolicyResponsePayload(BaseModel):
@@ -158,6 +170,10 @@ class AddPolicyRequestPayload(BaseModel):
     policy_filter_expression: dict = Field(
         ...,
         description="Nested GROUP/CONDITION policy filter tree",
+    )
+    application_id: Optional[int] = Field(
+        None,
+        description="Application ID from IAM; links policy to specific application",
     )
 
     @model_validator(mode="after")

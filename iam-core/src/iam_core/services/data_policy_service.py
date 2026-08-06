@@ -36,15 +36,31 @@ class DataPolicyService(BaseService):
         session: AsyncSession,
         current_page: int | None = None,
         page_size: int | None = None,
+        application_id: int | None = None,
+        policy_target: str | None = None,
+        register_id: str | None = None,
     ) -> tuple[list[DataPolicyData], int]:
         stmt = select(DataPolicy).order_by(
             DataPolicy.policy_mnemonic,
             DataPolicy.policy_target,
         )
+        if application_id is not None:
+            stmt = stmt.where(DataPolicy.application_id == application_id)
+        if policy_target is not None:
+            stmt = stmt.where(DataPolicy.policy_target == policy_target)
+        if register_id is not None:
+            stmt = stmt.where(DataPolicy.register_id == register_id)
         if current_page is not None and page_size is not None:
             stmt = stmt.offset((current_page - 1) * page_size).limit(page_size)
 
-        total = (await session.execute(select(func.count()).select_from(DataPolicy))).scalar_one()
+        count_stmt = select(func.count()).select_from(DataPolicy)
+        if application_id is not None:
+            count_stmt = count_stmt.where(DataPolicy.application_id == application_id)
+        if policy_target is not None:
+            count_stmt = count_stmt.where(DataPolicy.policy_target == policy_target)
+        if register_id is not None:
+            count_stmt = count_stmt.where(DataPolicy.register_id == register_id)
+        total = (await session.execute(count_stmt)).scalar_one()
         result = await session.execute(stmt)
         policies = result.scalars().all()
         return [self._to_policy_data(policy) for policy in policies], total
@@ -57,19 +73,24 @@ class DataPolicyService(BaseService):
         policy_type: DataPolicyType,
         policy_filter_expression: dict,
         session: AsyncSession,
-        policy_target: PolicyTarget = PolicyTarget.REGISTER_RECORD,
+        policy_target: str = "REGISTER_RECORD",
+        application_id: int | None = None,
     ) -> DataPolicyData:
         normalized_expression = self._validate_policy_filter_expression(policy_filter_expression)
 
-        if policy_target == PolicyTarget.REGISTER_RECORD and not register_id:
+        if policy_target == "REGISTER_RECORD" and not register_id:
             raise ValueError("register_id is required when policy_target is REGISTER_RECORD")
-        if policy_target in (PolicyTarget.GEO, PolicyTarget.ATTRIBUTE) and register_id:
+        if policy_target in ("GEO", "ATTRIBUTE") and register_id:
             raise ValueError("register_id must be null when policy_target is GEO or ATTRIBUTE")
 
         duplicate_conditions = [
             DataPolicy.policy_mnemonic == policy_mnemonic,
-            DataPolicy.policy_target == policy_target.value,
+            DataPolicy.policy_target == policy_target,
         ]
+        if application_id is not None:
+            duplicate_conditions.append(DataPolicy.application_id == application_id)
+        else:
+            duplicate_conditions.append(DataPolicy.application_id.is_(None))
         if register_id is not None:
             duplicate_conditions.append(DataPolicy.register_id == register_id)
         else:
@@ -79,17 +100,17 @@ class DataPolicyService(BaseService):
         if existing.scalar_one_or_none():
             scope = f"register '{register_id}'" if register_id else "global"
             raise ValueError(
-                f"Policy mnemonic '{policy_mnemonic}' already exists for {scope} "
-                f"target '{policy_target.value}'"
+                f"Policy mnemonic '{policy_mnemonic}' already exists for {scope} " f"target '{policy_target}'"
             )
 
         policy = DataPolicy(
             policy_mnemonic=policy_mnemonic,
             policy_description=policy_description,
             register_id=register_id,
-            policy_target=policy_target.value,
+            policy_target=policy_target,
             policy_type=policy_type.value,
             policy_filter_expression=normalized_expression,
+            application_id=application_id,
         )
         session.add(policy)
         await session.flush()

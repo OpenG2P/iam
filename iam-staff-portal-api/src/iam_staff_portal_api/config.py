@@ -40,3 +40,7 @@ class Settings(BaseSettings):
     keycloak_realm: str = "staff"
     # Default page size for list endpoints.
     default_page_size: int = 20
+    # Registry API URL for data policy operations
+    registry_api_url: str | None = None
+    # Master data URL for data policy operations
+    master_data_url: str | None = None
