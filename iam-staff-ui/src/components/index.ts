@@ -10,6 +10,7 @@ export { default as ErrorAlert } from "./ErrorAlert";
 export { default as Forbidden } from "./Forbidden";
 export { default as FormActions } from "./FormActions";
 export { default as IconBase64Field } from "./IconBase64Field";
+export { default as IconDisplay } from "./IconDisplay";
 export { default as InputField } from "./InputField";
 export { default as Layout } from "./Layout";
 export { default as LoadingState } from "./LoadingState";

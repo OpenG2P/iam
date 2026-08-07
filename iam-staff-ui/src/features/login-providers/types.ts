@@ -3,6 +3,7 @@ export interface LoginProvider {
   provider_name: string;
   description?: string | null;
   icon_base64?: string | null;
+  icon_mime_type?: string | null;
   client_id: string;
   has_client_secret?: boolean;
   has_client_private_key?: boolean;
