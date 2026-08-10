@@ -37,6 +37,10 @@ global:
   supersetApplicationUrl: 'https://superset.{{ .Release.Namespace }}.openg2p.org'
   iamStaffUiApplicationUrl: 'https://iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
 
+  # Backend API URLs used by iam-staff-ui BFF (override per environment)
+  registryApiUrl: 'http://registry-staff-portal-api'
+  masterDataApiUrl: 'http://commons-services-master-data-api'
+
 postgres-init:
   enabled: true
   postgresql:
@@ -163,6 +167,8 @@ iamStaffPortalApi:
     IAM_STAFF_DATA_APPLICATION_URLS__IAM_STAFF_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
     IAM_STAFF_KEYCLOAK_CLIENT_ID: "iam-staff-ui"
     IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
+    IAM_STAFF_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
+    IAM_STAFF_KEYCLOAK_REALM: '{{ .Values.global.keycloakRealm }}'
 
     # API specific middleware configs
     IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) (tpl .Values.global.iamStaffUiApplicationUrl $) | toJson }}'
@@ -260,7 +266,9 @@ iamStaffUi:
     PORT: "3000"
     NODE_ENV: "production"
     BACKEND_API_URL: 'https://{{ tpl .Values.iamStaffPortalApi.hostname $ }}'
-    LOGIN_PROVIDER_ID: "2"
+    REGISTRY_API_URL: '{{ tpl .Values.global.registryApiUrl $ }}'
+    MASTERDATA_API_URL: '{{ tpl .Values.global.masterDataApiUrl $ }}'
+    LOGIN_PROVIDER_ID: "1"
     APPLICATION_MNEMONIC: "iam-staff-ui"
     COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
-    PAGE_SIZE: "20"
+    PAGE_SIZE: "10"

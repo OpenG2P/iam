@@ -36,6 +36,7 @@ IAM_STAFF_UI_PERMISSIONS = (
     "application:view",
     "application:create",
     "application:edit",
+    "application:delete",
     "role:view",
     "role:create",
     "role:delete",
@@ -51,6 +52,7 @@ IAM_STAFF_UI_PERMISSIONS = (
     "loginProvider:view",
     "loginProvider:create",
     "loginProvider:edit",
+    "loginProvider:delete",
 )
 
 

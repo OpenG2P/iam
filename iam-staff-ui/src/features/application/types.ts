@@ -4,6 +4,7 @@ export interface Application {
   application_description?: string | null;
   application_url?: string | null;
   icon_base64?: string | null;
+  icon_mime_type?: string | null;
   order?: number | null;
   width?: number | null;
   is_self_registered?: boolean;

@@ -1,5 +1,6 @@
 export { default as ApplicationModal, emptyForm as emptyApplicationForm } from "./ApplicationModal";
 export { default as ApplicationNotFound } from "./ApplicationNotFound";
+export { default as ApplicationsPageClient } from "./ApplicationsPageClient";
 export { default as ApplicationTab } from "./ApplicationTab";
 export { default as DataPoliciesTab } from "./DataPoliciesTab";
 export { default as FormModal } from "./FormModal";
