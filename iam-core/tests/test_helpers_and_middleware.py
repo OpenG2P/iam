@@ -532,12 +532,19 @@ async def test_resolve_permission_middleware_extra_paths():
 
 @pytest.mark.asyncio
 async def test_resolve_permission_fetch_permissions_paths():
+    from fastapi_cache import FastAPICache
+    from fastapi_cache.backends.inmemory import InMemoryBackend
+
+    FastAPICache.init(InMemoryBackend(), prefix="test-iam-permissions")
     middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal")
 
-    with patch.object(middleware, "_config", types.SimpleNamespace(auth_provider_api_url="https://iam/api")):
-        assert await middleware._fetch_permissions_for_roles([]) == set()
+    assert await middleware._fetch_permissions_for_roles([]) == set()
 
-    with patch.object(middleware, "_config", types.SimpleNamespace(auth_provider_api_url=None)):
+    with patch(
+        "iam_core.user_auth.middleware.resolve_permissions.Settings.get_config",
+        return_value=types.SimpleNamespace(auth_provider_api_url=None),
+    ):
+        await FastAPICache.clear()
         with pytest.raises(ForbiddenError, match="auth_provider_api_url"):
             await middleware._fetch_permissions_for_roles(["admin"])
 
@@ -545,9 +552,13 @@ async def test_resolve_permission_fetch_permissions_paths():
     mock_response.raise_for_status = MagicMock()
     mock_response.json.return_value = {"permissions": ["p1", "p2"]}
     with (
-        patch.object(middleware, "_config", types.SimpleNamespace(auth_provider_api_url="https://iam/api")),
+        patch(
+            "iam_core.user_auth.middleware.resolve_permissions.Settings.get_config",
+            return_value=types.SimpleNamespace(auth_provider_api_url="https://iam/api"),
+        ),
         patch("httpx.AsyncClient") as mock_client_cls,
     ):
+        await FastAPICache.clear()
         mock_http = AsyncMock()
         mock_http.__aenter__.return_value = mock_http
         mock_http.post = AsyncMock(return_value=mock_response)
@@ -556,15 +567,19 @@ async def test_resolve_permission_fetch_permissions_paths():
         assert perms == {"p1", "p2"}
 
     with (
-        patch.object(middleware, "_config", types.SimpleNamespace(auth_provider_api_url="https://iam/api")),
+        patch(
+            "iam_core.user_auth.middleware.resolve_permissions.Settings.get_config",
+            return_value=types.SimpleNamespace(auth_provider_api_url="https://iam/api"),
+        ),
         patch("httpx.AsyncClient") as mock_client_cls,
     ):
+        await FastAPICache.clear()
         mock_http = AsyncMock()
         mock_http.__aenter__.return_value = mock_http
         mock_http.post = AsyncMock(side_effect=httpx.HTTPError("down"))
         mock_client_cls.return_value = mock_http
         with pytest.raises(ForbiddenError, match="Unable to fetch"):
-            await middleware._fetch_permissions_for_roles(["admin"])
+            await middleware._fetch_permissions_for_roles(["admin-fail"])
 
 
 @pytest.mark.asyncio
