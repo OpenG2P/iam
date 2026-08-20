@@ -100,9 +100,7 @@ class UserAccessController(BaseController):
                 "application_url": (
                     app.application_url if app.application_mnemonic in allowed_mnemonics else None
                 ),
-                "api_url": (
-                    app.api_url if app.application_mnemonic in allowed_mnemonics else None
-                ),
+                "api_url": (app.api_url if app.application_mnemonic in allowed_mnemonics else None),
             }
             for app in apps
         ]
