@@ -456,7 +456,9 @@ iamStaffUi:
   replicaCount: 1
 
   image:
-    repository: openg2p/iam-staff-ui
+    repository: registry.gitlab.com/openg2p/iam/iam-staff-ui
+    # Placeholder — the real tag is injected at publish time by the Build &
+    # Publish CI (.gitlab-ci.yml -> openg2p/packaging@v1).
     tag: "develop"
     pullPolicy: Always
 

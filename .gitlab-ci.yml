@@ -49,11 +49,16 @@ variables:
             "ref": "1.1"
           }
         ]
+      },
+      {
+        "name": "iam-staff-ui",
+        "dockerfile": "docker/iam-staff-ui/Dockerfile",
+        "context": "iam-staff-ui"
       }
     ]
 
   CHART_PATH: deployments/charts/openg2p-iam-service
-  CHART_IMAGE_PATHS: '[".iamStaffPortalApi.image.tag",".iamAgentPortalApi.image.tag"]'
+  CHART_IMAGE_PATHS: '[".iamStaffPortalApi.image.tag",".iamAgentPortalApi.image.tag",".iamStaffUi.image.tag"]'
   CHART_GITLAB_PROJECT: openg2p/charts
 
   # openg2p-fastapi-common ref used by the test guards below. Kept separate from
