@@ -75,7 +75,7 @@ iamStaffPortalApi:
     name: ""
 
   image:
-    repository: openg2p/iam-staff-portal-api
+    repository: registry.gitlab.com/openg2p/iam/iam-staff-portal-api
     # Placeholder — the real tag is injected at publish time by the Build &
     # Publish CI (.github/workflows/build-publish.yml -> openg2p-packaging@v1).
     tag: "develop"
