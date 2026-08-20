@@ -3,6 +3,7 @@ export interface Application {
   application_mnemonic: string;
   application_description?: string | null;
   application_url?: string | null;
+  api_url?: string | null;
   icon_base64?: string | null;
   icon_mime_type?: string | null;
   order?: number | null;
@@ -60,6 +61,7 @@ export interface TabDefinition {
 export interface ApplicationForm {
   application_description: string;
   application_url: string;
+  api_url: string;
   order: string;
   width: string;
   icon_base64: string;

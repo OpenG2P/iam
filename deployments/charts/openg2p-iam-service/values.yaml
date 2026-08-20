@@ -49,7 +49,6 @@ global:
   iamStaffUiApplicationUrl: 'https://iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
 
   # Backend API URLs used by iam-staff-ui BFF (override per environment)
-  registryApiUrl: 'http://registry-staff-portal-api'
   masterDataApiUrl: 'http://commons-services-master-data-api'
 
 postgres-init:
@@ -482,7 +481,6 @@ iamStaffUi:
     PORT: "3000"
     NODE_ENV: "production"
     BACKEND_API_URL: 'https://{{ tpl .Values.iamStaffPortalApi.hostname $ }}'
-    REGISTRY_API_URL: '{{ tpl .Values.global.registryApiUrl $ }}'
     MASTERDATA_API_URL: '{{ tpl .Values.global.masterDataApiUrl $ }}'
     LOGIN_PROVIDER_ID: "1"
     APPLICATION_MNEMONIC: "iam-staff-ui"

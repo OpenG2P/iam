@@ -13,6 +13,9 @@ class StaffPortalApplication(BaseORMModelWithTimes):
     icon_base64: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     application_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Backend API base URL used by IAM staff UI to load register fields for
+    # data policies. Optional; only registry applications set this.
+    api_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     order: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # True for rows pushed in by an application (e.g. a registry self-registering
     # via the API), False for rows seeded from the bundled dataset. Used so the

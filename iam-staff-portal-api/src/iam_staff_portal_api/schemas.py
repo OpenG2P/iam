@@ -16,6 +16,7 @@ class StaffPortalApplicationResponse(BaseModel):
     application_mnemonic: str
     application_description: Optional[str] = None
     application_url: Optional[str] = None
+    api_url: Optional[str] = None
     icon_base64: Optional[str] = None
     width: Optional[int] = None
     order: Optional[int] = None
@@ -50,6 +51,7 @@ class RegisterStaffPortalApplicationRequest(BaseModel):
 
     application_mnemonic: str
     application_url: str
+    api_url: Optional[str] = None
     application_description: Optional[str] = None
     icon_base64: Optional[str] = None
     width: Optional[int] = None
@@ -93,6 +95,7 @@ class ApplicationData(BaseModel):
     application_mnemonic: str
     application_description: Optional[str] = None
     application_url: Optional[str] = None
+    api_url: Optional[str] = None
     icon_base64: Optional[str] = None
     width: Optional[int] = None
     order: Optional[int] = None
@@ -106,6 +109,7 @@ class ApplicationCreatePayload(BaseModel):
     application_mnemonic: str
     application_description: Optional[str] = None
     application_url: Optional[str] = None
+    api_url: Optional[str] = None
     icon_base64: Optional[str] = None
     order: Optional[int] = None
     width: Optional[int] = None
@@ -115,6 +119,7 @@ class ApplicationUpdatePayload(BaseModel):
     id: int
     application_description: Optional[str] = None
     application_url: Optional[str] = None
+    api_url: Optional[str] = None
     icon_base64: Optional[str] = None
     order: Optional[int] = None
     width: Optional[int] = None

@@ -119,6 +119,7 @@ export default function ApplicationsPageClient() {
         application_mnemonic: form.application_mnemonic.trim(),
         application_description: form.application_description || null,
         application_url: form.application_url || null,
+        api_url: form.api_url || null,
       };
       if (form.order !== "") payload.order = Number(form.order);
       if (form.width !== "") payload.width = Number(form.width);

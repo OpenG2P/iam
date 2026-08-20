@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useFetch } from "@/shared/hooks/useFetch";
+import { useApplicationData } from "@/features/application/hooks/useApplicationData";
 import {
   useAllRegister,
   useAllAttributes,
@@ -42,10 +43,11 @@ export default function CreateDataPolicyPage({ params }: { params: Promise<{ id:
   const router = useRouter();
   const searchParams = useSearchParams();
   const { execute: addPolicy } = useFetch();
-  const { registers, loading: registersLoading } = useAllRegister(1, 100);
-
   const resolvedParams = use(params);
   const applicationId = parseInt(resolvedParams.id);
+  const { app, loadApp } = useApplicationData(applicationId);
+  const apiUrl = app?.api_url;
+  const { registers, loading: registersLoading } = useAllRegister(apiUrl, 1, 100);
   const policyTarget = searchParams.get('policyTarget') || 'REGISTER_RECORD';
   const registerIdParam = searchParams.get('registerId') || '';
 
@@ -63,6 +65,7 @@ export default function CreateDataPolicyPage({ params }: { params: Promise<{ id:
 
   const { fields: registerFields, loading: registerFieldsLoading } = useRegisterFields(
     isRegisterTarget ? registerId : '',
+    apiUrl,
   );
   const { attributes, loading: attributesLoading } = useAllAttributes(1, 500);
   const { geoLevels: g2pGeoLevels, loading: g2pGeoLevelsLoading } = useG2pGeoLevels();
@@ -70,6 +73,10 @@ export default function CreateDataPolicyPage({ params }: { params: Promise<{ id:
     () => orderGeoLevelsByHierarchy(g2pGeoLevels),
     [g2pGeoLevels],
   );
+
+  useEffect(() => {
+    loadApp();
+  }, [applicationId, loadApp]);
 
   useEffect(() => {
     if (!isRegisterTarget || registersLoading || !registers?.length) {
