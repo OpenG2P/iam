@@ -100,6 +100,9 @@ class UserAccessController(BaseController):
                 "application_url": (
                     app.application_url if app.application_mnemonic in allowed_mnemonics else None
                 ),
+                "api_url": (
+                    app.api_url if app.application_mnemonic in allowed_mnemonics else None
+                ),
             }
             for app in apps
         ]
@@ -167,6 +170,7 @@ class UserAccessController(BaseController):
 
         if existing is not None:
             existing.application_url = request.application_url
+            existing.api_url = request.api_url
             existing.application_description = request.application_description
             existing.icon_base64 = request.icon_base64
             existing.width = request.width
@@ -178,6 +182,7 @@ class UserAccessController(BaseController):
         app = StaffPortalApplication(
             application_mnemonic=request.application_mnemonic,
             application_url=request.application_url,
+            api_url=request.api_url,
             application_description=request.application_description,
             icon_base64=request.icon_base64,
             width=request.width,

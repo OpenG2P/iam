@@ -244,6 +244,7 @@ async def test_register_staff_portal_application_creates_new_application(control
     payload = RegisterStaffPortalApplicationRequest(
         application_mnemonic="registry-staff-portal",
         application_url="https://registry.example.com",
+        api_url="https://staff-registry.example.com",
         permissions=[RegisterApplicationPermission(permission_mnemonic="register:view")],
         roles=[
             RegisterApplicationRole(
@@ -307,6 +308,7 @@ async def test_register_staff_portal_application_updates_existing_application(co
 
     assert response.created is False
     assert existing.application_description == "Updated"
+    assert existing.api_url is None
     assert existing.is_self_registered is True
 
 

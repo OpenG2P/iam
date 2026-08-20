@@ -1,7 +1,6 @@
 export function getServerEnv() {
   return {
     backendApiUrl: process.env.BACKEND_API_URL ?? "",
-    registryApiUrl: process.env.REGISTRY_API_URL ?? "",
     masterdataApiUrl: process.env.MASTERDATA_API_URL ?? "",
     loginProviderId: process.env.LOGIN_PROVIDER_ID ?? "",
     applicationMnemonic: process.env.APPLICATION_MNEMONIC ?? "iam-staff-ui",

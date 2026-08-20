@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useFetch } from '@/shared/hooks/useFetch';
+import { getCsrfTokenFromDocument } from '@/shared/utils/csrf';
 
 export interface Register {
     register_id: string;
@@ -7,7 +8,11 @@ export interface Register {
     register_rank?: number;
 }
 
-export function useAllRegister(page?: number, pageSize?: number) {
+export function useAllRegister(
+    apiUrl?: string | null,
+    page?: number,
+    pageSize?: number,
+) {
     const { data, loading, error, execute } = useFetch<{
         registers: Register[];
         pagination?: {
@@ -16,9 +21,12 @@ export function useAllRegister(page?: number, pageSize?: number) {
         };
     }>({
         url: '/api/registry/registers/all',
+        enabled: !!apiUrl,
         options: {
             method: 'POST',
             body: JSON.stringify({
+                api_url: apiUrl,
+                csrf_token: getCsrfTokenFromDocument(),
                 current_page: page,
                 page_size: pageSize
             })
