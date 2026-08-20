@@ -31,7 +31,40 @@ questions:
   label: IAM Staff Portal API
   group: General
 
+- variable: iamAgentPortalApi.enabled
+  description: >-
+    Install the IAM Agent Portal API — login for field agents who issue
+    verifiable credentials. A distinct audience from staff, with its own
+    Keycloak realm. Off unless this environment issues credentials.
+  type: boolean
+  label: IAM Agent Portal API
+  group: General
+
+- variable: global.agentKeycloakRealm
+  description: >-
+    Keycloak realm agents authenticate against. Kept separate from the staff
+    realm so an agent token grants nothing on a staff API, and vice versa.
+  type: string
+  default: agent
+  label: Agent Keycloak Realm
+  group: General
+  show_if: "iamAgentPortalApi.enabled=true"
+
+- variable: global.agentPortalDefaultRedirectUri
+  description: URL the agent is returned to after logging in (the agent portal SPA).
+  type: string
+  label: Agent Portal Redirect URL
+  group: General
+  show_if: "iamAgentPortalApi.enabled=true"
+
 # Image
+- variable: iamAgentPortalApi.image.tag
+  description: Docker image tag for the IAM Agent Portal API
+  type: string
+  label: Agent Portal API Image Tag
+  group: Image
+  show_if: "iamAgentPortalApi.enabled=true"
+
 - variable: iamStaffPortalApi.image.repository
   description: Docker image repository for the IAM Staff Portal API
   type: string

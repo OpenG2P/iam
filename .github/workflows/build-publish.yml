@@ -67,10 +67,10 @@ jobs:
 
       chart-path: deployments/charts/openg2p-iam-service
 
-      # Only the staff-portal-api image is deployed by the chart today (agent &
-      # bene APIs are built/published but scaffolded, not yet wired into the
-      # chart). jbergknoff/postgresql-client is third-party and stays pinned in
-      # values.yaml.
+      # The staff-portal-api and agent-portal-api images are deployed by the
+      # chart; the bene API is still built/published but scaffolded, not yet
+      # wired in. jbergknoff/postgresql-client is third-party and stays pinned
+      # in values.yaml.
       #
       # NB: the path is the key in values.yaml, NOT the template's scoped view.
       # deployment.yaml re-scopes (`$values := .Values.iamStaffPortalApi`), so the
@@ -78,7 +78,7 @@ jobs:
       # `.image.tag` silently created a stray root key and left the real tag at
       # the moving `develop` alias -- i.e. the chart shipped unpinned.
       chart-image-paths: |
-        [".iamStaffPortalApi.image.tag"]
+        [".iamStaffPortalApi.image.tag", ".iamAgentPortalApi.image.tag"]
 
       packaging-ref: v1
 

@@ -41,3 +41,42 @@ Render Env values section
 {{- define "iamStaffUi.envVars" -}}
 {{- include "iamStaffPortalApi.baseEnvVars" (dict "envVars" .Values.envVars "context" $) }}
 {{- end -}}
+
+{{/*
+Agent Portal API helpers.
+
+Agents are a SEPARATE audience from staff: their own Keycloak realm, their own
+login provider row, their own portal. Nothing is shared with the staff API
+except the IAM database (both APIs read the same `login_providers` table, keyed
+by user_type).
+*/}}
+{{- define "iamAgentPortalApi.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{ default (include "common.names.fullname" .) .Values.serviceAccount.name }}
+{{- else -}}
+{{ default "default" .Values.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{- define "iamAgentPortalApi.imagePullSecrets" -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.image .Values.postgresCheckerInit.image) "global" .Values.global) -}}
+{{- end -}}
+
+{{- define "iamAgentPortalApi.baseEnvVars" -}}
+{{- $context := .context -}}
+{{- range $k, $v := .envVars }}
+- name: {{ $k }}
+{{- if or (kindIs "int64" $v) (kindIs "float64" $v) (kindIs "bool" $v) }}
+  value: {{ $v | quote }}
+{{- else if kindIs "string" $v }}
+  value: {{ include "common.tplvalues.render" ( dict "value" $v "context" $context ) | squote }}
+{{- else }}
+  valueFrom: {{- include "common.tplvalues.render" ( dict "value" $v "context" $context ) | nindent 4}}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "iamAgentPortalApi.envVars" -}}
+{{- $envVars := merge (deepCopy .Values.envVars) (deepCopy .Values.envVarsFrom) -}}
+{{- include "iamAgentPortalApi.baseEnvVars" (dict "envVars" $envVars "context" $) }}
+{{- end -}}

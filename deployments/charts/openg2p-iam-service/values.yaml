@@ -30,6 +30,17 @@ global:
   # Staff Portal redirect URL
   staffPortalDefaultRedirectUri: 'https://staff-portal.trial.openg2p.org'
 
+  # ── Agents ────────────────────────────────────────────────────────────────
+  # Agents are NOT staff. They authenticate in their own realm against their own
+  # client, so an agent token is meaningless to a staff API and vice versa.
+  # Only read when iamAgentPortalApi.enabled is true.
+  agentKeycloakRealm: agent
+  agentKeycloakIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.agentKeycloakRealm }}'
+  agentKeycloakExternalIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.agentKeycloakRealm }}'
+  # Where the agent lands after logging in — the agent portal SPA served by the
+  # registry chart.
+  agentPortalDefaultRedirectUri: 'https://agent-portal.trial.openg2p.org'
+
   # Application URLs (populated by parent chart per environment)
   keycloakApplicationUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
   registryApplicationUrl: 'https://registry.{{ .Release.Namespace }}.openg2p.org'
@@ -227,6 +238,206 @@ iamStaffPortalApi:
     args:
       - '-c'
       - 'until psql "postgresql://${IAM_STAFF_DB_USERNAME}:${IAM_STAFF_DB_PASSWORD}@${IAM_STAFF_DB_HOSTNAME}:${IAM_STAFF_DB_PORT}/${IAM_STAFF_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_STAFF_DB_DBNAME} to be ready..."; sleep 3; done'
+    containerSecurityContext:
+      enabled: false
+
+# ---------------------------------------------------------------------------
+# IAM Agent Portal API — login for FIELD AGENTS (verifiable credential issuance).
+#
+# A distinct audience from staff, not a variant of it: its own Keycloak realm,
+# its own login provider, its own hostname. A staff token grants nothing on an
+# agent API and vice versa — which is the point, since agents can mint signed
+# credentials and administer nothing.
+#
+# The agent's own login is a plain Keycloak password login. eSignet is NOT used
+# here: that authenticates the BENEFICIARY, later, inside the registry's
+# issuance flow.
+#
+# Shares the IAM database with the staff API (one `login_providers` table,
+# rows distinguished by user_type).
+# ---------------------------------------------------------------------------
+
+iamAgentPortalApi:
+  # Off by default: only a deployment that issues verifiable credentials needs
+  # an agent audience at all.
+  enabled: false
+  nameOverride: iam-agent-portal-api
+  hostname: 'agent-{{ tpl .Values.global.iamHostname $ }}'
+  replicaCount: 1
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  updateStrategy:
+    type: RollingUpdate
+
+  serviceAccount:
+    create: false
+    name: ""
+
+  image:
+    repository: openg2p/iam-agent-portal-api
+    # Placeholder — the real tag is injected at publish time by the Build &
+    # Publish CI (.github/workflows/build-publish.yml -> openg2p-packaging@v1).
+    tag: "develop"
+    pullPolicy: Always
+
+  podSecurityContext:
+    enabled: false
+
+  containerSecurityContext:
+    enabled: false
+
+  openapiRootPath: /
+  containerPort: 8000
+
+  service:
+    type: ClusterIP
+    port: 80
+    externalTrafficPolicy: Cluster
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      host: '{{ tpl .Values.iamAgentPortalApi.hostname $ }}'
+      gateway: "internal"
+      destination: ""
+      destinationPort: '{{ .Values.iamAgentPortalApi.service.port }}'
+      prefix: '{{ .Values.openapiRootPath }}/'
+      rewriteUri: "/"
+    gateway:
+      enabled: false
+      host: '{{ tpl .Values.iamAgentPortalApi.hostname $ }}'
+      ingressController:
+        istio: ingressgateway
+      httpTlsRedirect: false
+      httpEnabled: true
+      httpsEnabled: false
+      tls:
+        mode: SIMPLE
+        credentialName: ""
+
+  # ---------------------------------------------------------------------------
+  # Login providers — rendered as a Secret and mounted into the container.
+  # Each entry maps to a row in the login_providers DB table.
+  # Keycloak endpoints are auto-derived from keycloakBaseUrl + realm.
+  # ---------------------------------------------------------------------------
+  # The agent's login provider. `id` must not collide with the staff row: both
+  # APIs share one `login_providers` table, distinguished by user_type.
+  loginProviders:
+    - id: 10
+      userType: "agent"
+      providerName: "Keycloak"
+      description: "Login with Keycloak"
+      realm: "agent"
+      clientId: "agent-portal"
+      clientSecret: "agent_portal_secret"
+      tokenEndpointAuthMethod: "client_secret_basic"
+      scope: "openid profile email"
+      enablePkce: true
+      active: true
+
+  dataMountPath: /opt/iam-agent-portal-data
+
+  envVars:
+    IAM_AGENT_DB_DRIVER: "postgresql+asyncpg"
+    IAM_AGENT_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    IAM_AGENT_DB_DBNAME: '{{ tpl .Values.global.iamDB $ }}'
+    IAM_AGENT_DB_PORT: '{{ .Values.global.iamDBPort }}'
+    IAM_AGENT_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
+    IAM_AGENT_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+    IAM_AGENT_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
+    IAM_AGENT_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.agentKeycloakExternalIssuerUrl $ }}'
+    IAM_AGENT_LOGIN_PROVIDERS_TABLE_ENABLED: true
+    IAM_AGENT_LOGIN_PROVIDERS_TABLE_NAME: "login_providers"
+    IAM_AGENT_AUTH_REDIS_URL: 'redis://{{ tpl .Values.global.redisInstallationName $ }}-master:6379/0'
+    IAM_AGENT_AUTH_TRANSACTION_STORE_BACKEND: "redis"
+    IAM_AGENT_CACHE_EXPIRE_SECONDS: '{{ .Values.global.cacheExpireSeconds }}'
+    IAM_AGENT_AUTH_REFRESH_TOKEN_TTL_SECONDS: '{{ .Values.global.authRefreshTokenTtlSeconds }}'
+    IAM_AGENT_AUTH_ENABLED: true
+    IAM_AGENT_CSRF_ENABLED: '{{ .Values.global.csrfEnabled }}'
+    IAM_AGENT_AUTH_VERIFY_SSL: false
+    IAM_AGENT_AUTH_COOKIE_HTTPONLY: true
+    IAM_AGENT_AUTH_COOKIE_PATH: "/"
+    IAM_AGENT_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
+    IAM_AGENT_AUTH_COOKIE_MAX_AGE: 1800
+    IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
+    IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
+    # The client whose ROLES are read when resolving an agent's permissions.
+    # Must be the same client the Registry's agent-portal-api resolves against
+    # (its global.agentKeycloakClientId), or an agent authorised here would be
+    # unauthorised there.
+    IAM_AGENT_KEYCLOAK_CLIENT_ID: "agent-portal"
+    IAM_AGENT_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-agent-portal-api'
+    IAM_AGENT_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
+    IAM_AGENT_KEYCLOAK_REALM: '{{ .Values.global.agentKeycloakRealm }}'
+
+    # API specific middleware configs
+    IAM_AGENT_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.agentPortalDefaultRedirectUri $) | toJson }}'
+
+  envVarsFrom:
+    IAM_AGENT_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.iamDBSecret $ }}'
+        key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
+    # The agent client's secret, created in the agent realm (by keycloak-init on
+    # the registry side). `optional` so the chart still installs before the realm
+    # has been provisioned — the API simply cannot complete a login until it is.
+    IAM_AGENT_DATA_CLIENT_SECRETS__AGENT_PORTAL_SECRET:
+      secretKeyRef:
+        name: agent-portal
+        key: client_secret
+        optional: true
+
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+      - 'sh'
+    args:
+      - '-c'
+      - 'until psql "postgresql://${IAM_AGENT_DB_USERNAME}:${IAM_AGENT_DB_PASSWORD}@${IAM_AGENT_DB_HOSTNAME}:${IAM_AGENT_DB_PORT}/${IAM_AGENT_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_AGENT_DB_DBNAME} to be ready..."; sleep 3; done'
     containerSecurityContext:
       enabled: false
 
