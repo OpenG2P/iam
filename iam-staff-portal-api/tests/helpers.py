@@ -58,6 +58,7 @@ def make_app_row(**overrides) -> types.SimpleNamespace:
         "application_mnemonic": "registry-staff-portal",
         "application_description": "Registry",
         "application_url": "https://registry.example.com",
+        "api_url": None,
         "icon_base64": "icon",
         "width": 80,
         "order": 1,

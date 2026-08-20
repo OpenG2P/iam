@@ -25,6 +25,7 @@ class ApplicationsService(BaseService):
             application_mnemonic=app.application_mnemonic,
             application_description=app.application_description,
             application_url=app.application_url,
+            api_url=app.api_url,
             icon_base64=app.icon_base64,
             width=app.width,
             order=app.order,
@@ -79,6 +80,7 @@ class ApplicationsService(BaseService):
                 application_mnemonic=mnemonic,
                 application_description=payload.application_description,
                 application_url=payload.application_url,
+                api_url=payload.api_url,
                 icon_base64=payload.icon_base64,
                 order=payload.order,
                 width=payload.width,
@@ -121,6 +123,7 @@ class ApplicationsService(BaseService):
             for field in (
                 "application_description",
                 "application_url",
+                "api_url",
                 "icon_base64",
                 "order",
                 "width",

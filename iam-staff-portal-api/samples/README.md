@@ -12,6 +12,9 @@ in the `openg2p-documentation` repo).
 
 - [`registry_registration_payload.json`](./registry_registration_payload.json) —
   a ready-to-push sample payload (the registry catalog: 72 permissions, 11 roles).
-  Set `application_mnemonic` (= the instance's Keycloak `client_id`) and
-  `application_url`, then POST it to the endpoint above. This is the catalog the
-  OpenG2P registry charts ship and push from their install hook.
+  Set `application_mnemonic` (= the instance's Keycloak `client_id`),
+  `application_url` (staff UI), and optionally `api_url` (staff API base URL
+  used by IAM data policies to load register fields). Then POST it to the
+  endpoint above. This is the catalog the OpenG2P registry charts ship and
+  push from their install hook. Master-data and other non-registry apps omit
+  `api_url`.

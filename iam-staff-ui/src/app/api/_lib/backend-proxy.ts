@@ -1,10 +1,32 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "@/shared/utils/csrf";
 import { getBackendConfig } from "./backend-config";
 import { BackendResponse, RequestBody } from "./backend-types";
 import { createBackendRequest } from "./backend-request";
 import { requireAuth } from "./requireAuth";
 import { applyBackendSetCookies } from "./auth-cookies";
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Registry staff API: Bearer token plus a matching CSRF cookie/header pair. */
+function registryUpstreamHeaders(accessToken: string, csrfToken: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    accept: "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    [CSRF_HEADER_NAME]: csrfToken,
+    Cookie: `${CSRF_COOKIE_NAME}=${csrfToken}`,
+  };
+}
 
 export type PayloadBuilder = (body: any) => RequestBody;
 export type ResponseTransformer = (responseBody: any) => any;
@@ -62,13 +84,46 @@ export async function proxyToBackend({
       }
     }
 
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    const origin = req.headers.get("origin") || `${proto}://${host}`;
+
     let baseUrl;
+    let upstreamHeaders: Record<string, string> = {
+      ...auth.backendHeaders,
+      "Content-Type": "application/json",
+    };
     if (customBackendUrl) {
       baseUrl = customBackendUrl;
     } else if (backend === "masterdata") {
       baseUrl = backendConfig.masterdataApiUrl;
     } else if (backend === "registry") {
-      baseUrl = backendConfig.registryApiUrl;
+      const apiUrl =
+        typeof body?.api_url === "string"
+          ? body.api_url.trim().replace(/\/+$/, "")
+          : "";
+      if (!apiUrl || !isHttpUrl(apiUrl)) {
+        return NextResponse.json(
+          {
+            error:
+              "api_url is required to call the registry API. Set it on the application.",
+          },
+          { status: 400 },
+        );
+      }
+      baseUrl = apiUrl;
+      const csrfToken =
+        (typeof body?.csrf_token === "string" && body.csrf_token.trim()) ||
+        req.headers.get(CSRF_HEADER_NAME) ||
+        randomUUID();
+      upstreamHeaders = registryUpstreamHeaders(auth.accessToken, csrfToken);
+      if (body && typeof body === "object") {
+        const rest = { ...body };
+        delete rest.api_url;
+        delete rest.csrf_token;
+        delete rest.access_token;
+        body = rest;
+      }
     } else {
       baseUrl = backendConfig.backendApiUrl;
     }
@@ -87,20 +142,12 @@ export async function proxyToBackend({
 
     const payload = (buildPayload || defaultPayloadBuilder)(body);
 
-    const h = req.headers;
-    const host = h.get("x-forwarded-host") || h.get("host");
-    const proto = h.get("x-forwarded-proto") || "https";
-    const origin = h.get("origin") || `${proto}://${host}`;
-
     const backendRequest = createBackendRequest(payload, origin);
 
     const response = await fetch(backendUrl, {
       method: "POST",
       ...caching,
-      headers: {
-        ...auth.backendHeaders,
-        "Content-Type": "application/json",
-      },
+      headers: upstreamHeaders,
       body: JSON.stringify(backendRequest),
     });
 

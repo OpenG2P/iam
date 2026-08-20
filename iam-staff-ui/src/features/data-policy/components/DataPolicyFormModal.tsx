@@ -37,6 +37,7 @@ const POLICY_TYPES = ['ALLOW', 'DENY'] as const;
 
 interface DataPolicyFormModalProps {
   applicationId: number;
+  apiUrl?: string | null;
   policyTarget: string;
   registerId?: string;
   onClose: () => void;
@@ -45,6 +46,7 @@ interface DataPolicyFormModalProps {
 
 export function DataPolicyFormModal({
   applicationId,
+  apiUrl,
   policyTarget,
   registerId: propRegisterId,
   onClose,
@@ -52,7 +54,7 @@ export function DataPolicyFormModal({
 }: DataPolicyFormModalProps) {
   const t = useTranslations();
   const { execute: addPolicy } = useFetch();
-  const { registers, loading: registersLoading } = useAllRegister(1, 100);
+  const { registers, loading: registersLoading } = useAllRegister(apiUrl, 1, 100);
 
   const [registerId, setRegisterId] = useState(propRegisterId || '');
   const [policyMnemonic, setPolicyMnemonic] = useState('');
@@ -68,6 +70,7 @@ export function DataPolicyFormModal({
 
   const { fields: registerFields, loading: registerFieldsLoading } = useRegisterFields(
     isRegisterTarget ? registerId : '',
+    apiUrl,
   );
   const { attributes, loading: attributesLoading } = useAllAttributes(1, 500);
   const { geoLevels: g2pGeoLevels, loading: g2pGeoLevelsLoading } = useG2pGeoLevels();

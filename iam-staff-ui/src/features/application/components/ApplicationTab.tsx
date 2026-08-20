@@ -78,6 +78,19 @@ export default function ApplicationTab({
           />
 
           <InputField
+            label="API URL"
+            value={appForm.api_url}
+            onChange={(value) =>
+              setAppForm((f: typeof appForm) => ({
+                ...f,
+                api_url: value,
+              }))
+            }
+            disabled={isDisabled}
+            className="col-span-full"
+          />
+
+          <InputField
             label="Order"
             type="number"
             value={appForm.order}

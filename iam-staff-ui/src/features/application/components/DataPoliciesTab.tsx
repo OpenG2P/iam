@@ -18,6 +18,7 @@ import { usePolicies, useAllRegister, type Register } from "@/features/data-poli
 
 interface DataPoliciesTabProps {
   applicationId: number;
+  apiUrl?: string | null;
   isActive?: boolean;
 }
 
@@ -27,7 +28,11 @@ const POLICY_TARGETS = [
   { label: 'Administrative Areas', value: 'GEO' },
 ];
 
-export default function DataPoliciesTab({ applicationId, isActive = false }: DataPoliciesTabProps) {
+export default function DataPoliciesTab({
+  applicationId,
+  apiUrl,
+  isActive = false,
+}: DataPoliciesTabProps) {
   const t = useTranslations();
   const { pageSize } = useConfig();
   const { execute } = useFetch();
@@ -79,7 +84,7 @@ export default function DataPoliciesTab({ applicationId, isActive = false }: Dat
   }>({ open: false, message: "", onConfirm: async () => { } });
   const [confirming, setConfirming] = useState(false);
 
-  const { registers, loading: registersLoading } = useAllRegister(1, 100);
+  const { registers, loading: registersLoading } = useAllRegister(apiUrl, 1, 100);
   const firstRegisterId = registers[0]?.register_id ?? '';
 
   const isRegisterTarget = selectedPolicyTarget === 'REGISTER_RECORD';
@@ -243,6 +248,7 @@ export default function DataPoliciesTab({ applicationId, isActive = false }: Dat
       {dpModal && (
         <DataPolicyFormModal
           applicationId={applicationId}
+          apiUrl={apiUrl}
           policyTarget={selectedPolicyTarget}
           registerId={selectedRegisterId}
           onClose={() => setDpModal(false)}

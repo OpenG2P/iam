@@ -18,6 +18,7 @@ def test_staff_portal_application_response_defaults():
     )
     assert response.application_description is None
     assert response.application_url is None
+    assert response.api_url is None
     assert response.disabled is False
 
 
@@ -25,6 +26,7 @@ def test_register_request_accepts_catalog():
     request = RegisterStaffPortalApplicationRequest(
         application_mnemonic="registry-staff-portal",
         application_url="https://registry.example.com",
+        api_url="https://staff-registry.example.com",
         permissions=[
             RegisterApplicationPermission(permission_mnemonic="register:view"),
         ],
@@ -36,6 +38,7 @@ def test_register_request_accepts_catalog():
         ],
     )
     assert request.active is True
+    assert request.api_url == "https://staff-registry.example.com"
     assert len(request.permissions) == 1
     assert request.roles[0].permissions == ["register:view"]
 
