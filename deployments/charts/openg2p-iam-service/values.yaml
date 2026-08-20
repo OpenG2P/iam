@@ -258,9 +258,14 @@ iamStaffPortalApi:
 # ---------------------------------------------------------------------------
 
 iamAgentPortalApi:
-  # Off by default: only a deployment that issues verifiable credentials needs
-  # an agent audience at all.
-  enabled: false
+  # ON by default: registries that ship an agent portal (Farmer Registry does)
+  # need this to exist for an agent to log in at all.
+  #
+  # Safe to have on before the `agent` realm exists: the API starts regardless —
+  # the login provider row is seeded into the DB and the client secret is mounted
+  # `optional`. It simply cannot complete a login until the realm and client are
+  # provisioned. Set to false for a deployment with no agent audience.
+  enabled: true
   nameOverride: iam-agent-portal-api
   hostname: 'agent-{{ tpl .Values.global.iamHostname $ }}'
   replicaCount: 1
