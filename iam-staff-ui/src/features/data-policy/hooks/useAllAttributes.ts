@@ -19,13 +19,14 @@ export function useAllAttributes(
         attributes: Attribute[];
         pagination?: PaginationMeta;
     }>({
-        url: '/api/registry/attributes/all',
+        url: '/api/master-data/attributes/all',
         options: {
             method: 'POST',
             body: JSON.stringify({
                 current_page: page,
                 page_size: pageSize,
                 search_text: searchText ?? '',
+                include_domains: true,
             }),
         },
     });

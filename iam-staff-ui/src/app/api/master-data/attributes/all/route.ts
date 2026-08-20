@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { proxyToBackend } from "@/app/api/_lib/backend-proxy";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   return proxyToBackend({
-    req,
+    req: request,
     backend: "masterdata",
-    targetEndpoint: "/geo/get_all_geo_levels",
+    targetEndpoint: "/attributes/get_all_attributes",
     buildPayload: (body) => ({
       pagination_request: {
         current_page: body.current_page ?? 1,
@@ -14,8 +14,13 @@ export async function POST(req: NextRequest) {
         filter_by: body.filter_by ?? "",
         search_text: body.search_text ?? "",
       },
-      request_payload: {},
+      request_payload: {
+        include_domains: body.include_domains ?? true,
+      },
     }),
-    transformResponse: (responseBody) => responseBody?.response_payload ?? [],
+    transformResponse: (responseBody) => ({
+      attributes: responseBody?.response_payload?.attributes ?? [],
+      pagination: responseBody?.pagination_response,
+    }),
   });
 }

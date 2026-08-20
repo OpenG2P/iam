@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useAttributeValues } from '../hooks/useAttributeValues';
 import { useGeoLevelValues, getGeoLevelValueLabel } from '../hooks/useGeoLevelValues';
 import FilterSelect from './FilterSelect';
 import {
@@ -36,7 +37,8 @@ function GeoValueInput({
     const { allGeoLevelValues, loading } = useGeoLevelValues(fieldId);
     const options = allGeoLevelValues.map((value) => ({
         label: getGeoLevelValueLabel(value),
-        value: value.level_value_id,
+        // GEO policies are enforced against level_value_mnemonic.
+        value: value.level_value_mnemonic,
     }));
     const multiValue = usesMultiValue(operator);
 
@@ -61,7 +63,7 @@ function GeoValueInput({
                     onChange(values.join(', '));
                 }}
                 disabled={disabled || loading}
-                className="min-h-[42px] w-full border border-[#ED7C22] rounded-[10px] px-4 py-2 text-[16px] bg-[#FFFFFF] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[#ED7C22] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-h-10.5 w-full border border-[#ED7C22] rounded-[10px] px-4 py-2 text-[16px] bg-[#FFFFFF] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[#ED7C22] disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {!options.length && (
                     <option value="" disabled>
@@ -85,6 +87,72 @@ function GeoValueInput({
             loading={loading}
             disabled={disabled || !fieldId}
             placeholder={t('select_geo_value')}
+        />
+    );
+}
+
+function AttributeValueInput({
+    fieldId,
+    operator,
+    valueInput,
+    onChange,
+    disabled,
+}: {
+    fieldId: string;
+    operator: ConditionOperator;
+    valueInput: string;
+    onChange: (valueInput: string) => void;
+    disabled?: boolean;
+}) {
+    const t = useTranslations();
+    const { attributeValues, loading } = useAttributeValues(fieldId);
+    const options = attributeValues.map((value) => ({
+        label: value.value_display || value.value_code,
+        // Policies are enforced against value_code, not the display label.
+        value: value.value_code,
+    }));
+    const multiValue = usesMultiValue(operator);
+    const selected = valueInput
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    if (multiValue) {
+        return (
+            <select
+                multiple
+                value={selected}
+                onChange={(event) => {
+                    const values = Array.from(event.target.selectedOptions).map(
+                        (option) => option.value,
+                    );
+                    onChange(values.join(', '));
+                }}
+                disabled={disabled || loading || !fieldId}
+                className="min-h-10.5 w-full border border-[#ED7C22] rounded-[10px] px-4 py-2 text-[16px] bg-[#FFFFFF] outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[#ED7C22] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {!options.length && (
+                    <option value="" disabled>
+                        {loading ? 'Loading...' : t('filter_value_placeholder')}
+                    </option>
+                )}
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+        );
+    }
+
+    return (
+        <FilterSelect
+            options={options}
+            value={valueInput}
+            onChange={onChange}
+            loading={loading}
+            disabled={disabled || !fieldId}
+            placeholder={t('filter_value_placeholder')}
         />
     );
 }
@@ -132,6 +200,18 @@ export default function PolicyConditionValueInput({
     if (policyTarget === 'GEO') {
         return (
             <GeoValueInput
+                fieldId={fieldId}
+                operator={operator}
+                valueInput={valueInput}
+                onChange={onChange}
+                disabled={disabled}
+            />
+        );
+    }
+
+    if (policyTarget === 'ATTRIBUTE') {
+        return (
+            <AttributeValueInput
                 fieldId={fieldId}
                 operator={operator}
                 valueInput={valueInput}
