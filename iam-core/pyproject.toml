@@ -22,6 +22,7 @@ dependencies = [
   "jinja2",
   "Authlib",
   "redis >= 4.2",
+  "fastapi-cache2",
 ]
 dynamic = ["version"]
 
