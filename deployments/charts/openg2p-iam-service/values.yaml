@@ -86,9 +86,7 @@ iamStaffPortalApi:
 
   image:
     repository: registry.gitlab.com/openg2p/iam/iam-staff-portal-api
-    # Placeholder — the real tag is injected at publish time by the Build &
-    # Publish CI (.gitlab-ci.yml -> openg2p/packaging@v1).
-    tag: "develop"
+    tag: "1.4"
     pullPolicy: Always
 
   podSecurityContext:
@@ -285,9 +283,7 @@ iamAgentPortalApi:
 
   image:
     repository: registry.gitlab.com/openg2p/iam/iam-agent-portal-api
-    # Placeholder — the real tag is injected at publish time by the Build &
-    # Publish CI (.gitlab-ci.yml -> openg2p/packaging@v1).
-    tag: "develop"
+    tag: "1.4"
     pullPolicy: Always
 
   podSecurityContext:
@@ -456,9 +452,7 @@ iamStaffUi:
 
   image:
     repository: registry.gitlab.com/openg2p/iam/iam-staff-ui
-    # Placeholder — the real tag is injected at publish time by the Build &
-    # Publish CI (.gitlab-ci.yml -> openg2p/packaging@v1).
-    tag: "develop"
+    tag: "1.4"
     pullPolicy: Always
 
   containerPort: 3000
