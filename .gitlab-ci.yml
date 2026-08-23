@@ -163,3 +163,15 @@ iam-staff-portal-api-test:
     - python -m pip install -e "./iam-core[dev]"
     - python -m pip install -e "./iam-staff-portal-api[dev]"
     - pytest iam-staff-portal-api/tests
+
+iam-agent-portal-api-test:
+  extends: .guard
+  image: python:3.12
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends libmagic1
+  script:
+    - python -m pip install --upgrade pip
+    - python -m pip install "git+https://github.com/openg2p/openg2p-fastapi-common@${FASTAPI_COMMON_TEST_REF}#subdirectory=openg2p-fastapi-common"
+    - python -m pip install -e "./iam-core[dev]"
+    - python -m pip install -e "./iam-agent-portal-api[dev]"
+    - pytest iam-agent-portal-api/tests

@@ -11,6 +11,7 @@ from iam_core.user_auth.app import Initializer as AuthInitializer
 from iam_core.user_auth.middleware import ValidateAndRefreshTokenMiddleware
 
 from .controllers.auth_controller import AuthController
+from .data import DataLoader
 
 
 class Initializer(AuthInitializer):
@@ -28,3 +29,4 @@ class Initializer(AuthInitializer):
             await LoginProvider.create_migrate()
 
         asyncio.run(migrate())
+        DataLoader().load()

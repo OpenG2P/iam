@@ -322,12 +322,16 @@ async def test_seed_models_from_dir_loads_each_model(tmp_path):
     session.execute.return_value = mock_result
     with (
         patch.object(loader, "seed_applications_by_mnemonic", AsyncMock()) as seed_apps,
+        patch.object(loader, "seed_login_providers_by_issuer", AsyncMock()) as seed_providers,
         patch.object(loader, "seed_if_empty", AsyncMock()) as seed_empty,
     ):
         await loader.seed_models_from_dir(session, tmp_path)
 
+    # Applications key on mnemonic and login providers on issuer; everything
+    # else still falls through to the whole-table empty check.
     seed_apps.assert_awaited_once()
-    assert seed_empty.await_count == len(loader.data_models) - 1
+    seed_providers.assert_awaited_once()
+    assert seed_empty.await_count == len(loader.data_models) - 2
 
 
 @pytest.mark.asyncio
@@ -404,3 +408,52 @@ def test_data_loader_load_invokes_asyncio_run():
     ):
         DataLoader().load()
     asyncio_run.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_seed_login_providers_by_issuer_inserts_missing_issuers():
+    """The agent API seeds the same table, so a populated table must not stop
+    the staff row from being added (and vice versa)."""
+    loader = _Loader()
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = ["https://kc.example.org/realms/agent"]
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+
+    await loader.seed_login_providers_by_issuer(
+        session,
+        [
+            {
+                "id": 1,
+                "provider_name": "Keycloak",
+                "client_id": "staff-portal",
+                "issuer": "https://kc.example.org/realms/staff",
+                "oauth_callback_url": "https://staff-iam.example.org/auth/callback",
+            }
+        ],
+    )
+
+    assert session.execute.await_count == 2  # select issuers, then insert
+
+
+@pytest.mark.asyncio
+async def test_seed_login_providers_by_issuer_skips_known_issuer():
+    loader = _Loader()
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = ["https://kc.example.org/realms/staff"]
+    session = AsyncMock()
+    session.execute = AsyncMock(return_value=result)
+
+    await loader.seed_login_providers_by_issuer(
+        session, [{"issuer": "https://kc.example.org/realms/staff"}]
+    )
+
+    assert session.execute.await_count == 1  # select only, no insert
+
+
+@pytest.mark.asyncio
+async def test_seed_login_providers_by_issuer_noop_without_rows():
+    loader = _Loader()
+    session = AsyncMock()
+    await loader.seed_login_providers_by_issuer(session, [])
+    session.execute.assert_not_awaited()
