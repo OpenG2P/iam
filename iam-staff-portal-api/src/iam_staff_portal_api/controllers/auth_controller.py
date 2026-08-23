@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from iam_core.schemas import LoggedInUserResponse, LoginProviderHttpResponse, StartAuthTransactionResponse
 from iam_core.services import AuthService, ProviderRepository
 from iam_core.user_auth.decorators import requires_auth, requires_user
-from iam_core.user_auth.helpers import AuthCookieName, clear_auth_cookies
+from iam_core.user_auth.helpers import AuthCookieName, cookie_name, clear_auth_cookies
 from iam_core.user_auth.oidc_client import OidcClient
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.controller import BaseController
@@ -61,7 +61,7 @@ class AuthController(BaseController):
 
     @requires_auth
     async def logout(self, request: Request):
-        session_id = request.cookies.get(AuthCookieName.SESSION)
+        session_id = request.cookies.get(cookie_name(AuthCookieName.SESSION))
         self.auth_service.delete_refresh_token(session_id)
 
         auth = request.state.auth
@@ -89,7 +89,7 @@ class AuthController(BaseController):
                 "Logout endpoint not available in provider metadata",
             )
 
-        id_token = request.cookies.get(AuthCookieName.ID_TOKEN)
+        id_token = request.cookies.get(cookie_name(AuthCookieName.ID_TOKEN))
 
         params = {
             "post_logout_redirect_uri": redirect_uri,

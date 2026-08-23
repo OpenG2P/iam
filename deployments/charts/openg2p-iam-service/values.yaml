@@ -365,6 +365,15 @@ iamAgentPortalApi:
     IAM_AGENT_AUTH_COOKIE_HTTPONLY: true
     IAM_AGENT_AUTH_COOKIE_PATH: "/"
     IAM_AGENT_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
+    # The agent portal shares authCookieDomain with the staff portal, and the
+    # browser sends every cookie matching that domain to BOTH. Without distinct
+    # names the second login overwrites the first, and each portal's API then
+    # receives the other's tokens -- the ID token in particular, which is read
+    # from a cookie while the access token comes from the Authorization header.
+    # The receiving API cannot verify a token minted by the other realm and the
+    # request fails. Staff keeps the unprefixed names, so existing sessions and
+    # any client reading them are unaffected.
+    IAM_AGENT_AUTH_COOKIE_PREFIX: 'agent-'
     IAM_AGENT_AUTH_COOKIE_MAX_AGE: 1800
     IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
     IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'

@@ -121,6 +121,19 @@ async def test_token_validator_id_token_paths():
     with pytest.raises(UnauthorizedError, match="Invalid Jwt ID Token"):
         await validator.validate(access, id_token, ApiAuthSettings(enabled=True, validation_mode="jwt"))
 
+    # authlib raises a BARE ValueError when the token's kid is absent from the
+    # provider's JWKS -- the case where a browser sends another portal's ID
+    # token cookie. ValueError is not a JoseError, so before this it escaped
+    # the handlers above and surfaced as a 500 instead of a 401.
+    adapter.decode_id_token = AsyncMock(side_effect=ValueError("Key not found"))
+    with pytest.raises(UnauthorizedError, match="ID token cannot be verified"):
+        await validator.validate(access, id_token, ApiAuthSettings(enabled=True, validation_mode="jwt"))
+
+    adapter.decode_id_token = AsyncMock(return_value={"sub": "u"})
+    adapter.decode_access_token = AsyncMock(side_effect=ValueError("Key not found"))
+    with pytest.raises(UnauthorizedError, match="Token cannot be verified"):
+        await validator.validate(access, id_token, ApiAuthSettings(enabled=True, validation_mode="jwt"))
+
 
 @pytest.mark.asyncio
 async def test_token_validator_claim_route_validation_branches():

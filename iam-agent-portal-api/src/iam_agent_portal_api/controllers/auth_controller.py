@@ -4,7 +4,7 @@ from openg2p_fastapi_common.controller import BaseController
 from iam_core.schemas import LoginProviderHttpResponse, StartAuthTransactionResponse
 from iam_core.services import AuthService
 from iam_core.user_auth.decorators import requires_auth
-from iam_core.user_auth.helpers import AuthCookieName, clear_auth_cookies, set_auth_cookies
+from iam_core.user_auth.helpers import AuthCookieName, cookie_name, clear_auth_cookies, set_auth_cookies
 
 from ..config import Settings
 
@@ -45,7 +45,7 @@ class AuthController(BaseController):
         return auth.model_dump(exclude={"credentials"})
 
     async def logout(self, request: Request, response: Response):
-        session_id = request.cookies.get(AuthCookieName.SESSION)
+        session_id = request.cookies.get(cookie_name(AuthCookieName.SESSION))
         self.auth_service.delete_refresh_token(session_id)
         clear_auth_cookies(response)
 
