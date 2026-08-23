@@ -158,3 +158,25 @@ async def test_run_commits_after_seeding(tmp_path):
     # The pool from migrate_database's own event loop is dropped, not closed.
     engine.dispose.assert_awaited_once_with(close=False)
     session.commit.assert_awaited_once()
+
+
+def test_csrf_excluded_paths_cover_every_post_route():
+    """Every POST route this service exposes must be either CSRF-protected or
+    deliberately excluded — never silently unprotected because the middleware
+    was missing. Mirrors the staff portal's exclusion list."""
+    from iam_agent_portal_api.app import IAM_AGENT_CSRF_EXCLUDED_PATHS
+
+    # The routes that existed when this was written; a new POST route added
+    # later is protected by default rather than quietly exempt.
+    assert "/auth/logout" in IAM_AGENT_CSRF_EXCLUDED_PATHS
+    assert "/auth/start_authentication_transaction" in IAM_AGENT_CSRF_EXCLUDED_PATHS
+    assert "/auth/callback" in IAM_AGENT_CSRF_EXCLUDED_PATHS
+
+
+def test_csrf_middleware_is_installed():
+    """The chart sets IAM_AGENT_CSRF_ENABLED; the app must actually consume it."""
+    import inspect
+
+    from iam_agent_portal_api.app import Initializer
+
+    assert "CsrfMiddleware" in inspect.getsource(Initializer.initialize)

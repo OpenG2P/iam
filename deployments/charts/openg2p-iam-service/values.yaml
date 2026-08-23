@@ -39,7 +39,13 @@ global:
   agentKeycloakExternalIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.agentKeycloakRealm }}'
   # Where the agent lands after logging in — the agent portal SPA served by the
   # registry chart.
-  agentPortalDefaultRedirectUri: 'https://agent-portal.trial.openg2p.org'
+  # Where IAM sends the browser after login, and the only origin allowed to
+  # call this API (IAM_AGENT_CORS_ALLOW_ORIGINS below). It must be the agent
+  # portal UI's real host: a stale value here sends the agent to a hostname
+  # that does not exist and blocks the UI's own requests.
+  # Public hostname of the agent portal UI. Set per deployment.
+  agentPortalHostname: 'agent-portal.trial.openg2p.org'
+  agentPortalDefaultRedirectUri: 'https://{{ tpl .Values.global.agentPortalHostname $ }}'
 
   # Application URLs (populated by parent chart per environment)
   keycloakApplicationUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
