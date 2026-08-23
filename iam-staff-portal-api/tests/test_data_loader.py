@@ -444,9 +444,7 @@ async def test_seed_login_providers_by_issuer_skips_known_issuer():
     session = AsyncMock()
     session.execute = AsyncMock(return_value=result)
 
-    await loader.seed_login_providers_by_issuer(
-        session, [{"issuer": "https://kc.example.org/realms/staff"}]
-    )
+    await loader.seed_login_providers_by_issuer(session, [{"issuer": "https://kc.example.org/realms/staff"}])
 
     assert session.execute.await_count == 1  # select only, no insert
 

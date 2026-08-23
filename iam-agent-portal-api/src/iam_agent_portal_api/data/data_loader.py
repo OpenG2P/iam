@@ -132,9 +132,7 @@ class DataLoader:
         if not rows:
             return
 
-        existing_issuers = set(
-            (await session.execute(select(self.model.issuer))).scalars().all()
-        )
+        existing_issuers = set((await session.execute(select(self.model.issuer))).scalars().all())
         new_rows = [row for row in rows if row.get("issuer") not in existing_issuers]
 
         if not new_rows:
