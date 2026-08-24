@@ -100,29 +100,23 @@ variables:
 # share the root config; docker/ and deployments/ use their own lightweight
 # configs so the python hooks (black/ruff/check-yaml) never run over Dockerfiles
 # or Helm templates.
+#
+# ONE job looping the areas, NOT a 6-way `parallel:matrix`. This runner is disk
+# constrained: six concurrent containers, each materialising its own pre-commit
+# hook environments, filled /var/lib/containerd and every matrix job died with
+# "no space left on device". That is a *system* failure -- the job never reached
+# step_script, so the log showed no lint output at all to explain it.
+#
+# No `cache:` either. With no shared cache server configured GitLab keeps the
+# cache on the runner's own disk -- the very resource that ran out -- and
+# restored a separate copy for each matrix job. Looping in one container is also
+# faster for the four python areas: they share one config, so the hook
+# environments install once and are reused instead of six times.
+#
+# Failures accumulate, so one bad area still reports the others.
 pre-commit:
   extends: .guard
   image: python:3.13-slim
-  variables:
-    PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
-  cache:
-    key: "pre-commit-$CI_COMMIT_REF_SLUG"
-    paths:
-      - .cache/pre-commit
-  parallel:
-    matrix:
-      - PROJECT: iam-core
-        CONFIG: .pre-commit-config.yaml
-      - PROJECT: iam-staff-portal-api
-        CONFIG: .pre-commit-config.yaml
-      - PROJECT: iam-agent-portal-api
-        CONFIG: .pre-commit-config.yaml
-      - PROJECT: iam-bene-portal-api
-        CONFIG: .pre-commit-config.yaml
-      - PROJECT: docker
-        CONFIG: docker/.pre-commit-config.yaml
-      - PROJECT: deployments
-        CONFIG: deployments/.pre-commit-config.yaml
   before_script:
     # `git` is needed both for `git ls-files` and for pre-commit to clone hooks;
     # the slim image does not ship it.
@@ -130,13 +124,24 @@ pre-commit:
     - pip install --no-cache-dir pre-commit
   script:
     - |
-      if [ -z "$(git ls-files -- "$PROJECT/")" ]; then
-        echo "No tracked files under $PROJECT/ — nothing to check."
-        exit 0
-      fi
-      git ls-files -z -- "$PROJECT/" | xargs -0 pre-commit run \
-        --config "$CONFIG" \
-        --show-diff-on-failure --files
+      rc=0
+      check() {
+        area="$1"; config="$2"
+        echo "==================== ${area} (${config}) ===================="
+        if [ -z "$(git ls-files -- "${area}/")" ]; then
+          echo "No tracked files under ${area}/ - nothing to check."
+          return 0
+        fi
+        git ls-files -z -- "${area}/" | xargs -0 pre-commit run \
+          --config "${config}" --show-diff-on-failure --files
+      }
+      check iam-core             .pre-commit-config.yaml             || rc=1
+      check iam-staff-portal-api .pre-commit-config.yaml             || rc=1
+      check iam-agent-portal-api .pre-commit-config.yaml             || rc=1
+      check iam-bene-portal-api  .pre-commit-config.yaml             || rc=1
+      check docker               docker/.pre-commit-config.yaml      || rc=1
+      check deployments          deployments/.pre-commit-config.yaml || rc=1
+      exit $rc
 
 iam-core-test:
   extends: .guard
