@@ -26,7 +26,6 @@ export function useAllAttributes(
                 current_page: page,
                 page_size: pageSize,
                 search_text: searchText ?? '',
-                include_domains: true,
             }),
         },
     });
