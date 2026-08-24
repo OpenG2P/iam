@@ -152,7 +152,7 @@ iamStaffPortalApi:
     IAM_STAFF_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_STAFF_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
     IAM_STAFF_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
-    IAM_STAFF_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
+    IAM_STAFF_KEYCLOAK_BASE_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_STAFF_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.keycloakExternalIssuerUrl $ }}'
     IAM_STAFF_LOGIN_PROVIDERS_TABLE_ENABLED: true
     IAM_STAFF_LOGIN_PROVIDERS_TABLE_NAME: "login_providers"
@@ -351,7 +351,7 @@ iamAgentPortalApi:
     IAM_AGENT_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_AGENT_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
     IAM_AGENT_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
-    IAM_AGENT_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
+    IAM_AGENT_KEYCLOAK_BASE_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_AGENT_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.agentKeycloakExternalIssuerUrl $ }}'
     IAM_AGENT_LOGIN_PROVIDERS_TABLE_ENABLED: true
     IAM_AGENT_LOGIN_PROVIDERS_TABLE_NAME: "login_providers"
