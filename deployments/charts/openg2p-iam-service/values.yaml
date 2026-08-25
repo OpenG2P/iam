@@ -66,6 +66,46 @@ postgres-init:
       secret: '{{ tpl .Values.global.iamDBSecret $ }}'
       secretUserPasswordKey: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
 
+# ============================ Keycloak init ============================
+# IAM owns these clients; commons-services only wires Keycloak URL/nameOverride.
+#   * staff / iam-staff-ui — permission client (IAM_STAFF_KEYCLOAK_CLIENT_ID).
+#     Staff login still uses commons' `staff-portal` client; this client carries
+#     IAM_ADMIN for iam-staff-ui authorization and registry's iam.admin mapping.
+#   * agent / agent-portal — confidential client + K8s Secret `agent-portal`.
+#     Creates the `agent` realm (commons-base only creates master + staff).
+keycloak-init:
+  enabled: true
+  keycloak:
+    url: 'http://commons-keycloak:80'
+    user: 'admin'
+    password: ''
+    existingSecret: 'commons-keycloak'
+    existingSecretKey: 'admin-password'
+  suffix: '{{ .Release.Namespace }}'
+  realms:
+    staff:
+      clients:
+        - clientId: iam-staff-ui
+          name: IAM Staff UI
+          redirectUris:
+            - 'https://{{ tpl .Values.iamStaffUi.hostname $ }}/*'
+          clientRoles:
+            - IAM_ADMIN
+      users:
+        # Assumes `admin` already exists from the commons-base layer.
+        - username: admin
+          clientRoleMappings:
+            iam-staff-ui:
+              - IAM_ADMIN
+    agent:
+      clients:
+        - clientId: agent-portal
+          name: Agent Portal
+          publicClient: false
+          redirectUris:
+            - 'https://{{ tpl .Values.iamAgentPortalApi.hostname $ }}/*'
+            - '{{ tpl .Values.global.agentPortalDefaultRedirectUri $ }}/*'
+
 iamStaffPortalApi:
   enabled: true
   nameOverride: iam-staff-portal-api
@@ -389,9 +429,9 @@ iamAgentPortalApi:
       secretKeyRef:
         name: '{{ tpl .Values.global.iamDBSecret $ }}'
         key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
-    # The agent client's secret, created in the agent realm (by keycloak-init on
-    # the registry side). `optional` so the chart still installs before the realm
-    # has been provisioned — the API simply cannot complete a login until it is.
+    # The agent client's secret, created in the agent realm by this chart's
+    # keycloak-init (Secret name = clientId). `optional` so the chart still
+    # installs if the Job has not finished — login cannot complete until it has.
     IAM_AGENT_DATA_CLIENT_SECRETS__AGENT_PORTAL_SECRET:
       secretKeyRef:
         name: agent-portal

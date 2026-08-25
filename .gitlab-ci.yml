@@ -23,8 +23,8 @@ variables:
         "pins": [
           {
             "arg": "FASTAPI_COMMON_REF",
-            "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-            "ref": "1.1"
+            "repo": "https://gitlab.com/openg2p/shared-libraries/fastapi-common",
+            "ref": "1.2"
           }
         ]
       },
@@ -34,8 +34,8 @@ variables:
         "pins": [
           {
             "arg": "FASTAPI_COMMON_REF",
-            "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-            "ref": "1.1"
+            "repo": "https://gitlab.com/openg2p/shared-libraries/fastapi-common",
+            "ref": "1.2"
           }
         ]
       },
@@ -45,8 +45,8 @@ variables:
         "pins": [
           {
             "arg": "FASTAPI_COMMON_REF",
-            "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-            "ref": "1.1"
+            "repo": "https://gitlab.com/openg2p/shared-libraries/fastapi-common",
+            "ref": "1.2"
           }
         ]
       },
@@ -64,7 +64,7 @@ variables:
   # openg2p-fastapi-common ref used by the test guards below. Kept separate from
   # the per-image `pins` above (those are docker build-args resolved to a SHA);
   # override it on a manual pipeline run to test against another ref.
-  FASTAPI_COMMON_TEST_REF: "1.1"
+  FASTAPI_COMMON_TEST_REF: "1.2"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Repo guards — lint + unit tests.
@@ -146,7 +146,7 @@ iam-core-test:
   script:
     - python -m pip install --upgrade pip
     # External lib (openg2p-fastapi-common) from git.
-    - python -m pip install "git+https://github.com/openg2p/openg2p-fastapi-common@${FASTAPI_COMMON_TEST_REF}#subdirectory=openg2p-fastapi-common"
+    - python -m pip install "git+https://gitlab.com/openg2p/shared-libraries/fastapi-common.git@${FASTAPI_COMMON_TEST_REF}#subdirectory=openg2p-fastapi-common"
     # In-repo library (not on PyPI) + test tooling.
     - python -m pip install -e ./iam-core
     - python -m pip install pytest pytest-asyncio
@@ -159,7 +159,7 @@ iam-staff-portal-api-test:
     - apt-get update && apt-get install -y --no-install-recommends libmagic1
   script:
     - python -m pip install --upgrade pip
-    - python -m pip install "git+https://github.com/openg2p/openg2p-fastapi-common@${FASTAPI_COMMON_TEST_REF}#subdirectory=openg2p-fastapi-common"
+    - python -m pip install "git+https://gitlab.com/openg2p/shared-libraries/fastapi-common.git@${FASTAPI_COMMON_TEST_REF}#subdirectory=openg2p-fastapi-common"
     - python -m pip install -e "./iam-core[dev]"
     - python -m pip install -e "./iam-staff-portal-api[dev]"
     - pytest iam-staff-portal-api/tests

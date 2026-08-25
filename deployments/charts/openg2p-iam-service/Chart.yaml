@@ -14,6 +14,10 @@ dependencies:
   repository: https://openg2p.github.io/openg2p-helm
   version: 0.0.0-develop
   condition: postgres-init.enabled
+- name: keycloak-init
+  repository: https://openg2p.github.io/openg2p-helm
+  version: 1.1.1
+  condition: keycloak-init.enabled
 keywords:
   - openg2p-iam-service
   - iam
