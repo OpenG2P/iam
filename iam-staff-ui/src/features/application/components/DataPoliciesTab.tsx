@@ -181,11 +181,19 @@ export default function DataPoliciesTab({
           <div className="flex items-center gap-3">
             <h2 className="m-0 text-[20px] font-medium text-black">Data Policies</h2>
           </div>
-          <div className="flex items-end gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-48">
+              <CustomDropdown
+                options={POLICY_TARGETS}
+                value={selectedPolicyTarget}
+                onChange={handlePolicyTargetChange}
+                placeholder="Select Policy Type"
+              />
+            </div>
             {isRegisterTarget && (
-              <div className="flex items-center gap-3">
+              <>
                 <span className="text-[20px] font-medium text-black">
-                  Register :
+                  Target:
                 </span>
                 <div className="w-48">
                   <CustomDropdown
@@ -196,17 +204,8 @@ export default function DataPoliciesTab({
                     placeholder="Select register"
                   />
                 </div>
-              </div>
+              </>
             )}
-            <div className="w-48">
-              <CustomDropdown
-                options={POLICY_TARGETS}
-                value={selectedPolicyTarget}
-                onChange={handlePolicyTargetChange}
-                placeholder="Select Policy Type"
-              />
-            </div>
-
             <AddButton
               onClick={() => router.push(`/applications/${applicationId}/data-policies/create?policyTarget=${selectedPolicyTarget}${selectedRegisterId ? `&registerId=${selectedRegisterId}` : ''}`)}
               disabled={!canListPolicies}
