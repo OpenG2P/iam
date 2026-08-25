@@ -47,6 +47,8 @@ global:
   minioApplicationUrl: 'https://minio.{{ .Release.Namespace }}.openg2p.org'
   supersetApplicationUrl: 'https://superset.{{ .Release.Namespace }}.openg2p.org'
   iamStaffUiApplicationUrl: 'https://iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
+  masterDataApplicationUrl: 'https://master-data.{{ .Release.Namespace }}.openg2p.org'
+  aweApplicationUrl: 'https://awe.{{ .Release.Namespace }}.openg2p.org'
 
   # Backend API URLs used by iam-staff-ui BFF (override per environment)
   masterDataApiUrl: 'http://commons-services-master-data-api'
@@ -173,6 +175,8 @@ iamStaffPortalApi:
     IAM_STAFF_DATA_APPLICATION_URLS__MINIO_APPLICATION_URL: '{{ tpl .Values.global.minioApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__SUPERSET_APPLICATION_URL: '{{ tpl .Values.global.supersetApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__IAM_STAFF_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__MASTER_DATA_APPLICATION_URL: '{{ tpl .Values.global.masterDataApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__AWE_APPLICATION_URL: '{{ tpl .Values.global.aweApplicationUrl $ }}'
     IAM_STAFF_KEYCLOAK_CLIENT_ID: "iam-staff-ui"
     IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
     IAM_STAFF_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
