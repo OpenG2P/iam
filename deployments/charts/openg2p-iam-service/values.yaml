@@ -11,12 +11,12 @@ global:
 
   # Redis
   redisInstallationName: 'commons-redis'
-  # Refresh token TTL in Redis (default 1800 = 30 minutes)
-  authRefreshTokenTtlSeconds: 1800
+  # Refresh token TTL in Redis (default 2100 = 35 minutes)
+  authRefreshTokenTtlSeconds: 2100
   # Double-submit CSRF validation on state-changing IAM staff-portal-api requests.
   csrfEnabled: true
   # Role permission cache TTL in seconds
-  cacheExpireSeconds: 10
+  cacheExpireSeconds: 1800
 
   # Security & Authentication
   keycloakBaseUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
@@ -208,7 +208,7 @@ iamStaffPortalApi:
     IAM_STAFF_AUTH_COOKIE_HTTPONLY: true
     IAM_STAFF_AUTH_COOKIE_PATH: "/"
     IAM_STAFF_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
-    IAM_STAFF_AUTH_COOKIE_MAX_AGE: 1800
+    IAM_STAFF_AUTH_COOKIE_MAX_AGE: 2100
     IAM_STAFF_AUTH_COOKIE_SET_EXPIRES: true
     IAM_STAFF_DATA_APPLICATION_URLS__KEYCLOAK_APPLICATION_URL: '{{ tpl .Values.global.keycloakApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__REGISTRY_APPLICATION_URL: '{{ tpl .Values.global.registryApplicationUrl $ }}'
@@ -409,7 +409,7 @@ iamAgentPortalApi:
     IAM_AGENT_AUTH_COOKIE_HTTPONLY: true
     IAM_AGENT_AUTH_COOKIE_PATH: "/"
     IAM_AGENT_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
-    IAM_AGENT_AUTH_COOKIE_MAX_AGE: 1800
+    IAM_AGENT_AUTH_COOKIE_MAX_AGE: 2100
     IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
     IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
     # The client whose ROLES are read when resolving an agent's permissions.
