@@ -1,12 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight, Search, X } from 'lucide-react';
 import type { GeoLevel } from '../hooks/useG2pGeoLevels';
 import type { GeoLevelValue } from '../hooks/useGeoLevelValues';
-import { useGeoLevelValues } from '../hooks/useGeoLevelValues';
-import { orderGeoLevelsByHierarchy } from '../utils/geoLevelUtils';
+import {
+    getChildLevels,
+    getRootLevels,
+    orderGeoLevelsByHierarchy,
+} from '../utils/geoLevelUtils';
 import { geoHierarchyKey, selectionFromHierarchy } from '../utils/geoLocationSerialization';
 import type { GeoHierarchyRecord, GeoLocationSelection } from '../types/geoLocationTypes';
 
@@ -24,43 +27,88 @@ interface GeoLocationPickerModalProps {
     onConfirm: (selections: GeoLocationSelection[]) => void;
 }
 
+async function fetchGeoLevelValues(
+    levelId: string,
+    parentLevelValueId: string,
+): Promise<GeoLevelValue[]> {
+    const response = await fetch('/api/master-data/geo-level-values', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            current_page: 1,
+            page_size: 500,
+            sort_by: '',
+            search_text: '',
+            level_id: levelId,
+            parent_level_value_id: parentLevelValueId,
+        }),
+    });
+    const payload = await response.json();
+    const values = Array.isArray(payload) ? (payload as GeoLevelValue[]) : [];
+    return values.map((value) => ({
+        ...value,
+        level_id: value.level_id || levelId,
+    }));
+}
+
 function GeoChildCountBadge({
-    childLevelId,
+    childLevelIds,
     parentLevelValueId,
 }: {
-    childLevelId: string;
+    childLevelIds: string[];
     parentLevelValueId: string;
 }) {
     const t = useTranslations();
-    const { allGeoLevelValues, loading } = useGeoLevelValues(
-        childLevelId,
-        parentLevelValueId,
-        1,
-        500,
-    );
+    const [count, setCount] = useState<number | null>(null);
+    const idsKey = childLevelIds.join('|');
 
-    if (loading || !allGeoLevelValues.length) {
+    useEffect(() => {
+        if (!idsKey) {
+            setCount(0);
+            return;
+        }
+
+        let cancelled = false;
+        Promise.all(
+            idsKey.split('|').map((levelId) => fetchGeoLevelValues(levelId, parentLevelValueId)),
+        ).then((groups) => {
+            if (!cancelled) {
+                setCount(groups.reduce((total, group) => total + group.length, 0));
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [idsKey, parentLevelValueId]);
+
+    if (!count) {
         return null;
     }
 
     return (
         <span className="shrink-0 text-xs text-[#000000]/50">
-            {t('geo_sub_locations_count', { count: allGeoLevelValues.length })}
+            {t('geo_sub_locations_count', { count })}
         </span>
     );
 }
 
 function GeoLocationListRow({
     value,
-    nextLevel,
+    levelLabel,
+    showLevelLabel,
     hasChildLevel,
+    childLevelIds,
     isChecked,
     onDrillDown,
     onToggle,
 }: {
     value: GeoLevelValue;
-    nextLevel?: GeoLevel;
+    levelLabel?: string;
+    showLevelLabel: boolean;
     hasChildLevel: boolean;
+    childLevelIds: string[];
     isChecked: boolean;
     onDrillDown: () => void;
     onToggle: (checked: boolean) => void;
@@ -84,10 +132,15 @@ function GeoLocationListRow({
                     size={14}
                     className={`shrink-0 text-[#000000]/40 ${hasChildLevel ? '' : 'invisible'}`}
                 />
-                <span className="truncate">{label}</span>
-                {hasChildLevel && nextLevel ? (
+                <span className="min-w-0 truncate">
+                    {label}
+                    {showLevelLabel && levelLabel ? (
+                        <span className="ml-2 font-normal text-[#000000]/45">{levelLabel}</span>
+                    ) : null}
+                </span>
+                {hasChildLevel ? (
                     <GeoChildCountBadge
-                        childLevelId={nextLevel.level_id}
+                        childLevelIds={childLevelIds}
                         parentLevelValueId={value.level_value_id}
                     />
                 ) : null}
@@ -131,6 +184,7 @@ export default function GeoLocationPickerModal({
 }: GeoLocationPickerModalProps) {
     const t = useTranslations();
     const orderedLevels = useMemo(() => orderGeoLevelsByHierarchy(geoLevels), [geoLevels]);
+    const roots = useMemo(() => getRootLevels(orderedLevels), [orderedLevels]);
 
     const [navigationStack, setNavigationStack] = useState<BreadcrumbItem[]>([]);
     const [filterText, setFilterText] = useState('');
@@ -138,17 +192,42 @@ export default function GeoLocationPickerModal({
         () => new Map(),
     );
 
-    const currentLevelIndex = navigationStack.length;
-    const currentLevel = orderedLevels[currentLevelIndex];
-    const nextLevel = orderedLevels[currentLevelIndex + 1];
-    const parentLevelValueId = navigationStack[navigationStack.length - 1]?.levelValueId ?? '';
+    const currentParent = navigationStack[navigationStack.length - 1];
+    const listingLevels = currentParent
+        ? getChildLevels(orderedLevels, currentParent.levelId)
+        : roots;
+    const listingLevelIds = listingLevels.map((level) => level.level_id).join('|');
+    const parentLevelValueId = currentParent?.levelValueId ?? '';
+    const listingTitle = listingLevels.map((level) => level.level_mnemonic).join(' · ');
 
-    const { allGeoLevelValues, loading } = useGeoLevelValues(
-        currentLevel?.level_id,
-        parentLevelValueId,
-        1,
-        500,
-    );
+    const [allGeoLevelValues, setAllGeoLevelValues] = useState<GeoLevelValue[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!listingLevelIds) {
+            setAllGeoLevelValues([]);
+            setLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        setLoading(true);
+        Promise.all(
+            listingLevelIds.split('|').map((levelId) =>
+                fetchGeoLevelValues(levelId, parentLevelValueId),
+            ),
+        )
+            .then((groups) => {
+                if (!cancelled) setAllGeoLevelValues(groups.flat());
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [listingLevelIds, parentLevelValueId]);
 
     const filteredValues = useMemo(() => {
         const query = filterText.trim().toLowerCase();
@@ -162,9 +241,10 @@ export default function GeoLocationPickerModal({
     const rootLabel = orderedLevels[0]?.level_mnemonic || t('geo_location_root');
 
     const toggleSelection = (value: GeoLevelValue, checked: boolean) => {
-        if (!currentLevel) return;
+        const valueLevel = orderedLevels.find((level) => level.level_id === value.level_id);
+        if (!valueLevel) return;
 
-        const hierarchy = buildHierarchyRecord(navigationStack, currentLevel, value);
+        const hierarchy = buildHierarchyRecord(navigationStack, valueLevel, value);
         const selection = selectionFromHierarchy(hierarchy);
         const key = geoHierarchyKey(hierarchy);
 
@@ -180,14 +260,16 @@ export default function GeoLocationPickerModal({
     };
 
     const drillDown = (value: GeoLevelValue) => {
-        if (!currentLevel || currentLevelIndex >= orderedLevels.length - 1) return;
+        if (getChildLevels(orderedLevels, value.level_id).length === 0) return;
 
         const label = value.level_value_mnemonic || value.level_value_id;
         setNavigationStack((prev) => [
             ...prev,
             {
-                levelId: currentLevel.level_id,
-                levelMnemonic: currentLevel.level_mnemonic,
+                levelId: value.level_id,
+                levelMnemonic:
+                    orderedLevels.find((level) => level.level_id === value.level_id)
+                        ?.level_mnemonic || value.level_id,
                 levelValueId: value.level_value_id,
                 levelValueMnemonic: value.level_value_mnemonic || value.level_value_id,
                 label,
@@ -271,7 +353,9 @@ export default function GeoLocationPickerModal({
                 </div>
 
                 <div className="border-b border-[#ED7C22]/80 bg-[#F3F1E4] px-5 py-2 text-xs text-[#000000]">
-                    {t('geo_location_picker_hint')}
+                    {listingTitle
+                        ? `${listingTitle}. ${t('geo_location_picker_hint')}`
+                        : t('geo_location_picker_hint')}
                 </div>
 
                 <div className="border-b border-[#ED7C22]/20 px-5 py-3">
@@ -301,22 +385,27 @@ export default function GeoLocationPickerModal({
                         </p>
                     ) : (
                         filteredValues.map((value) => {
-                            if (!currentLevel) return null;
+                            const valueLevel = orderedLevels.find(
+                                (level) => level.level_id === value.level_id,
+                            );
+                            if (!valueLevel) return null;
 
                             const hierarchy = buildHierarchyRecord(
                                 navigationStack,
-                                currentLevel,
+                                valueLevel,
                                 value,
                             );
                             const key = geoHierarchyKey(hierarchy);
-                            const hasChildLevel = currentLevelIndex < orderedLevels.length - 1;
+                            const childLevels = getChildLevels(orderedLevels, value.level_id);
 
                             return (
                                 <GeoLocationListRow
                                     key={value.level_value_id}
                                     value={value}
-                                    nextLevel={nextLevel}
-                                    hasChildLevel={hasChildLevel}
+                                    levelLabel={valueLevel.level_mnemonic}
+                                    showLevelLabel={listingLevels.length > 1}
+                                    hasChildLevel={childLevels.length > 0}
+                                    childLevelIds={childLevels.map((level) => level.level_id)}
                                     isChecked={pendingSelections.has(key)}
                                     onDrillDown={() => drillDown(value)}
                                     onToggle={(checked) => toggleSelection(value, checked)}

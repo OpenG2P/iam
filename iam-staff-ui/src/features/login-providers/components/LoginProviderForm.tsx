@@ -204,7 +204,7 @@ export default function LoginProviderForm({
             {t("writeOnlyKeyHint")}
           </span>
         </div>
-        <IconBase64Field
+        {/* <IconBase64Field
           value={form.icon_base64}
           mimeType={form.icon_mime_type}
           disabled={!canEdit || saving}
@@ -216,7 +216,7 @@ export default function LoginProviderForm({
             onChange("icon_base64", "");
             onChange("icon_mime_type", "image/png");
           }}
-        />
+        /> */}
       </div>
       {canEdit && (
         <FormActions>

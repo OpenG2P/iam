@@ -1,7 +1,7 @@
 import logging
 
 from openg2p_fastapi_common.service import BaseService
-from openg2p_fastapi_common.utils.crypto import CryptoHelper
+from openg2p_fastapi_common.crypto import CryptoFactory, CryptoHelper
 
 from .config import Settings
 
@@ -12,7 +12,7 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 class JWTValidationHelper(BaseService):
     def __init__(self):
         super().__init__()
-        self.crypto_helper = CryptoHelper.get_component()
+        self.crypto_helper: CryptoHelper = CryptoFactory.get()
 
     async def verify_jwt(self, orig_jwt: str, payload: dict, **kw) -> bool:
         return await self.crypto_helper.verify_jwt(
