@@ -12,7 +12,7 @@ WORKDIR /app
 
 # External libs (openg2p-fastapi-common)
 RUN pip install --no-cache-dir \
-    "git+https://gitlab.com/openg2p/shared-libraries/fastapi-common.git@${FASTAPI_COMMON_REF}#subdirectory=openg2p-fastapi-common"
+    "git+https://github.com/openg2p/openg2p-fastapi-common@${FASTAPI_COMMON_REF}#subdirectory=openg2p-fastapi-common"
 
 # Local IAM source (build context = repo root). iam-core must be installed
 # before the portal api, which depends on it. Remaining deps resolve from PyPI

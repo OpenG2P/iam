@@ -3,7 +3,7 @@ name: openg2p-iam-service
 description: A Helm chart for OpenG2P IAM Service
 type: application
 # Placeholder baseline only — the published version is injected at package time
-# by .gitlab-ci.yml (openg2p/packaging@v1 -> ci/gitlab/build-publish.yml):
+# by .github/workflows/build-publish.yml (openg2p/openg2p-packaging@v1):
 #   develop -> 0.0.0-develop.<N>, release tag N.N.N -> N.N.N.
 version: 0.0.0-develop
 dependencies:
