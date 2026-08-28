@@ -91,7 +91,7 @@ iamStaffPortalApi:
     name: ""
 
   image:
-    repository: registry.gitlab.com/openg2p/platform-services/iam/iam-staff-portal-api
+    repository: openg2p/iam-staff-portal-api
     tag: "1.4"
     pullPolicy: Always
 
@@ -288,7 +288,7 @@ iamAgentPortalApi:
     name: ""
 
   image:
-    repository: registry.gitlab.com/openg2p/platform-services/iam/iam-agent-portal-api
+    repository: openg2p/iam-agent-portal-api
     tag: "1.4"
     pullPolicy: Always
 
@@ -466,7 +466,7 @@ iamStaffUi:
   replicaCount: 1
 
   image:
-    repository: registry.gitlab.com/openg2p/platform-services/iam/iam-staff-ui
+    repository: openg2p/iam-staff-ui
     tag: "1.4"
     pullPolicy: Always
 
