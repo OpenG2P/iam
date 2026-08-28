@@ -47,3 +47,7 @@ class Settings(BaseSettings):
     # e.g. http://localhost:8000/api/v1/iam-staff
     auth_provider_api_url: str | None = None
     keycloak_client_id: str | None = None
+
+    # Client-side cache for role→permissions resolution (ResolvePermissionMiddleware).
+    # Same roles share one entry across users; short TTL so IAM role mapping changes propagate.
+    auth_permissions_cache_ttl_seconds: int = 60
