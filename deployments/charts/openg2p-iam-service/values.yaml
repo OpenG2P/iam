@@ -158,7 +158,12 @@ iamStaffPortalApi:
     IAM_STAFF_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_STAFF_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
     IAM_STAFF_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
-    IAM_STAFF_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
+    # tpl, not a bare substitution: global.keycloakBaseUrl is itself a template
+    # ('https://keycloak.{{ tpl .Values.global.baseDomain $ }}'), so a single pass
+    # resolves this reference and leaves the inner '{{ tpl ... }}' in the value
+    # verbatim -- which is what reached the running pods. ADMIN_URL reads the SAME
+    # setting and renders correctly precisely because it uses tpl.
+    IAM_STAFF_KEYCLOAK_BASE_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_STAFF_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.keycloakExternalIssuerUrl $ }}'
     IAM_STAFF_LOGIN_PROVIDERS_TABLE_ENABLED: true
     IAM_STAFF_LOGIN_PROVIDERS_TABLE_NAME: "login_providers"
@@ -357,7 +362,12 @@ iamAgentPortalApi:
     IAM_AGENT_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_AGENT_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
     IAM_AGENT_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
-    IAM_AGENT_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
+    # tpl, not a bare substitution: global.keycloakBaseUrl is itself a template
+    # ('https://keycloak.{{ tpl .Values.global.baseDomain $ }}'), so a single pass
+    # resolves this reference and leaves the inner '{{ tpl ... }}' in the value
+    # verbatim -- which is what reached the running pods. ADMIN_URL reads the SAME
+    # setting and renders correctly precisely because it uses tpl.
+    IAM_AGENT_KEYCLOAK_BASE_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_AGENT_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.agentKeycloakExternalIssuerUrl $ }}'
     IAM_AGENT_LOGIN_PROVIDERS_TABLE_ENABLED: true
     IAM_AGENT_LOGIN_PROVIDERS_TABLE_NAME: "login_providers"
@@ -382,7 +392,13 @@ iamAgentPortalApi:
     IAM_AGENT_AUTH_COOKIE_PREFIX: 'agent-'
     IAM_AGENT_AUTH_COOKIE_MAX_AGE: 1800
     IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
-    IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
+    # The agent portal UI, not the staff one. This key was renamed from
+    # IAM_STAFF_UI_APPLICATION_URL when the agent block was copied, but the VALUE
+    # was left pointing at iamStaffUiApplicationUrl -- so IAM advertised the staff
+    # UI as the agent application's home. There is no separate IAM agent UI; the
+    # agent's UI is the registry's agent portal, which agentPortalHostname already
+    # names (and which agentPortalDefaultRedirectUri is derived from).
+    IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: 'https://{{ tpl .Values.global.agentPortalHostname $ }}'
     # The client whose ROLES are read when resolving an agent's permissions.
     # Must be the same client the Registry's agent-portal-api resolves against
     # (its global.agentKeycloakClientId), or an agent authorised here would be
