@@ -37,7 +37,7 @@ async def test_get_staff_portal_applications_marks_disabled_without_role(control
     request = make_request(auth=make_auth(client_roles={"registry-staff-portal": ["Data Editor"]}))
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_staff_portal_applications(request)
@@ -75,7 +75,7 @@ async def test_get_application_permissions_for_user_skips_when_role_mappings_mis
     request = make_request(auth=make_auth(client_roles={"registry-staff-portal": ["Data Editor"]}))
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(request)
@@ -115,7 +115,7 @@ async def test_get_application_permissions_for_user_skips_unknown_and_empty_resu
     )
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(request)
@@ -137,7 +137,7 @@ async def test_get_application_permissions_for_user_returns_permissions_for_all_
     request = make_request(auth=make_auth(client_roles={"registry-staff-portal": ["Data Editor"]}))
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(request)
@@ -154,7 +154,7 @@ async def test_get_permission_mnemonics_for_role_returns_empty_without_mappings(
         make_execute_result(all_rows=[]),
     )
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_permission_mnemonics_for_role.__wrapped__(
@@ -180,7 +180,7 @@ async def test_get_application_permissions_for_user_filters_by_mnemonic(controll
     )
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(
@@ -210,7 +210,7 @@ async def test_get_permissions_for_roles_aggregates_unique_permissions(controlle
 async def test_get_permission_mnemonics_for_role_returns_empty_when_role_missing(controller):
     session, _ = make_mock_session(make_execute_result(first_row=None))
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_permission_mnemonics_for_role.__wrapped__(
@@ -229,7 +229,7 @@ async def test_get_permission_mnemonics_for_role_resolves_active_permissions(con
         make_execute_result(all_rows=["register:view", "register:edit"]),
     )
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_permission_mnemonics_for_role.__wrapped__(
@@ -261,7 +261,7 @@ async def test_register_staff_portal_application_creates_new_application(control
 
     with (
         patch(
-            "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+            "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
             return_value=make_session_factory(session),
         ),
         patch(
@@ -295,7 +295,7 @@ async def test_register_staff_portal_application_updates_existing_application(co
 
     with (
         patch(
-            "iam_staff_portal_api.controllers.user_access_controller.async_sessionmaker",
+            "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
             return_value=make_session_factory(session),
         ),
         patch(

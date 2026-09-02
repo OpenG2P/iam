@@ -94,6 +94,11 @@ def make_role_row(**overrides) -> types.SimpleNamespace:
 
 def make_execute_result(*, all_rows=None, first_row=None, scalar_rows=None):
     result = MagicMock()
+    result._is_cursor = False  # Mark as non-server-side cursor
+    # Mock raw.context._is_server_side to prevent server-side cursor error
+    result.raw = MagicMock()
+    result.raw.context = MagicMock()
+    result.raw.context._is_server_side = False
     scalars = MagicMock()
     scalars.all.return_value = all_rows if all_rows is not None else []
     scalars.first.return_value = first_row
