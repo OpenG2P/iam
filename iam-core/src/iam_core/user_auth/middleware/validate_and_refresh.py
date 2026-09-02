@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from iam_core.schemas import AuthPrincipal
 
 from ..decorators import endpoint_requires_token, endpoint_requires_user
-from ..enums import AuthCookieName, RequestStateKey
+from ..enums import AuthCookieName, cookie_name, RequestStateKey
 from ..errors import ExpiredTokenError
 from ..helpers.cookie_helper import clear_auth_cookies, set_auth_cookies
 from ..helpers.error_response_helper import user_auth_error_response
@@ -41,10 +41,10 @@ class ValidateAndRefreshTokenMiddleware(BaseHTTPMiddleware):
         """Patch request headers/cookies so downstream handlers see the new tokens."""
         access_token = token_response["access_token"]
         cookies = dict(request.cookies)
-        cookies[AuthCookieName.ACCESS_TOKEN] = access_token
+        cookies[cookie_name(AuthCookieName.ACCESS_TOKEN)] = access_token
         id_token = token_response.get("id_token")
         if id_token:
-            cookies[AuthCookieName.ID_TOKEN] = id_token
+            cookies[cookie_name(AuthCookieName.ID_TOKEN)] = id_token
 
         cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
         headers = [
@@ -63,13 +63,13 @@ class ValidateAndRefreshTokenMiddleware(BaseHTTPMiddleware):
         from iam_core.services import AuthService
 
         # Session cookie holds OIDC sid; refresh tokens are looked up server-side by that id.
-        session_id = request.cookies.get(AuthCookieName.SESSION)
+        session_id = request.cookies.get(cookie_name(AuthCookieName.SESSION))
         auth_service = AuthService.get_component() or AuthService()
         return await auth_service.refresh_access_token(session_id)
 
     def _ensure_refresh_session_active(self, request: Request) -> None:
         """Reject requests when the browser session no longer has stored refresh state."""
-        session_id = request.cookies.get(AuthCookieName.SESSION)
+        session_id = request.cookies.get(cookie_name(AuthCookieName.SESSION))
         if not session_id:
             return
 

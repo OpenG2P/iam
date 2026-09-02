@@ -25,6 +25,11 @@ jobs:
       changelog_skip_ai: ${{ inputs.changelog_skip_ai || false }}
       changelog_regenerate: ${{ inputs.changelog_regenerate || '' }}
 
+      # Docker Hub under the default openg2p namespace -> openg2p/<name>, which is
+      # where these images already live. `pins` are per-image: the API Dockerfiles
+      # declare ARG FASTAPI_COMMON_REF, and `develop` is a BRANCH -- without
+      # resolving it to a SHA, two builds of the same commit produce different
+      # images.
       images: |
         [
           {
@@ -35,7 +40,7 @@ jobs:
               {
                 "arg": "FASTAPI_COMMON_REF",
                 "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-                "ref": "1.2"
+                "ref": "1.2.0"
               }
             ]
           },
@@ -47,7 +52,7 @@ jobs:
               {
                 "arg": "FASTAPI_COMMON_REF",
                 "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-                "ref": "1.2"
+                "ref": "1.2.0"
               }
             ]
           },
@@ -59,7 +64,7 @@ jobs:
               {
                 "arg": "FASTAPI_COMMON_REF",
                 "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-                "ref": "1.2"
+                "ref": "1.2.0"
               }
             ]
           },
@@ -74,7 +79,7 @@ jobs:
       chart-path: deployments/charts/openg2p-iam-service
 
       chart-image-paths: |
-        [".iamStaffPortalApi.image.tag",".iamAgentPortalApi.image.tag",".iamStaffUi.image.tag"]
+        [".iamStaffPortalApi.image.tag", ".iamAgentPortalApi.image.tag", ".iamStaffUi.image.tag"]
 
       packaging-ref: v1
 

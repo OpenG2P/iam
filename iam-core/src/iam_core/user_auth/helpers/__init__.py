@@ -3,7 +3,7 @@ from .client_assertion_helper import (
     generate_keymanager_client_assertion,
     generate_private_key_client_assertion,
 )
-from ..enums import AuthCookieName
+from ..enums import AuthCookieName, cookie_name
 from .cookie_helper import (
     clear_auth_cookies,
     oidc_session_id_from_token_response,
@@ -31,6 +31,7 @@ from .token_helper import (
 
 __all__ = [
     "AuthCookieName",
+    "cookie_name",
     "REFRESH_FAILED_MESSAGE",
     "SESSION_INVALIDATED_MESSAGE",
     "access_token_and_id_token_from_request",

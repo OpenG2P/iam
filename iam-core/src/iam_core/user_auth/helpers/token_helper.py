@@ -4,7 +4,7 @@ from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 from iam_core.schemas import AuthCredentials
 
 from ..config import ApiAuthSettings, Settings
-from ..enums import AuthCookieName
+from ..enums import AuthCookieName, cookie_name
 
 _config = Settings.get_config(strict=False)
 
@@ -14,9 +14,11 @@ SESSION_INVALIDATED_MESSAGE = "Unauthorized. Session has ended."
 
 def access_token_and_id_token_from_request(request: Request) -> tuple[str | None, str | None]:
     """Return ``(access_token, id_token)`` from headers/cookies."""
-    jwt_token = request.headers.get("Authorization") or request.cookies.get(AuthCookieName.ACCESS_TOKEN)
+    jwt_token = request.headers.get("Authorization") or request.cookies.get(
+        cookie_name(AuthCookieName.ACCESS_TOKEN)
+    )
     access_token = jwt_token.removeprefix("Bearer ").strip() if jwt_token else None
-    return access_token or None, request.cookies.get(AuthCookieName.ID_TOKEN)
+    return access_token or None, request.cookies.get(cookie_name(AuthCookieName.ID_TOKEN))
 
 
 def validate_refresh_token_response(token_response: dict) -> dict:

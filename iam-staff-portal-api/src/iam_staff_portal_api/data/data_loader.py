@@ -165,10 +165,37 @@ class DataLoaderBase(ABC):
             rows = self.load_dataset(model, data_dir)
             if model is StaffPortalApplication:
                 await self.seed_applications_by_mnemonic(session, rows)
+            elif model is LoginProvider:
+                await self.seed_login_providers_by_issuer(session, rows)
             else:
                 await self.seed_if_empty(session, model, rows)
 
         await self.seed_iam_staff_ui_catalog(session)
+
+    async def seed_login_providers_by_issuer(
+        self,
+        session: AsyncSession,
+        rows: list[dict[str, Any]],
+    ) -> None:
+        """Idempotently seed login_providers keyed by issuer.
+
+        ``login_providers`` is a single table written by both portal APIs
+        (staff and agent), so the whole-table ``seed_if_empty`` check is wrong
+        here: whichever API migrates first would stop the other from ever
+        adding its own realm, leaving that realm's tokens unresolvable and
+        every authenticated call answering 401.
+        """
+        if not rows:
+            return
+
+        existing_issuers = set((await session.execute(select(LoginProvider.issuer))).scalars().all())
+        new_rows = [row for row in rows if row.get("issuer") not in existing_issuers]
+
+        if not new_rows:
+            return
+
+        _logger.info("Seeding %s with %s new rows", LoginProvider.__tablename__, len(new_rows))
+        await session.execute(insert(LoginProvider), self.coerce_rows_for_model(LoginProvider, new_rows))
 
     async def seed_applications_by_mnemonic(
         self,

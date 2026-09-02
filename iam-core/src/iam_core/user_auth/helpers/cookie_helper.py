@@ -7,7 +7,7 @@ from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 from starlette.responses import Response as StarletteResponse
 
 from iam_core.user_auth.config import Settings
-from iam_core.user_auth.enums import AuthCookieName
+from iam_core.user_auth.enums import AuthCookieName, cookie_name
 
 _config = Settings.get_config(strict=False)
 
@@ -82,9 +82,9 @@ def set_csrf_cookie(
 ) -> str:
     """Write the double-submit CSRF cookie. Returns the token value."""
     csrf_token = token or generate_csrf_token()
-    response.delete_cookie(AuthCookieName.CSRF_TOKEN, **_csrf_cookie_delete_kwargs())
+    response.delete_cookie(cookie_name(AuthCookieName.CSRF_TOKEN), **_csrf_cookie_delete_kwargs())
     response.set_cookie(
-        AuthCookieName.CSRF_TOKEN,
+        cookie_name(AuthCookieName.CSRF_TOKEN),
         csrf_token,
         max_age=_config.auth_refresh_token_ttl_seconds,
         path=_config.auth_cookie_path,
@@ -104,10 +104,10 @@ def set_auth_cookies(
 ) -> None:
     """Write auth cookies. Pass ``session_id`` on login only; refresh updates tokens alone."""
     delete_kwargs = _cookie_delete_kwargs()
-    response.delete_cookie(AuthCookieName.ACCESS_TOKEN, **delete_kwargs)
-    response.delete_cookie(AuthCookieName.ID_TOKEN, **delete_kwargs)
+    response.delete_cookie(cookie_name(AuthCookieName.ACCESS_TOKEN), **delete_kwargs)
+    response.delete_cookie(cookie_name(AuthCookieName.ID_TOKEN), **delete_kwargs)
     if session_id:
-        response.delete_cookie(AuthCookieName.SESSION, **delete_kwargs)
+        response.delete_cookie(cookie_name(AuthCookieName.SESSION), **delete_kwargs)
 
     expires_in = _cookie_expires(token_response)
     cookie_kwargs = {
@@ -119,20 +119,20 @@ def set_auth_cookies(
         "secure": _config.auth_cookie_secure,
     }
     response.set_cookie(
-        AuthCookieName.ACCESS_TOKEN,
+        cookie_name(AuthCookieName.ACCESS_TOKEN),
         token_response["access_token"],
         **cookie_kwargs,
     )
     if token_response.get("id_token"):
         response.set_cookie(
-            AuthCookieName.ID_TOKEN,
+            cookie_name(AuthCookieName.ID_TOKEN),
             token_response["id_token"],
             **cookie_kwargs,
         )
     if session_id:
         # Session cookie outlives access tokens and ties the browser to stored refresh state.
         response.set_cookie(
-            AuthCookieName.SESSION,
+            cookie_name(AuthCookieName.SESSION),
             session_id,
             max_age=_config.auth_refresh_token_ttl_seconds,
             path=_config.auth_cookie_path,
@@ -150,7 +150,7 @@ def clear_auth_cookies(
     delete_kwargs = _cookie_delete_kwargs()
     csrf_delete_kwargs = _csrf_cookie_delete_kwargs()
     for name in AuthCookieName:
-        if name == AuthCookieName.CSRF_TOKEN:
+        if name == cookie_name(AuthCookieName.CSRF_TOKEN):
             response.delete_cookie(name, **csrf_delete_kwargs)
         else:
             response.delete_cookie(name, **delete_kwargs)

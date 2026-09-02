@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     auth_cookie_max_age: int | None = None
     auth_cookie_set_expires: bool = False
     auth_cookie_domain: str | None = None
+    # Prefix for every auth cookie name (see AuthCookieName.cookie_name).
+    # Portals that share a parent auth_cookie_domain MUST NOT share cookie
+    # names: the browser sends every matching cookie to all of them, so a
+    # session on one silently overwrites and is replayed against the other.
+    # Empty keeps the historical unprefixed names.
+    auth_cookie_prefix: str = ""
     auth_cookie_path: str = "/"
     auth_cookie_httponly: bool = True
     auth_cookie_secure: bool = True

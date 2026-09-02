@@ -39,7 +39,13 @@ global:
   agentKeycloakExternalIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.agentKeycloakRealm }}'
   # Where the agent lands after logging in — the agent portal SPA served by the
   # registry chart.
-  agentPortalDefaultRedirectUri: 'https://agent-portal.trial.openg2p.org'
+  # Where IAM sends the browser after login, and the only origin allowed to
+  # call this API (IAM_AGENT_CORS_ALLOW_ORIGINS below). It must be the agent
+  # portal UI's real host: a stale value here sends the agent to a hostname
+  # that does not exist and blocks the UI's own requests.
+  # Public hostname of the agent portal UI. Set per deployment.
+  agentPortalHostname: 'agent-portal.trial.openg2p.org'
+  agentPortalDefaultRedirectUri: 'https://{{ tpl .Values.global.agentPortalHostname $ }}'
 
   # Application URLs (populated by parent chart per environment)
   keycloakApplicationUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
@@ -66,46 +72,6 @@ postgres-init:
       secret: '{{ tpl .Values.global.iamDBSecret $ }}'
       secretUserPasswordKey: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
 
-# ============================ Keycloak init ============================
-# IAM owns these clients; commons-services only wires Keycloak URL/nameOverride.
-#   * staff / iam-staff-ui — permission client (IAM_STAFF_KEYCLOAK_CLIENT_ID).
-#     Staff login still uses commons' `staff-portal` client; this client carries
-#     IAM_ADMIN for iam-staff-ui authorization and registry's iam.admin mapping.
-#   * agent / agent-portal — confidential client + K8s Secret `agent-portal`.
-#     Creates the `agent` realm (commons-base only creates master + staff).
-keycloak-init:
-  enabled: true
-  keycloak:
-    url: 'http://commons-keycloak:80'
-    user: 'admin'
-    password: ''
-    existingSecret: 'commons-keycloak'
-    existingSecretKey: 'admin-password'
-  suffix: '{{ .Release.Namespace }}'
-  realms:
-    staff:
-      clients:
-        - clientId: iam-staff-ui
-          name: IAM Staff UI
-          redirectUris:
-            - 'https://{{ tpl .Values.iamStaffUi.hostname $ }}/*'
-          clientRoles:
-            - IAM_ADMIN
-      users:
-        # Assumes `admin` already exists from the commons-base layer.
-        - username: admin
-          clientRoleMappings:
-            iam-staff-ui:
-              - IAM_ADMIN
-    agent:
-      clients:
-        - clientId: agent-portal
-          name: Agent Portal
-          publicClient: false
-          redirectUris:
-            - 'https://{{ tpl .Values.iamAgentPortalApi.hostname $ }}/*'
-            - '{{ tpl .Values.global.agentPortalDefaultRedirectUri $ }}/*'
-
 iamStaffPortalApi:
   enabled: true
   nameOverride: iam-staff-portal-api
@@ -128,7 +94,7 @@ iamStaffPortalApi:
 
   image:
     repository: openg2p/iam-staff-portal-api
-    tag: "1.4.0"
+    tag: "1.4.1"
     pullPolicy: Always
 
   podSecurityContext:
@@ -194,6 +160,11 @@ iamStaffPortalApi:
     IAM_STAFF_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_STAFF_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
     IAM_STAFF_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+    # tpl, not a bare substitution: global.keycloakBaseUrl is itself a template
+    # ('https://keycloak.{{ tpl .Values.global.baseDomain $ }}'), so a single pass
+    # resolves this reference and leaves the inner '{{ tpl ... }}' in the value
+    # verbatim -- which is what reached the running pods. ADMIN_URL reads the SAME
+    # setting and renders correctly precisely because it uses tpl.
     IAM_STAFF_KEYCLOAK_BASE_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_STAFF_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.keycloakExternalIssuerUrl $ }}'
     IAM_STAFF_LOGIN_PROVIDERS_TABLE_ENABLED: true
@@ -327,7 +298,7 @@ iamAgentPortalApi:
 
   image:
     repository: openg2p/iam-agent-portal-api
-    tag: "1.4.0"
+    tag: "1.4.1"
     pullPolicy: Always
 
   podSecurityContext:
@@ -395,6 +366,11 @@ iamAgentPortalApi:
     IAM_AGENT_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_AGENT_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
     IAM_AGENT_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+    # tpl, not a bare substitution: global.keycloakBaseUrl is itself a template
+    # ('https://keycloak.{{ tpl .Values.global.baseDomain $ }}'), so a single pass
+    # resolves this reference and leaves the inner '{{ tpl ... }}' in the value
+    # verbatim -- which is what reached the running pods. ADMIN_URL reads the SAME
+    # setting and renders correctly precisely because it uses tpl.
     IAM_AGENT_KEYCLOAK_BASE_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_AGENT_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.agentKeycloakExternalIssuerUrl $ }}'
     IAM_AGENT_LOGIN_PROVIDERS_TABLE_ENABLED: true
@@ -409,9 +385,24 @@ iamAgentPortalApi:
     IAM_AGENT_AUTH_COOKIE_HTTPONLY: true
     IAM_AGENT_AUTH_COOKIE_PATH: "/"
     IAM_AGENT_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
+    # The agent portal shares authCookieDomain with the staff portal, and the
+    # browser sends every cookie matching that domain to BOTH. Without distinct
+    # names the second login overwrites the first, and each portal's API then
+    # receives the other's tokens -- the ID token in particular, which is read
+    # from a cookie while the access token comes from the Authorization header.
+    # The receiving API cannot verify a token minted by the other realm and the
+    # request fails. Staff keeps the unprefixed names, so existing sessions and
+    # any client reading them are unaffected.
+    IAM_AGENT_AUTH_COOKIE_PREFIX: 'agent-'
     IAM_AGENT_AUTH_COOKIE_MAX_AGE: 2100
     IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
-    IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
+    # The agent portal UI, not the staff one. This key was renamed from
+    # IAM_STAFF_UI_APPLICATION_URL when the agent block was copied, but the VALUE
+    # was left pointing at iamStaffUiApplicationUrl -- so IAM advertised the staff
+    # UI as the agent application's home. There is no separate IAM agent UI; the
+    # agent's UI is the registry's agent portal, which agentPortalHostname already
+    # names (and which agentPortalDefaultRedirectUri is derived from).
+    IAM_AGENT_DATA_APPLICATION_URLS__IAM_AGENT_UI_APPLICATION_URL: 'https://{{ tpl .Values.global.agentPortalHostname $ }}'
     # The client whose ROLES are read when resolving an agent's permissions.
     # Must be the same client the Registry's agent-portal-api resolves against
     # (its global.agentKeycloakClientId), or an agent authorised here would be
@@ -429,8 +420,8 @@ iamAgentPortalApi:
       secretKeyRef:
         name: '{{ tpl .Values.global.iamDBSecret $ }}'
         key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
-    # The agent client's secret, created in the agent realm by this chart's
-    # keycloak-init (Secret name = clientId). `optional` so the chart still
+    # The agent client's secret, created in the agent realm (by keycloak-init on
+    # the commons layer; Secret name = clientId). `optional` so the chart still
     # installs if the Job has not finished — login cannot complete until it has.
     IAM_AGENT_DATA_CLIENT_SECRETS__AGENT_PORTAL_SECRET:
       secretKeyRef:
@@ -496,7 +487,7 @@ iamStaffUi:
 
   image:
     repository: openg2p/iam-staff-ui
-    tag: "1.4.0"
+    tag: "1.4.1"
     pullPolicy: Always
 
   containerPort: 3000
