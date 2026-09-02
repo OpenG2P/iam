@@ -24,6 +24,15 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+dev = [
+  "pytest >=8",
+  "pytest-asyncio >=0.23",
+  "pytest-cov >=5",
+  "coverage >=7",
+  "httpx",
+]
+
 [project.urls]
 Homepage = "https://openg2p.org"
 Documentation = "https://docs.openg2p.org/"

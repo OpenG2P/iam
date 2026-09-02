@@ -112,6 +112,16 @@ class TokenValidatorService(BaseService):
                 raise ExpiredTokenError() from e
             except JoseError as e:
                 raise UnauthorizedError(message=f"Unauthorized. Invalid Jwt. {repr(e)}") from e
+            except ValueError as e:
+                # authlib raises a bare ValueError("Key not found") when the
+                # token's `kid` is absent from the provider's JWKS -- e.g. a
+                # token minted by a DIFFERENT realm. ValueError is not a
+                # JoseError, so without this it escapes as an unhandled 500.
+                # A token this service cannot verify is an authentication
+                # failure, not a server fault.
+                raise UnauthorizedError(
+                    message=f"Unauthorized. Token cannot be verified against this provider. {repr(e)}"
+                ) from e
         else:
             verified_claims = {}
 
@@ -128,6 +138,16 @@ class TokenValidatorService(BaseService):
                 raise ExpiredTokenError(message="Unauthorized. ID token expired.") from e
             except JoseError as e:
                 raise UnauthorizedError(message=f"Unauthorized. Invalid Jwt ID Token. {repr(e)}") from e
+            except ValueError as e:
+                # Same bare-ValueError case as the access token above, and the
+                # one that actually bites: the ID token is read from a COOKIE
+                # while the access token comes from the Authorization header, so
+                # a browser holding another portal's session on a shared parent
+                # domain sends a foreign-realm ID token alongside a perfectly
+                # good bearer token.
+                raise UnauthorizedError(
+                    message=f"Unauthorized. ID token cannot be verified against this provider. {repr(e)}"
+                ) from e
 
         claims = self._combine_claims(
             unverified_payload,

@@ -6,7 +6,7 @@ from openg2p_fastapi_common.errors.base_exception import BaseAppException
 from openg2p_fastapi_common.errors.http_exceptions import ForbiddenError
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from ..enums import AuthCookieName
+from ..enums import AuthCookieName, cookie_name
 from ..helpers.error_response_helper import user_auth_error_response
 
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -55,7 +55,7 @@ class CsrfMiddleware(BaseHTTPMiddleware):
         return False
 
     def _validate_csrf(self, request: Request) -> None:
-        cookie_token = request.cookies.get(AuthCookieName.CSRF_TOKEN)
+        cookie_token = request.cookies.get(cookie_name(AuthCookieName.CSRF_TOKEN))
         header_token = request.headers.get(_CSRF_HEADER_NAME)
         if not cookie_token or not header_token:
             raise ForbiddenError(message=_CSRF_FORBIDDEN_MESSAGE)
