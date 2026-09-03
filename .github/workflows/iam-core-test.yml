@@ -50,7 +50,7 @@ jobs:
           python -m pip install --upgrade pip
           # External lib (openg2p-fastapi-common) from git.
           python -m pip install \
-            "git+https://github.com/openg2p/openg2p-fastapi-common@${{ inputs.fastapi_common_ref || '1.1' }}#subdirectory=openg2p-fastapi-common"
+            "git+https://github.com/openg2p/openg2p-fastapi-common@${{ inputs.fastapi_common_ref || 'develop' }}#subdirectory=openg2p-fastapi-common"
           # In-repo library (not on PyPI) + test tooling.
           python -m pip install -e ./iam-core
           python -m pip install pytest pytest-asyncio
