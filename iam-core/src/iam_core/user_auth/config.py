@@ -51,3 +51,8 @@ class Settings(BaseSettings):
     # Client-side cache for role→permissions resolution (ResolvePermissionMiddleware).
     # Same roles share one entry across users; short TTL so IAM role mapping changes propagate.
     auth_permissions_cache_ttl_seconds: int = 60
+
+    # Process-wide caches for IdP discovery (OidcClient / JWKS).
+    # ContextVar cannot be used here — it is request-scoped and would refetch every call.
+    auth_oidc_metadata_cache_ttl_seconds: int = 60 * 5
+    auth_jwks_cache_ttl_seconds: int = 60 * 5

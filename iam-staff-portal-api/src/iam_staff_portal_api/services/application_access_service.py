@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from openg2p_fastapi_common.context import dbengine
+from openg2p_fastapi_common.context import get_async_session_maker
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError, NotFoundError
 from openg2p_fastapi_common.service import BaseService
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
 
 from ..helpers.query_helper import dt_iso, paginate
 from ..helpers.keycloak_helper import KeycloakHelper
@@ -67,7 +65,7 @@ class ApplicationAccessService(BaseService):
     async def get_roles(
         self, payload: ApplicationScopedPayload, page: int, page_size: int
     ) -> tuple[list[RoleData], int]:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             stmt = (
@@ -84,7 +82,7 @@ class ApplicationAccessService(BaseService):
         mnemonic = payload.role_mnemonic.strip()
         if not mnemonic:
             raise BadRequestError(message="role_mnemonic is required")
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             existing = (
@@ -133,7 +131,7 @@ class ApplicationAccessService(BaseService):
             return self._role_data(role)
 
     async def delete_role(self, payload: RoleDeletePayload, auth_token: str = "") -> RoleData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             role = await session.get(StaffRole, payload.id)
@@ -159,7 +157,7 @@ class ApplicationAccessService(BaseService):
     async def get_permissions(
         self, payload: ApplicationScopedPayload, page: int, page_size: int
     ) -> tuple[list[PermissionData], int]:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             stmt = (
@@ -174,7 +172,7 @@ class ApplicationAccessService(BaseService):
         mnemonic = payload.permission_mnemonic.strip()
         if not mnemonic:
             raise BadRequestError(message="permission_mnemonic is required")
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             existing = (
@@ -203,7 +201,7 @@ class ApplicationAccessService(BaseService):
             return self._perm_data(perm)
 
     async def delete_permission(self, payload: PermissionDeletePayload) -> PermissionData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             perm = await session.get(StaffApplicationPermission, payload.id)
@@ -220,7 +218,7 @@ class ApplicationAccessService(BaseService):
     async def get_role_permissions(
         self, payload: RolePermissionListPayload, page: int, page_size: int
     ) -> tuple[list[RolePermissionData], int]:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             roles = (
@@ -275,7 +273,7 @@ class ApplicationAccessService(BaseService):
             return items, total
 
     async def create_role_permission(self, payload: RolePermissionCreatePayload) -> RolePermissionData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             role = await session.get(StaffRole, payload.role_id)
@@ -322,7 +320,7 @@ class ApplicationAccessService(BaseService):
             )
 
     async def delete_role_permission(self, payload: RolePermissionDeletePayload) -> RolePermissionData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             mapping = await session.get(StaffRolePermission, payload.id)

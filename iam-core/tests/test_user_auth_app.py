@@ -18,6 +18,7 @@ def test_initializer_registers_auth_components():
         patch("iam_core.user_auth.app.RedisRefreshTokenStore") as redis_refresh_token_store,
         patch("iam_core.user_auth.app.TokenValidatorService") as token_validator_service,
         patch("iam_core.user_auth.app.JWTValidationHelper") as jwt_validation_helper,
+        patch("iam_core.user_auth.app.init_cache") as init_cache,
     ):
         Initializer.initialize(init)
 
@@ -31,3 +32,4 @@ def test_initializer_registers_auth_components():
     redis_refresh_token_store.assert_called_once()
     token_validator_service.assert_called_once()
     jwt_validation_helper.assert_called_once()
+    init_cache.assert_called_once()

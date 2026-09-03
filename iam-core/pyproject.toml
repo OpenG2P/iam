@@ -15,7 +15,6 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "openg2p-fastapi-common",
   "cryptography >=41.0.4",
   "python-jose >=3.3.0",
   "httpx",

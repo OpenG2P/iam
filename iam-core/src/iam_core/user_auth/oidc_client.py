@@ -5,10 +5,11 @@ from urllib.parse import urlparse
 import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
+from fastapi_cache.coder import PickleCoder
+from fastapi_cache.decorator import cache
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import InternalServerError, UnauthorizedError
 
-from iam_core.context import server_metadata_cache
 from iam_core.models import LoginProvider
 from iam_core.schemas import TokenEndpointAuthMethod
 
@@ -24,6 +25,15 @@ from .helpers.token_helper import validate_refresh_token_response
 
 _config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
+
+
+def _server_metadata_key_builder(func, namespace: str, *args, **kwargs) -> str:
+    """Cache by login-provider id so the ORM object itself is not part of the key."""
+    call_args = kwargs.get("args") or ()
+    call_kwargs = kwargs.get("kwargs") or {}
+    login_provider = call_args[1] if len(call_args) > 1 else call_kwargs.get("login_provider")
+    provider_id = getattr(login_provider, "id", None)
+    return f"{namespace}:oidc_server_metadata:{provider_id}"
 
 
 class OidcClient:
@@ -71,12 +81,12 @@ class OidcClient:
             return None
         return f"{issuer.rstrip('/')}/.well-known/openid-configuration"
 
+    @cache(
+        expire=_config.auth_oidc_metadata_cache_ttl_seconds,
+        key_builder=_server_metadata_key_builder,
+        coder=PickleCoder,
+    )
     async def get_server_metadata(self, login_provider: LoginProvider) -> dict:
-        cache = server_metadata_cache.get() or {}
-        cache_key = f"lp:{login_provider.id}"
-        if cache_key in cache:
-            return cache[cache_key]
-
         metadata_url = self._metadata_url(login_provider)
         metadata = {}
         if metadata_url:
@@ -94,8 +104,6 @@ class OidcClient:
         if login_provider.jwks_uri:
             metadata["jwks_uri"] = login_provider.jwks_uri
 
-        cache[cache_key] = metadata
-        server_metadata_cache.set(cache)
         return metadata
 
     async def build_authorize_redirect(

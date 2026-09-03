@@ -143,6 +143,11 @@ iamStaffPortalApi:
     IAM_STAFF_DB_DBNAME: '{{ tpl .Values.global.iamDB $ }}'
     IAM_STAFF_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_STAFF_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
+    # SQLAlchemy pool per gunicorn worker process.
+    IAM_STAFF_DB_POOL_SIZE: 5
+    IAM_STAFF_DB_POOL_MAX_OVERFLOW: 10
+    IAM_STAFF_DB_POOL_PRE_PING: true
+    IAM_STAFF_DB_POOL_RECYCLE: 1800
     IAM_STAFF_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
     IAM_STAFF_KEYCLOAK_BASE_URL: '{{ .Values.global.keycloakBaseUrl }}'
     IAM_STAFF_KEYCLOAK_ISSUER_URL: '{{ tpl .Values.global.keycloakExternalIssuerUrl $ }}'
