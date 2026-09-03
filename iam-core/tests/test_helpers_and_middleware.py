@@ -6,6 +6,8 @@ import httpx
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import (
     ForbiddenError,
@@ -14,7 +16,6 @@ from openg2p_fastapi_common.errors.http_exceptions import (
 )
 from starlette.routing import Match
 
-from iam_core.context import jwks_cache
 from iam_core.schemas import TokenEndpointAuthMethod
 from iam_core.user_auth.decorators import (
     endpoint_requires_auth,
@@ -235,7 +236,8 @@ def test_logout_token_helper_validation_paths():
 
 @pytest.mark.asyncio
 async def test_jwks_helper_fetch_and_cache():
-    jwks_cache.set(None)
+    FastAPICache.init(InMemoryBackend(), prefix="test-jwks")
+    await FastAPICache.clear()
     metadata = {"jwks_uri": "https://issuer/jwks"}
     response = MagicMock()
     response.raise_for_status = MagicMock()

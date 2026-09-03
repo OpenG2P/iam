@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import InternalServerError, UnauthorizedError
 
-from iam_core.context import server_metadata_cache
 from iam_core.schemas import TokenEndpointAuthMethod
 from iam_core.user_auth.adapters.adapter_factory import AdapterFactory
 from iam_core.user_auth.adapters.implementations.esignet_adapter import EsignetAdapter
@@ -185,7 +186,8 @@ def test_oidc_client_guess_issuer_from_endpoints():
 
 @pytest.mark.asyncio
 async def test_oidc_client_get_server_metadata_fetches_and_caches():
-    server_metadata_cache.set(None)
+    FastAPICache.init(InMemoryBackend(), prefix="test-oidc-metadata")
+    await FastAPICache.clear()
     lp = make_login_provider(server_metadata_url="https://idp/.well-known/openid-configuration")
     client = OidcClient()
     metadata_response = MagicMock()
