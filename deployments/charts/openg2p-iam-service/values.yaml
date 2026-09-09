@@ -52,7 +52,7 @@ global:
   registryApplicationUrl: 'https://registry.{{ .Release.Namespace }}.openg2p.org'
   minioApplicationUrl: 'https://minio.{{ .Release.Namespace }}.openg2p.org'
   supersetApplicationUrl: 'https://superset.{{ .Release.Namespace }}.openg2p.org'
-  iamStaffUiApplicationUrl: 'https://iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
+  iamStaffUiApplicationUrl: 'https://{{ tpl .Values.iamStaffUi.hostname $ }}'
 
   # Backend API URLs used by iam-staff-ui BFF (override per environment)
   masterDataApiUrl: 'http://commons-services-master-data-api'
