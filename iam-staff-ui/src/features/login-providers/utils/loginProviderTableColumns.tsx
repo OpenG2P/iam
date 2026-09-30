@@ -22,27 +22,27 @@ export function getLoginProviderColumns({
   return [
     {
       key: "name",
-      header: "Name",
+      header: t("name"),
       render: (lp: LoginProvider) => lp.provider_name,
     },
     {
       key: "clientId",
-      header: "Client ID",
+      header: t("clientId"),
       render: (lp: LoginProvider) => lp.client_id,
     },
     {
       key: "issuer",
-      header: "Issuer",
+      header: t("issuer"),
       render: (lp: LoginProvider) => lp.issuer,
     },
     {
       key: "authMethod",
-      header: "Auth Method",
+      header: t("authMethod"),
       render: (lp: LoginProvider) => lp.token_endpoint_auth_method || "—",
     },
     {
       key: "status",
-      header: "Status",
+      header: t("status"),
       render: (lp: LoginProvider) => (
         <StatusBadge
           active={lp.active}
@@ -53,12 +53,12 @@ export function getLoginProviderColumns({
     },
     {
       key: "actions",
-      header: "Actions",
+      header: t("actions"),
       render: (lp: LoginProvider) => (
         <Can action="loginProvider:delete">
           <DeleteButton
             onClick={() => onDelete(lp)}
-            title="Delete login provider"
+            title={t("deleteLoginProvider")}
           >
             {t("delete")}
           </DeleteButton>

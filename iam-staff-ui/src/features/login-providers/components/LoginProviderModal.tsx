@@ -86,113 +86,113 @@ export default function LoginProviderModal({
   const t = useTranslations();
 
   return (
-    <Modal title="Add Login Provider" onClose={onClose} width="800">
+    <Modal title={t("addLoginProvider")} onClose={onClose} width="800">
       <form onSubmit={onSave}>
         <div className="grid grid-cols-2 gap-4">
           <InputField
-            label="Provider name"
+            label={t("providerName")}
             value={form.provider_name}
             onChange={(value) => onChange("provider_name", value)}
             required
           />
           <InputField
-            label="Client ID"
+            label={t("clientId")}
             value={form.client_id}
             onChange={(value) => onChange("client_id", value)}
             required
           />
           <TextAreaField
-            label="Description"
+            label={t("description")}
             value={form.description}
             onChange={(value) => onChange("description", value)}
             className="col-span-full"
             rows={3}
           />
           <InputField
-            label="Issuer"
+            label={t("issuer")}
             value={form.issuer}
             onChange={(value) => onChange("issuer", value)}
             required
           />
           <SelectField
-            label="Auth method"
+            label={t("authMethod")}
             value={form.token_endpoint_auth_method}
             onChange={(value) => onChange("token_endpoint_auth_method", value)}
             options={AUTH_METHODS.map((m) => ({ value: m, label: m }))}
             required
           />
           <InputField
-            label="Client secret"
+            label={t("clientSecret")}
             type="password"
             value={form.client_secret}
             onChange={(value) => onChange("client_secret", value)}
           />
           <TextAreaField
-            label="Client private key"
+            label={t("clientPrivateKey")}
             value={form.client_private_key}
             onChange={(value) => onChange("client_private_key", value)}
             rows={3}
           />
           <InputField
-            label="OAuth callback URL"
+            label={t("oauthCallbackUrl")}
             value={form.oauth_callback_url}
             onChange={(value) => onChange("oauth_callback_url", value)}
             className="col-span-full"
             required
           />
           <InputField
-            label="Server metadata URL"
+            label={t("serverMetadataUrl")}
             value={form.server_metadata_url}
             onChange={(value) => onChange("server_metadata_url", value)}
           />
           <InputField
-            label="Default redirect URI"
+            label={t("defaultRedirectUri")}
             value={form.default_redirect_uri}
             onChange={(value) => onChange("default_redirect_uri", value)}
           />
           <InputField
-            label="Authorization endpoint"
+            label={t("authorizationEndpoint")}
             value={form.authorization_endpoint}
             onChange={(value) => onChange("authorization_endpoint", value)}
           />
           <InputField
-            label="Token endpoint"
+            label={t("tokenEndpoint")}
             value={form.token_endpoint}
             onChange={(value) => onChange("token_endpoint", value)}
           />
           <InputField
-            label="Userinfo endpoint"
+            label={t("userinfoEndpoint")}
             value={form.userinfo_endpoint}
             onChange={(value) => onChange("userinfo_endpoint", value)}
           />
           <InputField
-            label="JWKS URI"
+            label={t("jwksUri")}
             value={form.jwks_uri}
             onChange={(value) => onChange("jwks_uri", value)}
           />
           <InputField
-            label="Scope"
+            label={t("scope")}
             value={form.scope}
             onChange={(value) => onChange("scope", value)}
           />
           <InputField
-            label="Adapter name"
+            label={t("adapterName")}
             value={form.adapter_name}
             onChange={(value) => onChange("adapter_name", value)}
           />
           <InputField
-            label="JWT assertion audience"
+            label={t("jwtAssertionAudience")}
             value={form.jwt_assertion_aud}
             onChange={(value) => onChange("jwt_assertion_aud", value)}
           />
           <InputField
-            label="Audiences"
+            label={t("audiences")}
             value={form.audiences}
             onChange={(value) => onChange("audiences", value)}
             className="col-span-full"
           />
           <TextAreaField
-            label="Extra authorize params"
+            label={t("extraAuthorizeParams")}
             value={form.extra_authorize_params}
             onChange={(value) => onChange("extra_authorize_params", value)}
             className="col-span-full"
@@ -211,7 +211,7 @@ export default function LoginProviderModal({
             }}
           />
           <CheckboxField
-            label="Enable PKCE"
+            label={t("enablePkce")}
             checked={form.enable_pkce}
             onChange={(checked) => onChange("enable_pkce", checked)}
           />

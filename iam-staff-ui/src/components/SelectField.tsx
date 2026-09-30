@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface SelectFieldProps {
   label?: string;
   value: string;
@@ -16,11 +18,14 @@ export default function SelectField({
   value,
   onChange,
   options,
-  placeholder = "Select...",
+  placeholder,
   disabled = false,
   required = false,
   className = "",
 }: SelectFieldProps) {
+  const t = useTranslations();
+  const defaultPlaceholder = placeholder ?? t("select");
+
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
@@ -36,7 +41,7 @@ export default function SelectField({
         onChange={(e) => onChange(e.target.value)}
         className="text-[16px] p-2.5 border border-[#ED7C22] rounded-[10px] bg-white text-black focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
       >
-        <option value="">{placeholder}</option>
+        <option value="">{defaultPlaceholder}</option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}

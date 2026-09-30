@@ -21,6 +21,10 @@ global:
   # Security & Authentication
   keycloakBaseUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
   keycloakRealm: staff
+  # Keycloak client used by iam-staff-ui permission checks (IAM_STAFF_KEYCLOAK_CLIENT_ID).
+  iamStaffUiClientId: iam-staff-ui
+  # Initial password for the iam.admin user created by keycloak-init.
+  iamAdminUserPassword: 'pass'
   keycloakIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.keycloakRealm }}'
   keycloakExternalIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.keycloakRealm }}'
 
@@ -480,6 +484,45 @@ iamAgentPortalApi:
       - 'until psql "postgresql://${IAM_AGENT_DB_USERNAME}:${IAM_AGENT_DB_PASSWORD}@${IAM_AGENT_DB_HOSTNAME}:${IAM_AGENT_DB_PORT}/${IAM_AGENT_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_AGENT_DB_DBNAME} to be ready..."; sleep 3; done'
     containerSecurityContext:
       enabled: false
+
+# ---------------------------------------------------------------------------
+# keycloak-init — IAM OIDC client + iam.admin in the shared `staff` realm.
+# IAM is installed before registry; registry keycloak-init only maps
+# registry client roles onto this existing user (no password, no IAM client).
+# ---------------------------------------------------------------------------
+keycloak-init:
+  enabled: true
+  keycloak:
+    url: 'http://commons-keycloak:80'
+    user: 'admin'
+    password: ''
+    existingSecret: 'commons-keycloak'
+    existingSecretKey: 'admin-password'
+  suffix: '{{ .Release.Namespace }}'
+  realms:
+    staff:
+      clients:
+        - clientId: '{{ tpl .Values.global.iamStaffUiClientId $ }}'
+          name: IAM Staff UI
+          description: OIDC client for the IAM staff admin UI and IAM_ADMIN role checks.
+          publicClient: true
+          redirectUris:
+            - 'https://{{ tpl .Values.iamStaffUi.hostname $ }}/*'
+          webOrigins: ["+"]
+          clientRoles:
+            - "IAM_ADMIN"
+      users:
+        - username: iam.admin
+          firstName: IAM
+          lastName: Admin
+          email: iam.admin@email.com
+          password: '{{ tpl .Values.global.iamAdminUserPassword $ }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ tpl .Values.global.iamStaffUiClientId $ }}':
+              - "IAM_ADMIN"
+            realm-management:
+              - "manage-clients"
 
 # ---------------------------------------------------------------------------
 # IAM Staff UI (Next.js BFF) — Applications / Login Providers admin

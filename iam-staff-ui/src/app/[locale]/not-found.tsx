@@ -20,11 +20,11 @@ export default function NotFound() {
       />
 
       <h1 className="mb-2 text-4xl font-bold text-gray-900">
-        Page Not Found
+        {t("error404Title")}
       </h1>
 
       <p className="mb-8 text-lg text-gray-600 max-w-md text-center">
-        The page you are looking for does not exist.
+        {t("error404Subtitle")}
       </p>
 
       <button

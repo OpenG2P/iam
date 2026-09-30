@@ -191,7 +191,7 @@ export default function ApplicationsPageClient() {
 
       <div className="bg-white rounded-[10px] py-6 shadow-sm">
         {loading || !loadedOnce ? (
-          <TableSkeleton rows={pageSize} headers={["Mnemonic", "Description", "URL", "Status", "Actions"]} />
+          <TableSkeleton rows={pageSize} headers={[t("mnemonic"), t("description"), t("url"), t("status"), t("actions")]} />
         ) : (
           <Table
             columns={getApplicationColumns({ onDelete: openDeleteModal, t })}

@@ -49,43 +49,43 @@ export default function ApplicationModal({
   const t = useTranslations();
 
   return (
-    <Modal title="Add Application" onClose={onClose}>
+    <Modal title={t("addApplication")} onClose={onClose}>
       <form onSubmit={onSave}>
         <div className="grid grid-cols-2 gap-4">
           <InputField
-            label="Mnemonic"
+            label={t("mnemonic")}
             value={form.application_mnemonic}
             onChange={(value) => onChange("application_mnemonic", value)}
             className="col-span-full"
             required
           />
           <TextAreaField
-            label="Description"
+            label={t("description")}
             value={form.application_description}
             onChange={(value) => onChange("application_description", value)}
             className="col-span-full"
             rows={1}
           />
           <InputField
-            label="URL"
+            label={t("url")}
             value={form.application_url}
             onChange={(value) => onChange("application_url", value)}
             className="col-span-full"
           />
           <InputField
-            label="API URL"
+            label={t("apiUrl")}
             value={form.api_url}
             onChange={(value) => onChange("api_url", value)}
             className="col-span-full"
           />
           <InputField
-            label="Order"
+            label={t("order")}
             type="number"
             value={form.order}
             onChange={(value) => onChange("order", value)}
           />
           <InputField
-            label="Width"
+            label={t("width")}
             type="number"
             value={form.width}
             onChange={(value) => onChange("width", value)}

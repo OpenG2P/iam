@@ -107,8 +107,8 @@ export function DataPolicyFormModal({
   );
 
   const policyTypeOptions = useMemo(
-    () => POLICY_TYPES.map((type) => ({ label: type, value: type })),
-    [],
+    () => POLICY_TYPES.map((type) => ({ label: t(type.toLowerCase()), value: type })),
+    [t],
   );
 
   const filterFields = useMemo(() => {
@@ -185,7 +185,7 @@ export function DataPolicyFormModal({
     <div className="fixed inset-0 bg-[#000000]/80 z-50 flex items-center justify-center p-6">
       <div className="relative w-full max-w-6xl bg-[#FFFFFF] rounded-[10px] border-[5px] border-[#EABB13] px-8 py-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[24px] text-[#ED7C22] font-medium">Add Data Policy</h2>
+          <h2 className="text-[24px] text-[#ED7C22] font-medium">{t("addDataPolicy")}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -197,49 +197,49 @@ export function DataPolicyFormModal({
 
         <div className="space-y-4 max-h-[70vh] overflow-y-auto modal-scroll">
           <div className="bg-[#F3F1E4] rounded-lg p-6">
-            <h3 className="text-base font-semibold mb-4">Policy Details</h3>
+            <h3 className="text-base font-semibold mb-4">{t("policy_details")}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
               {isRegisterTarget ? (
                 <CustomDropdown
-                  label="Register"
+                  label={t("register")}
                   options={registerOptions}
                   value={registerId}
                   onChange={setRegisterId}
                   loading={registersLoading}
-                  placeholder="Select register"
+                  placeholder={t("select_register")}
                   disabled={isRegisterFixed}
                 />
               ) : null}
               <CustomDropdown
-                label="Policy Type"
+                label={t("policy_type")}
                 options={policyTypeOptions}
                 value={policyType}
                 onChange={setPolicyType}
               />
               <div className="md:col-span-2">
                 <InputField
-                  label="Policy Mnemonic"
+                  label={t("policy_mnemonic")}
                   value={policyMnemonic}
                   onChange={setPolicyMnemonic}
-                  placeholder="Enter policy mnemonic"
+                  placeholder={t("enter_policy_mnemonic")}
                 />
               </div>
               <div className="md:col-span-2">
                 <TextAreaField
-                  label="Policy Description"
+                  label={t("policy_description")}
                   value={policyDescription}
                   onChange={setPolicyDescription}
-                  placeholder="Enter policy description"
+                  placeholder={t("enter_policy_description")}
                 />
               </div>
             </div>
           </div>
 
           <div className="bg-[#F3F1E4] rounded-lg p-6">
-            <h3 className="text-base font-semibold mb-4">Filter Rules</h3>
+            <h3 className="text-base font-semibold mb-4">{t("filter_rules")}</h3>
             {!showFilterBuilder ? (
               <p className="text-[16px] text-gray-500">
-                {isRegisterTarget ? 'Select a register to view filter fields' : 'Loading filter fields...'}
+                {isRegisterTarget ? t("select_register_for_filter_fields") : t("loading_filter_fields")}
               </p>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] gap-6 items-stretch">
@@ -277,7 +277,7 @@ export function DataPolicyFormModal({
               disabled={saving}
               className="px-6 py-2 bg-[#E1E1E1] text-[#000000]/50 text-[16px] font-bold rounded-[10px] disabled:opacity-50"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="button"
@@ -285,7 +285,7 @@ export function DataPolicyFormModal({
               disabled={saving}
               className="px-6 py-2 bg-[#000000] text-[#FFFFFF] text-[16px] font-bold rounded-[10px] disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? t("saving") : t("save")}
             </button>
           </div>
         </div>
