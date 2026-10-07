@@ -1,7 +1,5 @@
 # Staff Portal Login and SSO Flow
-
 ---
-
 ## Quick summary
 
 - Login flow is OAuth2 Authorization Code + OIDC, implemented via Authlib in `iam-core`.
