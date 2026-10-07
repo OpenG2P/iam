@@ -507,7 +507,7 @@ keycloak-init:
           description: OIDC client for the IAM staff admin UI and IAM_ADMIN role checks.
           publicClient: true
           redirectUris:
-            - 'https://{{ tpl .Values.iamStaffUi.hostname $ }}/*'
+            - '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}/*'
           webOrigins: ["+"]
           clientRoles:
             - "IAM_ADMIN"
