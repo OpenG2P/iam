@@ -492,6 +492,7 @@ iamAgentPortalApi:
 # ---------------------------------------------------------------------------
 keycloak-init:
   enabled: true
+  nameOverride: iam-kc-init
   keycloak:
     url: 'http://commons-keycloak:80'
     user: 'admin'
