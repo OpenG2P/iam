@@ -11,7 +11,7 @@ from .cookie_helper import (
 )
 from .error_response_helper import user_auth_error_response
 from .jwks_helper import get_jwks
-from .jwt_helper import decode_jwt
+from .jwt_helper import decode_jwt, verify_signed_jwt
 from .pkce_helper import pkce_kwargs
 from .auth_user_helper import (
     auth_from_request,
@@ -59,4 +59,5 @@ __all__ = [
     "user_auth_error_response",
     "validate_refresh_token_response",
     "validate_request_token",
+    "verify_signed_jwt",
 ]

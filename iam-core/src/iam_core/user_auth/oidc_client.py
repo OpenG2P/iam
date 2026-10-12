@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
-from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import InternalServerError, UnauthorizedError
 
 from iam_core.context import server_metadata_cache
@@ -20,6 +19,7 @@ from .helpers import (
 )
 from .helpers import get_jwks as jwks_get
 from .helpers import pkce_kwargs
+from .helpers import verify_signed_jwt
 from .helpers.token_helper import validate_refresh_token_response
 
 _config = Settings.get_config(strict=False)
@@ -293,7 +293,12 @@ class OidcClient:
             if content_type.startswith("application/json"):
                 return response.json()
             if content_type.startswith("application/jwt"):
-                return jose_jwt.get_unverified_claims(response.text)
+                # A signed userinfo is only worth more than plain JSON if the
+                # signature is checked. Verify it against the same published keys
+                # as the ID token; callers bind identity to these claims.
+                issuer = metadata.get("issuer") or self._guess_issuer(login_provider)
+                jwks = await jwks_get(metadata, issuer)
+                return verify_signed_jwt(response.text, jwks)
             return {}
 
     async def introspect_token(
