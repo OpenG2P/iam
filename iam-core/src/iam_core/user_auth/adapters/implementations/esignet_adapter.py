@@ -1,8 +1,11 @@
 import json
+import logging
 from typing import Any
 
 from iam_core.models import LoginProvider
 from iam_core.user_auth.adapters.oidc_base import OIDCBase
+
+_logger = logging.getLogger(__name__)
 
 
 class EsignetAdapter(OIDCBase):
@@ -28,6 +31,11 @@ class EsignetAdapter(OIDCBase):
                 merged.update(userinfo)
                 return merged
         except Exception:
+            # Without userinfo, registrant auth falls back to opaque OIDC sub
+            # and will fail individual_id matching — surface the cause in logs.
+            _logger.exception(
+                "eSignet userinfo enrichment failed; continuing with token claims only."
+            )
             return claims
         return claims
 
