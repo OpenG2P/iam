@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
+from authlib.jose import JsonWebEncryption, JsonWebKey
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import InternalServerError, UnauthorizedError
@@ -24,6 +25,52 @@ from .helpers.token_helper import validate_refresh_token_response
 
 _config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
+
+
+def decode_userinfo_jwt(token: str, client_private_key: bytes | str | None = None) -> dict:
+    """Decode eSignet userinfo JWT.
+
+    MOSIP-style IdPs often return an encrypted JWT (JWE, 5 segments) whose
+    payload is a signed JWT (JWS) with claims such as ``individual_id``.
+    Plain JWS (3 segments) is also supported (claims read without verify).
+    """
+    token = (token or "").strip()
+    if not token:
+        return {}
+
+    payload = token
+    if token.count(".") == 4:
+        if not client_private_key:
+            raise InternalServerError(
+                "G2P-AUT-503",
+                "Encrypted userinfo JWT requires client_private_key to decrypt.",
+            )
+        key_material = client_private_key
+        if isinstance(key_material, str):
+            key_material = key_material.encode("utf-8")
+        key = JsonWebKey.import_key(key_material, {"kty": "RSA"})
+        decrypted = JsonWebEncryption().deserialize(token, key)
+        inner = decrypted.get("payload")
+        if isinstance(inner, bytes):
+            inner = inner.decode("utf-8")
+        payload = inner
+
+    if isinstance(payload, (bytes, bytearray)):
+        payload = payload.decode("utf-8")
+
+    if isinstance(payload, str) and payload.count(".") == 2:
+        return jose_jwt.get_unverified_claims(payload)
+
+    if isinstance(payload, str):
+        return json.loads(payload)
+
+    if isinstance(payload, dict):
+        return payload
+
+    raise InternalServerError(
+        "G2P-AUT-502",
+        "Unsupported userinfo JWT payload after decrypt.",
+    )
 
 
 class OidcClient:
@@ -292,8 +339,14 @@ class OidcClient:
             content_type = response.headers.get("content-type", "")
             if content_type.startswith("application/json"):
                 return response.json()
-            if content_type.startswith("application/jwt"):
-                return jose_jwt.get_unverified_claims(response.text)
+
+            body = (response.text or "").strip()
+            # application/jwt, or gateways that omit content-type but return JWT/JWE.
+            if content_type.startswith("application/jwt") or body.count(".") in (2, 4):
+                return decode_userinfo_jwt(
+                    body,
+                    getattr(login_provider, "client_private_key", None),
+                )
             return {}
 
     async def introspect_token(

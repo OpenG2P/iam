@@ -13,7 +13,7 @@ from iam_core.user_auth.adapters.adapter_factory import AdapterFactory
 from iam_core.user_auth.adapters.implementations.esignet_adapter import EsignetAdapter
 from iam_core.user_auth.adapters.implementations.keycloak_adapter import KeycloakAdapter
 from iam_core.user_auth.adapters.oidc_base import OIDCBase
-from iam_core.user_auth.oidc_client import OidcClient
+from iam_core.user_auth.oidc_client import OidcClient, decode_userinfo_jwt
 from helpers import make_login_provider
 
 
@@ -24,6 +24,33 @@ def _rsa_key_pem() -> bytes:
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     )
+
+
+def test_decode_userinfo_jwt_plain_and_jwe():
+    from authlib.jose import JsonWebEncryption, JsonWebKey
+    from cryptography.hazmat.primitives.asymmetric import rsa as _rsa
+
+    plain = jose_jwt.encode({"sub": "opaque", "individual_id": "ID-1"}, "secret", algorithm="HS256")
+    assert decode_userinfo_jwt(plain)["individual_id"] == "ID-1"
+
+    priv = _rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem = priv.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    pub = priv.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    jwe = JsonWebEncryption().serialize_compact(
+        {"alg": "RSA-OAEP-256", "enc": "A256GCM"},
+        plain.encode("utf-8"),
+        JsonWebKey.import_key(pub, {"kty": "RSA"}),
+    )
+    if isinstance(jwe, bytes):
+        jwe = jwe.decode("utf-8")
+    assert decode_userinfo_jwt(jwe, pem)["individual_id"] == "ID-1"
 
 
 def test_adapter_factory_resolves_known_and_unknown_adapters():
