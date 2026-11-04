@@ -1,9 +1,6 @@
 from contextvars import ContextVar
 from typing import Any, Dict, List, Optional
 
-jwks_cache: ContextVar[dict] = ContextVar("jwks_cache", default=None)
-server_metadata_cache: ContextVar[dict] = ContextVar("server_metadata_cache", default=None)
-
 auth_id_type_config_cache: ContextVar[Optional[Dict[str, Any]]] = ContextVar(
     "auth_id_type_config_cache", default=None
 )

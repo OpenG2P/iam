@@ -33,9 +33,7 @@ class EsignetAdapter(OIDCBase):
         except Exception:
             # Without userinfo, registrant auth falls back to opaque OIDC sub
             # and will fail individual_id matching — surface the cause in logs.
-            _logger.exception(
-                "eSignet userinfo enrichment failed; continuing with token claims only."
-            )
+            _logger.exception("eSignet userinfo enrichment failed; continuing with token claims only.")
             return claims
         return claims
 

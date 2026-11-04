@@ -83,10 +83,10 @@ def set_csrf_cookie(
     """Write the double-submit CSRF cookie. Returns the token value."""
     csrf_token = token or generate_csrf_token()
     response.delete_cookie(cookie_name(AuthCookieName.CSRF_TOKEN), **_csrf_cookie_delete_kwargs())
+    # No Max-Age or Expires. The token stays until logout deletes it.
     response.set_cookie(
         cookie_name(AuthCookieName.CSRF_TOKEN),
         csrf_token,
-        max_age=_config.auth_refresh_token_ttl_seconds,
         path=_config.auth_cookie_path,
         domain=_config.auth_cookie_domain,
         httponly=False,

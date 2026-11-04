@@ -80,6 +80,8 @@ def test_set_csrf_cookie_is_not_httponly():
     set_cookies = [value.decode() for name, value in response.raw_headers if name == b"set-cookie"]
     csrf_cookie = next(value for value in set_cookies if "csrf-value" in value)
     assert "httponly" not in csrf_cookie.lower()
+    assert "max-age" not in csrf_cookie.lower()
+    assert "expires=" not in csrf_cookie.lower()
 
 
 @pytest.mark.asyncio
