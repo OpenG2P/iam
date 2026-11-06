@@ -15,7 +15,6 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "openg2p-fastapi-common",
   "iam-core",
   "fastapi-cache2",
   "python-slugify>=8.0.0",

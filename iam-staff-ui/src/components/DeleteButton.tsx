@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes, ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 interface DeleteButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
   children: ReactNode;
@@ -9,10 +10,13 @@ interface DeleteButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>
 export default function DeleteButton({
   children,
   disabled = false,
-  title = "Delete",
+  title,
   onClick,
   ...props
 }: DeleteButtonProps) {
+  const t = useTranslations();
+  const buttonTitle = title ?? t("delete");
+
   return (
     <button
       type="button"
@@ -22,7 +26,7 @@ export default function DeleteButton({
         onClick?.(e);
       }}
       disabled={disabled}
-      title={title}
+      title={buttonTitle}
       {...props}
     >
       {children}

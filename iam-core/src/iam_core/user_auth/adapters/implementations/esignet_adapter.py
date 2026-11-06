@@ -1,10 +1,13 @@
 import json
+import logging
 from typing import Any
 
 from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 
 from iam_core.models import LoginProvider
 from iam_core.user_auth.adapters.oidc_base import OIDCBase
+
+_logger = logging.getLogger(__name__)
 
 
 class EsignetAdapter(OIDCBase):
@@ -29,6 +32,9 @@ class EsignetAdapter(OIDCBase):
             # untrustworthy. Falling back silently would hide a forgery.
             raise
         except Exception:
+            # Without userinfo, registrant auth falls back to opaque OIDC sub
+            # and will fail individual_id matching — surface the cause in logs.
+            _logger.exception("eSignet userinfo enrichment failed; continuing with token claims only.")
             return claims
         if not (isinstance(userinfo, dict) and userinfo):
             return claims

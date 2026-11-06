@@ -11,16 +11,20 @@ global:
 
   # Redis
   redisInstallationName: 'commons-redis'
-  # Refresh token TTL in Redis (default 1800 = 30 minutes)
-  authRefreshTokenTtlSeconds: 1800
+  # Refresh token TTL in Redis (default 2100 = 35 minutes)
+  authRefreshTokenTtlSeconds: 2100
   # Double-submit CSRF validation on state-changing IAM staff-portal-api requests.
   csrfEnabled: true
   # Role permission cache TTL in seconds
-  cacheExpireSeconds: 10
+  cacheExpireSeconds: 1800
 
   # Security & Authentication
   keycloakBaseUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
   keycloakRealm: staff
+  # Keycloak client used by iam-staff-ui permission checks (IAM_STAFF_KEYCLOAK_CLIENT_ID).
+  iamStaffUiClientId: iam-staff-ui
+  # Initial password for the iam.admin user created by keycloak-init.
+  iamAdminUserPassword: 'pass'
   keycloakIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.keycloakRealm }}'
   keycloakExternalIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ .Values.global.keycloakRealm }}'
 
@@ -53,6 +57,8 @@ global:
   minioApplicationUrl: 'https://minio.{{ .Release.Namespace }}.openg2p.org'
   supersetApplicationUrl: 'https://superset.{{ .Release.Namespace }}.openg2p.org'
   iamStaffUiApplicationUrl: 'https://iam-staff-ui.{{ .Release.Namespace }}.openg2p.org'
+  masterDataApplicationUrl: 'https://master-data.{{ .Release.Namespace }}.openg2p.org'
+  aweApplicationUrl: 'https://awe.{{ .Release.Namespace }}.openg2p.org'
 
   # Backend API URLs used by iam-staff-ui BFF (override per environment)
   masterDataApiUrl: 'http://commons-services-master-data-api'
@@ -92,7 +98,7 @@ iamStaffPortalApi:
 
   image:
     repository: openg2p/iam-staff-portal-api
-    tag: "1.4"
+    tag: "1.4.2"
     pullPolicy: Always
 
   podSecurityContext:
@@ -157,6 +163,11 @@ iamStaffPortalApi:
     IAM_STAFF_DB_DBNAME: '{{ tpl .Values.global.iamDB $ }}'
     IAM_STAFF_DB_PORT: '{{ .Values.global.iamDBPort }}'
     IAM_STAFF_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
+    # SQLAlchemy pool per gunicorn worker process.
+    IAM_STAFF_DB_POOL_SIZE: 5
+    IAM_STAFF_DB_POOL_MAX_OVERFLOW: 10
+    IAM_STAFF_DB_POOL_PRE_PING: true
+    IAM_STAFF_DB_POOL_RECYCLE: 1800
     IAM_STAFF_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
     # tpl, not a bare substitution: global.keycloakBaseUrl is itself a template
     # ('https://keycloak.{{ tpl .Values.global.baseDomain $ }}'), so a single pass
@@ -177,13 +188,15 @@ iamStaffPortalApi:
     IAM_STAFF_AUTH_COOKIE_HTTPONLY: true
     IAM_STAFF_AUTH_COOKIE_PATH: "/"
     IAM_STAFF_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
-    IAM_STAFF_AUTH_COOKIE_MAX_AGE: 1800
+    IAM_STAFF_AUTH_COOKIE_MAX_AGE: 2100
     IAM_STAFF_AUTH_COOKIE_SET_EXPIRES: true
     IAM_STAFF_DATA_APPLICATION_URLS__KEYCLOAK_APPLICATION_URL: '{{ tpl .Values.global.keycloakApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__REGISTRY_APPLICATION_URL: '{{ tpl .Values.global.registryApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__MINIO_APPLICATION_URL: '{{ tpl .Values.global.minioApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__SUPERSET_APPLICATION_URL: '{{ tpl .Values.global.supersetApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__IAM_STAFF_UI_APPLICATION_URL: '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__MASTER_DATA_APPLICATION_URL: '{{ tpl .Values.global.masterDataApplicationUrl $ }}'
+    IAM_STAFF_DATA_APPLICATION_URLS__AWE_APPLICATION_URL: '{{ tpl .Values.global.aweApplicationUrl $ }}'
     IAM_STAFF_KEYCLOAK_CLIENT_ID: "iam-staff-ui"
     IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
     IAM_STAFF_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
@@ -294,7 +307,7 @@ iamAgentPortalApi:
 
   image:
     repository: openg2p/iam-agent-portal-api
-    tag: "1.4"
+    tag: "1.4.2"
     pullPolicy: Always
 
   podSecurityContext:
@@ -390,7 +403,7 @@ iamAgentPortalApi:
     # request fails. Staff keeps the unprefixed names, so existing sessions and
     # any client reading them are unaffected.
     IAM_AGENT_AUTH_COOKIE_PREFIX: 'agent-'
-    IAM_AGENT_AUTH_COOKIE_MAX_AGE: 1800
+    IAM_AGENT_AUTH_COOKIE_MAX_AGE: 2100
     IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
     # The agent portal UI, not the staff one. This key was renamed from
     # IAM_STAFF_UI_APPLICATION_URL when the agent block was copied, but the VALUE
@@ -417,8 +430,8 @@ iamAgentPortalApi:
         name: '{{ tpl .Values.global.iamDBSecret $ }}'
         key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
     # The agent client's secret, created in the agent realm (by keycloak-init on
-    # the registry side). `optional` so the chart still installs before the realm
-    # has been provisioned — the API simply cannot complete a login until it is.
+    # the commons layer; Secret name = clientId). `optional` so the chart still
+    # installs if the Job has not finished — login cannot complete until it has.
     IAM_AGENT_DATA_CLIENT_SECRETS__AGENT_PORTAL_SECRET:
       secretKeyRef:
         name: agent-portal
@@ -473,6 +486,46 @@ iamAgentPortalApi:
       enabled: false
 
 # ---------------------------------------------------------------------------
+# keycloak-init — IAM OIDC client + iam.admin in the shared `staff` realm.
+# IAM is installed before registry; registry keycloak-init only maps
+# registry client roles onto this existing user (no password, no IAM client).
+# ---------------------------------------------------------------------------
+keycloak-init:
+  enabled: true
+  nameOverride: iam-kc-init
+  keycloak:
+    url: 'http://commons-keycloak:80'
+    user: 'admin'
+    password: ''
+    existingSecret: 'commons-keycloak'
+    existingSecretKey: 'admin-password'
+  suffix: '{{ .Release.Namespace }}'
+  realms:
+    staff:
+      clients:
+        - clientId: '{{ tpl .Values.global.iamStaffUiClientId $ }}'
+          name: IAM Staff UI
+          description: OIDC client for the IAM staff admin UI and IAM_ADMIN role checks.
+          publicClient: true
+          redirectUris:
+            - '{{ tpl .Values.global.iamStaffUiApplicationUrl $ }}/*'
+          webOrigins: ["+"]
+          clientRoles:
+            - "IAM_ADMIN"
+      users:
+        - username: iam.admin
+          firstName: IAM
+          lastName: Admin
+          email: iam.admin@email.com
+          password: '{{ tpl .Values.global.iamAdminUserPassword $ }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ tpl .Values.global.iamStaffUiClientId $ }}':
+              - "IAM_ADMIN"
+            realm-management:
+              - "manage-clients"
+
+# ---------------------------------------------------------------------------
 # IAM Staff UI (Next.js BFF) — Applications / Login Providers admin
 # ---------------------------------------------------------------------------
 iamStaffUi:
@@ -483,7 +536,7 @@ iamStaffUi:
 
   image:
     repository: openg2p/iam-staff-ui
-    tag: "1.4"
+    tag: "1.4.2"
     pullPolicy: Always
 
   containerPort: 3000

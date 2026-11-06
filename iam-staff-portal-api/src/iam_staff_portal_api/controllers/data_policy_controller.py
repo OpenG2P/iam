@@ -4,9 +4,7 @@ import logging
 
 from fastapi import Request
 from fastapi_cache.decorator import cache
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
-from openg2p_fastapi_common.context import dbengine
+from openg2p_fastapi_common.context import get_async_session_maker
 from ..config import Settings
 from iam_core.schemas.data_policy import (
     AddPolicyRequest,
@@ -88,7 +86,7 @@ class DataPolicyController(BaseController):
             payload = request.request_body.request_payload
             _logger.info("Getting data policy policy_id=%s", payload.policy_id)
 
-            session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+            session_maker = get_async_session_maker()
             async with session_maker() as session:
                 policy = await self._service.get_policy(
                     session,
@@ -115,7 +113,7 @@ class DataPolicyController(BaseController):
                 payload.register_id,
             )
 
-            session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+            session_maker = get_async_session_maker()
             async with session_maker() as session:
                 policies, total = await self._service.get_all_policies(
                     session,
@@ -156,7 +154,7 @@ class DataPolicyController(BaseController):
             if payload.application_id is not None and not mnemonic.startswith("DP_"):
                 mnemonic = f"DP_{mnemonic}"
 
-            session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+            session_maker = get_async_session_maker()
             async with session_maker() as session:
                 policy = await self._service.add_policy(
                     policy_mnemonic=mnemonic,
@@ -213,7 +211,7 @@ class DataPolicyController(BaseController):
             payload = request.request_body.request_payload
             _logger.info("Removing data policy policy_id=%s", payload.policy_id)
 
-            session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+            session_maker = get_async_session_maker()
             async with session_maker() as session:
                 # Get policy first to check if it's an IAM application policy
                 from iam_core.models import DataPolicy
@@ -283,7 +281,7 @@ class DataPolicyController(BaseController):
         policy_mnemonics: list[str],
     ) -> list[DataPolicyData]:
         """Internal cached method for expression evaluation."""
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        session_maker = get_async_session_maker()
         async with session_maker() as session:
             policies = await self._service.get_policies_by_mnemonics(
                 policy_mnemonics=policy_mnemonics,

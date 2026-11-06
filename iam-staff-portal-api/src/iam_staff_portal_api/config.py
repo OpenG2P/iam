@@ -26,6 +26,8 @@ class Settings(BaseSettings):
             "minio_application_url": "https://minio.openg2p.org",
             "superset_application_url": "https://superset.openg2p.org",
             "iam_staff_ui_application_url": "http://localhost:8035",
+            "master_data_application_url": "http://localhost:8002",
+            "awe_application_url": "http://localhost:8003",
         }
     )
     data_client_secrets: dict[str, str] = Field(default_factory=dict)

@@ -11,22 +11,22 @@ export function getDataPolicyColumns(
   return [
     {
       key: "mnemonic",
-      header: "Mnemonic",
+      header: t("mnemonic"),
       render: (dp: DataPolicy) => dp.policy_mnemonic,
     },
     {
       key: "description",
-      header: "Description",
+      header: t("description"),
       render: (dp: DataPolicy) => dp.policy_description || "—",
     },
     {
       key: "policy_target",
-      header: "Policy Target",
+      header: t("policy_target"),
       render: (dp: DataPolicy) => dp.policy_target || "—",
     },
     {
       key: "policy_type",
-      header: "Policy Type",
+      header: t("policyType"),
       render: (dp: DataPolicy) => dp.policy_type || "—",
     },
     {

@@ -22,22 +22,22 @@ export function getApplicationColumns({
   return [
     {
       key: "mnemonic",
-      header: "Mnemonic",
+      header: t("mnemonic"),
       render: (app: Application) => app.application_mnemonic,
     },
     {
       key: "description",
-      header: "Description",
+      header: t("description"),
       render: (app: Application) => app.application_description || "—",
     },
     {
       key: "url",
-      header: "URL",
+      header: t("url"),
       render: (app: Application) => app.application_url || "—",
     },
     {
       key: "status",
-      header: "Status",
+      header: t("status"),
       render: (app: Application) => (
         <StatusBadge
           active={app.active}
@@ -48,13 +48,13 @@ export function getApplicationColumns({
     },
     {
       key: "actions",
-      header: "Actions",
+      header: t("actions"),
       render: (app: Application) => (
         <Can action="application:delete">
           <DeleteButton
             onClick={() => onDelete(app)}
             disabled={app.is_self_registered}
-            title={app.is_self_registered ? "Cannot delete self-registered applications" : "Delete application"}
+            title={app.is_self_registered ? t("cannotDeleteSelfRegistered") : t("deleteApplication")}
           >
             {t("delete")}
           </DeleteButton>

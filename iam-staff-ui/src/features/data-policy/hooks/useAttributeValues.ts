@@ -18,7 +18,6 @@ export function useAttributeValues(attributeId?: string) {
                 attribute_id: attributeId,
                 current_page: 1,
                 page_size: 1000,
-                include_domains: true,
             }),
         },
     });

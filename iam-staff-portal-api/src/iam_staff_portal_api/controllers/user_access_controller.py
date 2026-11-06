@@ -2,12 +2,10 @@ from typing import List, Optional
 
 from fastapi import Request
 from fastapi_cache.decorator import cache
-from openg2p_fastapi_common.context import dbengine
+from openg2p_fastapi_common.context import get_async_session_maker
 from openg2p_fastapi_common.controller import BaseController
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
 from iam_core.user_auth.decorators import requires_auth
 
 from ..cache import role_cache_key
@@ -76,7 +74,7 @@ class UserAccessController(BaseController):
         client_roles = auth.client_roles or {}
         allowed_mnemonics = list(client_roles.keys())
 
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             stmt = (
                 select(StaffPortalApplication)
@@ -125,7 +123,7 @@ class UserAccessController(BaseController):
         instances of the same product coexist by each using a distinct
         mnemonic/client_id and pushing their own (identical) catalog under it.
         """
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             # Seed dumps / manual SQL can leave SERIAL sequences behind MAX(id).
             # Sync before any inserts so self-registration (farmer-registry,
@@ -298,7 +296,7 @@ class UserAccessController(BaseController):
             client_roles_items = client_roles.items()
 
         result = []
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             for client_id, roles in client_roles_items:
                 stmt = select(StaffPortalApplication).where(
@@ -364,7 +362,7 @@ class UserAccessController(BaseController):
         self,
         role_mnemonic: str,
     ) -> List[str]:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             role_stmt = select(StaffRole).where(
                 StaffRole.role_mnemonic == role_mnemonic,

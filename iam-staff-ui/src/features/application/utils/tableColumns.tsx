@@ -23,12 +23,12 @@ export function getRoleColumns(
   return [
     {
       key: "mnemonic",
-      header: "Mnemonic",
+      header: t("mnemonic"),
       render: (role: Role) => role.role_mnemonic,
     },
     {
       key: "description",
-      header: "Description",
+      header: t("description"),
       render: (role: Role) => role.role_description || "—",
     },
     {
@@ -47,12 +47,12 @@ export function getPermissionColumns(
   return [
     {
       key: "mnemonic",
-      header: "Mnemonic",
+      header: t("mnemonic"),
       render: (perm: Permission) => perm.permission_mnemonic,
     },
     {
       key: "description",
-      header: "Description",
+      header: t("description"),
       render: (perm: Permission) => perm.permission_description || "—",
     },
     {
@@ -71,12 +71,12 @@ export function getRolePermissionColumns(
   return [
     {
       key: "role",
-      header: "Role",
+      header: t("role"),
       render: (rp: RolePermission) => rp.role_mnemonic || rp.role_id,
     },
     {
       key: "permission",
-      header: "Permission",
+      header: t("permission"),
       render: (rp: RolePermission) => rp.permission_mnemonic || rp.permission_id,
     },
     {

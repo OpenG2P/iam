@@ -1,5 +1,4 @@
 # Staff Portal Login and SSO Flow
-
 ---
 ## Quick summary
 
