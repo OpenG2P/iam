@@ -1,8 +1,13 @@
 import json
+import logging
 from typing import Any
+
+from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
 
 from iam_core.models import LoginProvider
 from iam_core.user_auth.adapters.oidc_base import OIDCBase
+
+_logger = logging.getLogger(__name__)
 
 
 class EsignetAdapter(OIDCBase):
@@ -22,14 +27,26 @@ class EsignetAdapter(OIDCBase):
                 login_provider=login_provider,
                 access_token=access_token,
             )
-            if isinstance(userinfo, dict) and userinfo:
-                merged = dict(claims)
-                # userinfo takes precedence (e.g. individual_id)
-                merged.update(userinfo)
-                return merged
+        except UnauthorizedError:
+            # A userinfo that fails verification is not "unavailable"; it is
+            # untrustworthy. Falling back silently would hide a forgery.
+            raise
         except Exception:
+            # Without userinfo, registrant auth falls back to opaque OIDC sub
+            # and will fail individual_id matching — surface the cause in logs.
+            _logger.exception("eSignet userinfo enrichment failed; continuing with token claims only.")
             return claims
-        return claims
+        if not (isinstance(userinfo, dict) and userinfo):
+            return claims
+        # OIDC Core 5.3.4: userinfo is only about this user if its sub matches the
+        # ID token's. userinfo takes precedence below (individual_id is what
+        # callers match a person on), so a mismatch must not be merged.
+        id_sub, info_sub = claims.get("sub"), userinfo.get("sub")
+        if id_sub is not None and info_sub is not None and str(id_sub) != str(info_sub):
+            raise UnauthorizedError("G2P-AUT-401", "Userinfo subject does not match the ID token.")
+        merged = dict(claims)
+        merged.update(userinfo)
+        return merged
 
     async def build_authorize_redirect(
         self,

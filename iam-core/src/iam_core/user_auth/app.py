@@ -5,6 +5,7 @@ from .config import Settings
 _config = Settings.get_config()
 
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
+from openg2p_fastapi_common.crypto import CryptoFactory
 
 from iam_core.services.provider_repository import ProviderRepository
 from iam_core.services.auth_transaction_store import AuthTransactionStore
@@ -16,11 +17,14 @@ from iam_core.user_auth.adapters.implementations.keycloak_adapter import Keycloa
 from iam_core.user_auth.adapters.implementations.esignet_adapter import EsignetAdapter
 from iam_core.user_auth.adapters.adapter_factory import AdapterFactory
 from iam_core.partner_auth.jwt_validation_helper import JWTValidationHelper
+from .cache import init_cache
 
 
 class Initializer(BaseInitializer):
     def initialize(self, **kwargs):
         super().initialize()
+
+        init_cache()
 
         # Adapters
         OIDCBase()
@@ -34,4 +38,5 @@ class Initializer(BaseInitializer):
         RedisAuthTransactionStore()
         RedisRefreshTokenStore()
         TokenValidatorService()
+        CryptoFactory.get()
         JWTValidationHelper()

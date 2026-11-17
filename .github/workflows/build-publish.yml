@@ -32,33 +32,48 @@ jobs:
       # images.
       images: |
         [
-          {"name": "iam-staff-portal-api",
-           "dockerfile": "docker/iam-staff-portal-api/Dockerfile",
-           "pins": [
-             {"arg": "FASTAPI_COMMON_REF",
-              "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-              "ref": "1.1"}
-           ]},
-
-          {"name": "iam-agent-portal-api",
-           "dockerfile": "docker/iam-agent-portal-api/Dockerfile",
-           "pins": [
-             {"arg": "FASTAPI_COMMON_REF",
-              "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-              "ref": "1.1"}
-           ]},
-
-          {"name": "iam-bene-portal-api",
-           "dockerfile": "docker/iam-bene-portal-api/Dockerfile",
-           "pins": [
-             {"arg": "FASTAPI_COMMON_REF",
-              "repo": "https://github.com/openg2p/openg2p-fastapi-common",
-              "ref": "1.1"}
-           ]},
-
-          {"name": "iam-staff-ui",
-           "dockerfile": "docker/iam-staff-ui/Dockerfile",
-           "context": "iam-staff-ui"}
+          {
+            "name": "iam-staff-portal-api",
+            "repo": "openg2p/iam-staff-portal-api",
+            "dockerfile": "docker/iam-staff-portal-api/Dockerfile",
+            "pins": [
+              {
+                "arg": "FASTAPI_COMMON_REF",
+                "repo": "https://github.com/openg2p/openg2p-fastapi-common",
+                "ref": "develop"
+              }
+            ]
+          },
+          {
+            "name": "iam-agent-portal-api",
+            "repo": "openg2p/iam-agent-portal-api",
+            "dockerfile": "docker/iam-agent-portal-api/Dockerfile",
+            "pins": [
+              {
+                "arg": "FASTAPI_COMMON_REF",
+                "repo": "https://github.com/openg2p/openg2p-fastapi-common",
+                "ref": "develop"
+              }
+            ]
+          },
+          {
+            "name": "iam-bene-portal-api",
+            "repo": "openg2p/iam-bene-portal-api",
+            "dockerfile": "docker/iam-bene-portal-api/Dockerfile",
+            "pins": [
+              {
+                "arg": "FASTAPI_COMMON_REF",
+                "repo": "https://github.com/openg2p/openg2p-fastapi-common",
+                "ref": "develop"
+              }
+            ]
+          },
+          {
+            "name": "iam-staff-ui",
+            "repo": "openg2p/iam-staff-ui",
+            "dockerfile": "docker/iam-staff-ui/Dockerfile",
+            "context": "iam-staff-ui"
+          }
         ]
 
       chart-path: deployments/charts/openg2p-iam-service

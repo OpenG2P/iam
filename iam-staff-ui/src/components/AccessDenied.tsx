@@ -23,7 +23,7 @@ export default function AccessDenied() {
       </h1>
 
       <p className="mb-6 text-[20px] font-light leading-6 text-gray-600 max-w-xl text-center">
-        {t("forbidden_subtitle")}
+        {t("forbiddenSubtitle")}
       </p>
 
       <Link href="/">

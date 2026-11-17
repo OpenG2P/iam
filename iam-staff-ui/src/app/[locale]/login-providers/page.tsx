@@ -204,7 +204,7 @@ export default function LoginProvidersPage() {
 
       <div className="bg-white rounded-[10px] py-6 shadow-sm">
         {loading || !loadedOnce ? (
-          <TableSkeleton rows={pageSize} headers={["Name", "Client ID", "Issuer", "Auth Method", "Status", "Actions"]} />
+          <TableSkeleton rows={pageSize} headers={[t("name"), t("clientId"), t("issuer"), t("authMethod"), t("status"), t("actions")]} />
         ) : (
           <Table
           columns={getLoginProviderColumns({ onDelete: openDeleteModal, t })}

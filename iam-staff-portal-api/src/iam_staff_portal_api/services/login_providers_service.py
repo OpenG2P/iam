@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from openg2p_fastapi_common.context import dbengine
+from openg2p_fastapi_common.context import get_async_session_maker
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError, NotFoundError
 from openg2p_fastapi_common.service import BaseService
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
 from iam_core.models import LoginProvider
 
 from ..helpers.query_helper import dt_iso, paginate
@@ -56,14 +54,14 @@ class LoginProvidersService(BaseService):
         )
 
     async def get_login_providers(self, page: int, page_size: int) -> tuple[list[LoginProviderData], int]:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             stmt = select(LoginProvider).order_by(LoginProvider.id.desc())
             rows, total = await paginate(session, stmt, page=page, page_size=page_size)
             return [self._to_data(r) for r in rows], total
 
     async def get_login_provider(self, payload: LoginProviderIdPayload) -> LoginProviderData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             provider = await session.get(LoginProvider, payload.id)
             if provider is None:
@@ -80,7 +78,7 @@ class LoginProvidersService(BaseService):
         if not payload.oauth_callback_url.strip():
             raise BadRequestError(message="oauth_callback_url is required")
 
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             provider = LoginProvider(
                 provider_name=payload.provider_name.strip(),
@@ -112,7 +110,7 @@ class LoginProvidersService(BaseService):
             return self._to_data(provider)
 
     async def update_login_provider(self, payload: LoginProviderUpdatePayload) -> LoginProviderData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             provider = await session.get(LoginProvider, payload.id)
             if provider is None:
@@ -153,7 +151,7 @@ class LoginProvidersService(BaseService):
             return self._to_data(provider)
 
     async def delete_login_provider(self, payload: LoginProviderDeletePayload) -> LoginProviderData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             provider = await session.get(LoginProvider, payload.id)
             if provider is None:

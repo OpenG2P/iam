@@ -30,17 +30,17 @@ import {
 } from "@/features/application/types";
 
 const TAB_DEFINITIONS: TabDefinition[] = [
-  { id: "application", label: "Application", action: APPLICATION_ACTIONS.view },
-  { id: "roles", label: "Roles", action: ROLE_ACTIONS.view },
-  { id: "permissions", label: "Permissions", action: PERMISSION_ACTIONS.view },
+  { id: "application", label: "tabApplication", action: APPLICATION_ACTIONS.view },
+  { id: "roles", label: "tabRoles", action: ROLE_ACTIONS.view },
+  { id: "permissions", label: "tabPermissions", action: PERMISSION_ACTIONS.view },
   {
     id: "role-permissions",
-    label: "Roles to Permissions",
+    label: "tabRolePermissions",
     action: ROLE_PERMISSION_ACTIONS.view,
   },
   {
     id: "data-policies",
-    label: "Data Policies",
+    label: "tabDataPolicies",
     action: DATA_POLICY_ACTIONS.view,
   },
 ];
@@ -97,7 +97,10 @@ export default function ApplicationDetailPage() {
   }, [applicationId]);
 
   // Filter visible tabs based on permissions
-  const visibleTabs = TAB_DEFINITIONS.filter((item) => can(item.action));
+  const visibleTabs = TAB_DEFINITIONS.filter((item) => can(item.action)).map((item) => ({
+    ...item,
+    label: t(item.label),
+  }));
 
   // Sync tab state with URL changes
   useEffect(() => {

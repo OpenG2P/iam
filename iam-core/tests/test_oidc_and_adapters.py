@@ -4,17 +4,28 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from jose import jwt as jose_jwt
 from openg2p_fastapi_common.errors.http_exceptions import InternalServerError, UnauthorizedError
 
-from iam_core.context import server_metadata_cache
 from iam_core.schemas import TokenEndpointAuthMethod
 from iam_core.user_auth.adapters.adapter_factory import AdapterFactory
 from iam_core.user_auth.adapters.implementations.esignet_adapter import EsignetAdapter
 from iam_core.user_auth.adapters.implementations.keycloak_adapter import KeycloakAdapter
 from iam_core.user_auth.adapters.oidc_base import OIDCBase
-from iam_core.user_auth.oidc_client import OidcClient
+from iam_core.user_auth.oidc_client import OidcClient, decode_userinfo_jwt
 from helpers import make_login_provider
+
+
+def _signing_key_and_jwks(kid: str = "idp-key"):
+    """An RSA private key (PEM) and a JWKS publishing its public half."""
+    from authlib.jose import JsonWebKey
+
+    pem = _rsa_key_pem()
+    public = JsonWebKey.import_key(pem).as_dict(is_private=False)
+    public.update({"kid": kid, "use": "sig", "alg": "RS256"})
+    return pem, {"keys": [public]}
 
 
 def _rsa_key_pem() -> bytes:
@@ -24,6 +35,33 @@ def _rsa_key_pem() -> bytes:
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     )
+
+
+def test_decode_userinfo_jwt_plain_and_jwe():
+    from authlib.jose import JsonWebEncryption, JsonWebKey
+    from cryptography.hazmat.primitives.asymmetric import rsa as _rsa
+
+    plain = jose_jwt.encode({"sub": "opaque", "individual_id": "ID-1"}, "secret", algorithm="HS256")
+    assert decode_userinfo_jwt(plain)["individual_id"] == "ID-1"
+
+    priv = _rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem = priv.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    pub = priv.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    jwe = JsonWebEncryption().serialize_compact(
+        {"alg": "RSA-OAEP-256", "enc": "A256GCM"},
+        plain.encode("utf-8"),
+        JsonWebKey.import_key(pub, {"kty": "RSA"}),
+    )
+    if isinstance(jwe, bytes):
+        jwe = jwe.decode("utf-8")
+    assert decode_userinfo_jwt(jwe, pem)["individual_id"] == "ID-1"
 
 
 def test_adapter_factory_resolves_known_and_unknown_adapters():
@@ -185,7 +223,8 @@ def test_oidc_client_guess_issuer_from_endpoints():
 
 @pytest.mark.asyncio
 async def test_oidc_client_get_server_metadata_fetches_and_caches():
-    server_metadata_cache.set(None)
+    FastAPICache.init(InMemoryBackend(), prefix="test-oidc-metadata")
+    await FastAPICache.clear()
     lp = make_login_provider(server_metadata_url="https://idp/.well-known/openid-configuration")
     client = OidcClient()
     metadata_response = MagicMock()
@@ -305,12 +344,17 @@ async def test_oidc_client_decode_jwt_and_userinfo_and_introspection():
     jwt_response = MagicMock()
     jwt_response.raise_for_status = MagicMock()
     jwt_response.headers = {"content-type": "application/jwt"}
-    jwt_response.text = jose_jwt.encode({"sub": "jwt-user"}, "secret", algorithm="HS256")
+    signing_pem, idp_jwks = _signing_key_and_jwks()
+    jwt_response.text = jose_jwt.encode(
+        {"sub": "jwt-user"}, signing_pem.decode(), algorithm="RS256", headers={"kid": "idp-key"}
+    )
     empty_response = MagicMock()
     empty_response.raise_for_status = MagicMock()
     empty_response.headers = {"content-type": "text/plain"}
 
-    with patch("httpx.AsyncClient") as mock_client_cls:
+    with patch("httpx.AsyncClient") as mock_client_cls, patch(
+        "iam_core.user_auth.oidc_client.jwks_get", AsyncMock(return_value=idp_jwks)
+    ):
         mock_http = AsyncMock()
         mock_http.__aenter__.return_value = mock_http
         mock_http.get = AsyncMock(side_effect=[userinfo_response, jwt_response, empty_response])
@@ -437,3 +481,100 @@ async def test_oidc_client_remaining_branches():
     mock_oauth.refresh_token = AsyncMock(return_value={"access_token": "a", "refresh_token": "r"})
     with patch("iam_core.user_auth.oidc_client.AsyncOAuth2Client", return_value=mock_oauth):
         await client.refresh_access_token(lp_basic, "rt", server_metadata=metadata)
+
+
+# --- signed userinfo must be verified, not merely decoded -------------------
+
+
+async def _userinfo_from(token: str, jwks: dict) -> dict:
+    """Run OidcClient.get_oauth_validation_data against a JWT userinfo body."""
+    client = OidcClient()
+    metadata = {"userinfo_endpoint": "https://idp/userinfo", "jwks_uri": "https://idp/jwks", "issuer": "https://idp"}
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    response.headers = {"content-type": "application/jwt"}
+    response.text = token
+    with patch("httpx.AsyncClient") as mock_client_cls, patch(
+        "iam_core.user_auth.oidc_client.jwks_get", AsyncMock(return_value=jwks)
+    ):
+        mock_http = AsyncMock()
+        mock_http.__aenter__.return_value = mock_http
+        mock_http.get = AsyncMock(return_value=response)
+        mock_client_cls.return_value = mock_http
+        return await client.get_oauth_validation_data(make_login_provider(), "at", server_metadata=metadata)
+
+
+@pytest.mark.asyncio
+async def test_signed_userinfo_from_the_provider_key_is_accepted():
+    pem, jwks = _signing_key_and_jwks()
+    token = jose_jwt.encode(
+        {"sub": "psut-1", "individual_id": "IND-1"}, pem.decode(), algorithm="RS256", headers={"kid": "idp-key"}
+    )
+    claims = await _userinfo_from(token, jwks)
+    assert claims["individual_id"] == "IND-1"
+
+
+@pytest.mark.asyncio
+async def test_signed_userinfo_from_another_key_is_rejected():
+    _, jwks = _signing_key_and_jwks()
+    forger_pem, _ = _signing_key_and_jwks()
+    forged = jose_jwt.encode(
+        {"sub": "psut-1", "individual_id": "SOMEONE-ELSE"},
+        forger_pem.decode(),
+        algorithm="RS256",
+        headers={"kid": "idp-key"},
+    )
+    with pytest.raises(UnauthorizedError):
+        await _userinfo_from(forged, jwks)
+
+
+@pytest.mark.asyncio
+async def test_hmac_signed_userinfo_is_rejected():
+    _, jwks = _signing_key_and_jwks()
+    forged = jose_jwt.encode({"sub": "psut-1", "individual_id": "X"}, "secret", algorithm="HS256")
+    with pytest.raises(UnauthorizedError):
+        await _userinfo_from(forged, jwks)
+
+
+@pytest.mark.asyncio
+async def test_unsigned_userinfo_is_rejected():
+    import base64
+
+    def b64(d: dict) -> str:
+        return base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=").decode()
+
+    _, jwks = _signing_key_and_jwks()
+    unsigned = f"{b64({'alg': 'none', 'typ': 'JWT'})}.{b64({'sub': 'psut-1', 'individual_id': 'X'})}."
+    with pytest.raises(UnauthorizedError):
+        await _userinfo_from(unsigned, jwks)
+
+
+@pytest.mark.asyncio
+async def test_esignet_userinfo_failing_verification_is_not_silently_dropped():
+    adapter = EsignetAdapter()
+    adapter.get_oauth_validation_data = AsyncMock(side_effect=UnauthorizedError("G2P-AUT-401", "bad"))
+    with pytest.raises(UnauthorizedError):
+        await adapter.enrich_claims_from_userinfo(
+            {"sub": "psut-1"}, login_provider=make_login_provider(adapter_name="esignet"), access_token="at"
+        )
+
+
+@pytest.mark.asyncio
+async def test_esignet_userinfo_for_a_different_subject_is_rejected():
+    adapter = EsignetAdapter()
+    adapter.get_oauth_validation_data = AsyncMock(return_value={"sub": "psut-OTHER", "individual_id": "IND-2"})
+    with pytest.raises(UnauthorizedError, match="subject"):
+        await adapter.enrich_claims_from_userinfo(
+            {"sub": "psut-1"}, login_provider=make_login_provider(adapter_name="esignet"), access_token="at"
+        )
+
+
+@pytest.mark.asyncio
+async def test_esignet_userinfo_unreachable_still_falls_back_to_id_token():
+    adapter = EsignetAdapter()
+    adapter.get_oauth_validation_data = AsyncMock(side_effect=RuntimeError("down"))
+    claims = await adapter.enrich_claims_from_userinfo(
+        {"sub": "psut-1"}, login_provider=make_login_provider(adapter_name="esignet"), access_token="at"
+    )
+    assert claims == {"sub": "psut-1"}
+

@@ -15,13 +15,13 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "openg2p-fastapi-common",
   "iam-core",
   "fastapi-cache2",
   "python-slugify>=8.0.0",
   "psycopg2",
   "asyncpg",
-  "SQLAlchemy",
+  # SQLAlchemy 2.1 no longer installs greenlet, which its asyncio module needs.
+  "sqlalchemy[asyncio] >=2.0,<2.1",
 ]
 dynamic = ["version"]
 

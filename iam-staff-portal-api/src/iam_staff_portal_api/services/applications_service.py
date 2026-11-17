@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from openg2p_fastapi_common.context import dbengine
+from openg2p_fastapi_common.context import get_async_session_maker
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError, NotFoundError
 from openg2p_fastapi_common.service import BaseService
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
 from ..helpers.query_helper import dt_iso, paginate
 from ..helpers.keycloak_helper import KeycloakHelper
 from ..models import StaffPortalApplication
@@ -36,7 +34,7 @@ class ApplicationsService(BaseService):
         )
 
     async def get_applications(self, page: int, page_size: int) -> tuple[list[ApplicationData], int]:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             stmt = select(StaffPortalApplication).order_by(
                 StaffPortalApplication.created_at.desc().nullslast(),
@@ -46,7 +44,7 @@ class ApplicationsService(BaseService):
             return [self._to_data(r) for r in rows], total
 
     async def get_application(self, payload: ApplicationIdPayload) -> ApplicationData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             app = await session.get(StaffPortalApplication, payload.id)
             if app is None:
@@ -60,7 +58,7 @@ class ApplicationsService(BaseService):
         if not mnemonic:
             raise BadRequestError(message="application_mnemonic is required")
 
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             existing = (
                 (
@@ -111,7 +109,7 @@ class ApplicationsService(BaseService):
             return self._to_data(app)
 
     async def update_application(self, payload: ApplicationUpdatePayload) -> ApplicationData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             app = await session.get(StaffPortalApplication, payload.id)
             if app is None:
@@ -138,7 +136,7 @@ class ApplicationsService(BaseService):
     async def delete_application(
         self, payload: ApplicationDeletePayload, auth_token: str = ""
     ) -> ApplicationData:
-        async_session = async_sessionmaker(dbengine.get())
+        async_session = get_async_session_maker()
         async with async_session() as session:
             app = await session.get(StaffPortalApplication, payload.id)
             if app is None:

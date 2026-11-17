@@ -9,7 +9,7 @@ from sqlalchemy import Date, DateTime, func, insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from iam_core.models import LoginProvider
-from openg2p_fastapi_common.context import dbengine
+from openg2p_fastapi_common.context import async_session_maker, dbengine, get_async_session_maker
 
 from ..config import Settings
 from ..models import (
@@ -430,7 +430,10 @@ class DataLoaderBase(ABC):
         await self.sync_postgres_id_sequences(session, STAFF_ACCESS_SEQUENCE_MODELS)
 
     def create_session_factory(self) -> async_sessionmaker[AsyncSession]:
-        return async_sessionmaker(dbengine.get(), expire_on_commit=False)
+        # Dispose (in run()) can leave the process-wide factory bound to a dead
+        # pool; drop it so the next checkout opens connections on this event loop.
+        async_session_maker.set(None)
+        return get_async_session_maker()
 
 
 class DataLoader(DataLoaderBase):
