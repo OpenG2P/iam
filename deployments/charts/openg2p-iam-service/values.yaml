@@ -98,7 +98,7 @@ iamStaffPortalApi:
 
   image:
     repository: openg2p/iam-staff-portal-api
-    tag: "1.4.2"
+    tag: "1.4.4"
     pullPolicy: Always
 
   podSecurityContext:
@@ -307,7 +307,7 @@ iamAgentPortalApi:
 
   image:
     repository: openg2p/iam-agent-portal-api
-    tag: "1.4.2"
+    tag: "1.4.4"
     pullPolicy: Always
 
   podSecurityContext:
@@ -536,7 +536,7 @@ iamStaffUi:
 
   image:
     repository: openg2p/iam-staff-ui
-    tag: "1.4.2"
+    tag: "1.4.4"
     pullPolicy: Always
 
   containerPort: 3000
