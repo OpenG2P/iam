@@ -29,6 +29,20 @@ _config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
 
+def _client_secret(login_provider) -> str | None:
+    """Provider secret when present, otherwise the service's own env secret.
+
+    The public provider API does not return client_secret. Services that
+    refresh or exchange tokens set auth_oidc_client_secret (prefixed by that
+    service, for example IAM_STAFF_AUTH_OIDC_CLIENT_SECRET).
+    """
+    secret = getattr(login_provider, "client_secret", None)
+    if secret:
+        return secret
+    configured = getattr(Settings.get_config(strict=False), "auth_oidc_client_secret", None)
+    return configured or None
+
+
 def decrypt_userinfo_jwe(token: str, client_private_key: bytes | str | None = None):
     """The payload of an encrypted userinfo (JWE, 5 segments, as MOSIP-style IdPs
     send) decrypted with the client's private key; any other token unchanged."""
@@ -218,10 +232,10 @@ class OidcClient:
 
         method = login_provider.token_endpoint_auth_method
         if method == TokenEndpointAuthMethod.client_secret_basic:
-            client_kwargs["client_secret"] = login_provider.client_secret
+            client_kwargs["client_secret"] = _client_secret(login_provider)
             client_kwargs["token_endpoint_auth_method"] = method.value
         elif method == TokenEndpointAuthMethod.client_secret_post:
-            client_kwargs["client_secret"] = login_provider.client_secret
+            client_kwargs["client_secret"] = _client_secret(login_provider)
             client_kwargs["token_endpoint_auth_method"] = method.value
         elif method == TokenEndpointAuthMethod.private_key_jwt_keymanager:
             client_kwargs["token_endpoint_auth_method"] = method.value
@@ -270,10 +284,10 @@ class OidcClient:
 
         method = login_provider.token_endpoint_auth_method
         if method == TokenEndpointAuthMethod.client_secret_basic:
-            client_kwargs["client_secret"] = login_provider.client_secret
+            client_kwargs["client_secret"] = _client_secret(login_provider)
             client_kwargs["token_endpoint_auth_method"] = method.value
         elif method == TokenEndpointAuthMethod.client_secret_post:
-            client_kwargs["client_secret"] = login_provider.client_secret
+            client_kwargs["client_secret"] = _client_secret(login_provider)
             client_kwargs["token_endpoint_auth_method"] = method.value
         elif method == TokenEndpointAuthMethod.private_key_jwt_keymanager:
             client_kwargs["token_endpoint_auth_method"] = method.value
@@ -387,12 +401,13 @@ class OidcClient:
         auth = None
         data = {"token": token}
         method = login_provider.token_endpoint_auth_method.value
+        client_secret = _client_secret(login_provider)
         if method == TokenEndpointAuthMethod.client_secret_basic.value:
-            auth = (login_provider.client_id, login_provider.client_secret or "")
+            auth = (login_provider.client_id, client_secret or "")
         else:
             data["client_id"] = login_provider.client_id
-            if login_provider.client_secret:
-                data["client_secret"] = login_provider.client_secret
+            if client_secret:
+                data["client_secret"] = client_secret
 
         async with httpx.AsyncClient(verify=_config.auth_verify_ssl, timeout=10) as client:
             response = await client.post(introspection_endpoint, auth=auth, data=data)

@@ -489,7 +489,11 @@ async def test_oidc_client_remaining_branches():
 async def _userinfo_from(token: str, jwks: dict) -> dict:
     """Run OidcClient.get_oauth_validation_data against a JWT userinfo body."""
     client = OidcClient()
-    metadata = {"userinfo_endpoint": "https://idp/userinfo", "jwks_uri": "https://idp/jwks", "issuer": "https://idp"}
+    metadata = {
+        "userinfo_endpoint": "https://idp/userinfo",
+        "jwks_uri": "https://idp/jwks",
+        "issuer": "https://idp",
+    }
     response = MagicMock()
     response.raise_for_status = MagicMock()
     response.headers = {"content-type": "application/jwt"}
@@ -508,7 +512,10 @@ async def _userinfo_from(token: str, jwks: dict) -> dict:
 async def test_signed_userinfo_from_the_provider_key_is_accepted():
     pem, jwks = _signing_key_and_jwks()
     token = jose_jwt.encode(
-        {"sub": "psut-1", "individual_id": "IND-1"}, pem.decode(), algorithm="RS256", headers={"kid": "idp-key"}
+        {"sub": "psut-1", "individual_id": "IND-1"},
+        pem.decode(),
+        algorithm="RS256",
+        headers={"kid": "idp-key"},
     )
     claims = await _userinfo_from(token, jwks)
     assert claims["individual_id"] == "IND-1"
@@ -562,7 +569,9 @@ async def test_esignet_userinfo_failing_verification_is_not_silently_dropped():
 @pytest.mark.asyncio
 async def test_esignet_userinfo_for_a_different_subject_is_rejected():
     adapter = EsignetAdapter()
-    adapter.get_oauth_validation_data = AsyncMock(return_value={"sub": "psut-OTHER", "individual_id": "IND-2"})
+    adapter.get_oauth_validation_data = AsyncMock(
+        return_value={"sub": "psut-OTHER", "individual_id": "IND-2"}
+    )
     with pytest.raises(UnauthorizedError, match="subject"):
         await adapter.enrich_claims_from_userinfo(
             {"sub": "psut-1"}, login_provider=make_login_provider(adapter_name="esignet"), access_token="at"
@@ -577,4 +586,3 @@ async def test_esignet_userinfo_unreachable_still_falls_back_to_id_token():
         {"sub": "psut-1"}, login_provider=make_login_provider(adapter_name="esignet"), access_token="at"
     )
     assert claims == {"sub": "psut-1"}
-

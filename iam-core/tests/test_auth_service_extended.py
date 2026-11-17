@@ -229,7 +229,7 @@ async def test_get_provider_by_issuer_and_provider_dict():
     )
 
     payload = await service.get_provider_by_issuer(lp.issuer)
-    assert payload["client_secret"] == "secret"
+    assert "client_secret" not in payload
     assert payload["token_endpoint_auth_method"] == "client_secret_basic"
 
     public_payload = AuthService._provider_to_api_dict(lp, include_secrets=False)

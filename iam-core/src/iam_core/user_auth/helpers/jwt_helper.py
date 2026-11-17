@@ -33,9 +33,15 @@ def decode_jwt(
 # provider publishes, so "none" and the HMAC family (where the "key" would have
 # to be shared, or guessed) have no place here.
 _SIGNED_RESPONSE_ALGORITHMS = [
-    "RS256", "RS384", "RS512",
-    "PS256", "PS384", "PS512",
-    "ES256", "ES384", "ES512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "PS256",
+    "PS384",
+    "PS512",
+    "ES256",
+    "ES384",
+    "ES512",
     "EdDSA",
 ]
 _signed_response_jwt = JsonWebToken(_SIGNED_RESPONSE_ALGORITHMS)

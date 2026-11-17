@@ -255,7 +255,7 @@ class AuthService(BaseService):
         if not login_provider:
             raise UnauthorizedError("G2P-AUT-404", "Provider not found")
 
-        return self._provider_to_api_dict(login_provider, include_secrets=True)
+        return self._provider_to_api_dict(login_provider, include_secrets=False)
 
     @staticmethod
     def _provider_to_api_dict(login_provider, *, include_secrets: bool = False) -> dict:

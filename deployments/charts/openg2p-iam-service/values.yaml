@@ -214,6 +214,12 @@ iamStaffPortalApi:
       secretKeyRef:
         name: staff-portal
         key: client_secret
+    # Same Keycloak client secret, used when a refresh has no secret on the
+    # login-provider row. Keycloak-init creates this Secret (name = client id).
+    IAM_STAFF_AUTH_OIDC_CLIENT_SECRET:
+      secretKeyRef:
+        name: staff-portal
+        key: client_secret
 
   startupProbe:
     enabled: true
@@ -433,6 +439,11 @@ iamAgentPortalApi:
     # the commons layer; Secret name = clientId). `optional` so the chart still
     # installs if the Job has not finished — login cannot complete until it has.
     IAM_AGENT_DATA_CLIENT_SECRETS__AGENT_PORTAL_SECRET:
+      secretKeyRef:
+        name: agent-portal
+        key: client_secret
+        optional: true
+    IAM_AGENT_AUTH_OIDC_CLIENT_SECRET:
       secretKeyRef:
         name: agent-portal
         key: client_secret
