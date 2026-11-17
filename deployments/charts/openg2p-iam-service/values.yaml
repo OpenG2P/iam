@@ -198,6 +198,7 @@ iamStaffPortalApi:
     IAM_STAFF_DATA_APPLICATION_URLS__MASTER_DATA_APPLICATION_URL: '{{ tpl .Values.global.masterDataApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__AWE_APPLICATION_URL: '{{ tpl .Values.global.aweApplicationUrl $ }}'
     IAM_STAFF_KEYCLOAK_CLIENT_ID: "iam-staff-ui"
+    IAM_STAFF_AUTH_OIDC_CLIENT_ID: "staff-portal"
     IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
     IAM_STAFF_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_STAFF_KEYCLOAK_REALM: '{{ .Values.global.keycloakRealm }}'

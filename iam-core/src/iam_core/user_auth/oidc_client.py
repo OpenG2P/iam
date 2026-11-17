@@ -1,5 +1,4 @@
 import json
-import logging
 from urllib.parse import urlparse
 
 import httpx
@@ -26,7 +25,12 @@ from .helpers import verify_signed_jwt
 from .helpers.token_helper import validate_refresh_token_response
 
 _config = Settings.get_config(strict=False)
-_logger = logging.getLogger(_config.logging_default_logger_name)
+
+
+def _token_client_id(login_provider) -> str | None:
+    """Env client id for token calls, otherwise the id on the provider row."""
+    configured = getattr(Settings.get_config(strict=False), "auth_oidc_client_id", None)
+    return configured or getattr(login_provider, "client_id", None)
 
 
 def _client_secret(login_provider) -> str | None:
@@ -283,11 +287,12 @@ class OidcClient:
         token_kwargs = {}
 
         method = login_provider.token_endpoint_auth_method
+        client_secret = _client_secret(login_provider)
         if method == TokenEndpointAuthMethod.client_secret_basic:
-            client_kwargs["client_secret"] = _client_secret(login_provider)
+            client_kwargs["client_secret"] = client_secret
             client_kwargs["token_endpoint_auth_method"] = method.value
         elif method == TokenEndpointAuthMethod.client_secret_post:
-            client_kwargs["client_secret"] = _client_secret(login_provider)
+            client_kwargs["client_secret"] = client_secret
             client_kwargs["token_endpoint_auth_method"] = method.value
         elif method == TokenEndpointAuthMethod.private_key_jwt_keymanager:
             client_kwargs["token_endpoint_auth_method"] = method.value
@@ -307,7 +312,7 @@ class OidcClient:
             token_kwargs["client_assertion"] = assertion_token
 
         client = AsyncOAuth2Client(
-            client_id=login_provider.client_id,
+            client_id=_token_client_id(login_provider),
             verify=_config.auth_verify_ssl,
             **client_kwargs,
         )
