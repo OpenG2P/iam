@@ -154,16 +154,16 @@ def test_set_auth_cookies_sets_access_id_and_session_on_login():
     assert AuthCookieName.CSRF_TOKEN in cookie_names
 
 
-def test_set_auth_cookies_on_refresh_does_not_reset_session_cookie():
+def test_set_auth_cookies_on_refresh_slides_session_cookie():
     response = Response()
     token_response = _token_response()
 
-    set_auth_cookies(response, token_response)
+    set_auth_cookies(response, token_response, session_id="kc-session-123")
 
     cookie_names = _set_cookie_names(response)
     assert AuthCookieName.ACCESS_TOKEN in cookie_names
     assert AuthCookieName.ID_TOKEN in cookie_names
-    assert AuthCookieName.SESSION not in cookie_names
+    assert AuthCookieName.SESSION in cookie_names
     assert AuthCookieName.CSRF_TOKEN in cookie_names
 
 
@@ -644,7 +644,7 @@ async def test_validate_and_refresh_middleware_refreshes_expired_token_and_updat
     cookie_names = _set_cookie_names(response)
     assert AuthCookieName.ACCESS_TOKEN in cookie_names
     assert AuthCookieName.ID_TOKEN in cookie_names
-    assert AuthCookieName.SESSION not in cookie_names
+    assert AuthCookieName.SESSION in cookie_names
     assert request.headers.get("authorization") == "Bearer fresh-access"
 
 

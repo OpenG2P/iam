@@ -105,10 +105,14 @@ class ValidateAndRefreshTokenMiddleware(BaseHTTPMiddleware):
 
         return auth_principal_from_credentials(credentials), refreshed_tokens
 
-    def _attach_refresh_cookies(self, response, refreshed_tokens: dict | None) -> None:
-        """Write new token cookies on the response; session cookie is left unchanged."""
+    def _attach_refresh_cookies(self, request: Request, response, refreshed_tokens: dict | None) -> None:
+        """Rewrite token cookies and slide the session cookie's max age."""
         if refreshed_tokens:
-            set_auth_cookies(response, refreshed_tokens)
+            set_auth_cookies(
+                response,
+                refreshed_tokens,
+                session_id=request.cookies.get(cookie_name(AuthCookieName.SESSION)),
+            )
 
     async def dispatch(self, request: Request, call_next):
         # Skip auth for unmarked routes; protected routes get state.auth (and optionally state.user).
@@ -133,7 +137,7 @@ class ValidateAndRefreshTokenMiddleware(BaseHTTPMiddleware):
                 setattr(request.state, self._user_state_key, user)
 
             response = await call_next(request)
-            self._attach_refresh_cookies(response, refreshed_tokens)
+            self._attach_refresh_cookies(request, response, refreshed_tokens)
             return response
         except BaseAppException as exc:
             response = user_auth_error_response(request, exc)
