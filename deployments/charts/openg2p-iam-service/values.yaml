@@ -11,8 +11,9 @@ global:
 
   # Redis
   redisInstallationName: 'commons-redis'
-  # Refresh token TTL in Redis (default 2100 = 35 minutes)
-  authRefreshTokenTtlSeconds: 2100
+  # Refresh token TTL in Redis. Must match the Keycloak staff realm
+  # ssoSessionIdleTimeout (1800) and AUTH_COOKIE_MAX_AGE.
+  authRefreshTokenTtlSeconds: 1800
   # Double-submit CSRF validation on state-changing IAM staff-portal-api requests.
   csrfEnabled: true
   # Role permission cache TTL in seconds
@@ -188,7 +189,7 @@ iamStaffPortalApi:
     IAM_STAFF_AUTH_COOKIE_HTTPONLY: true
     IAM_STAFF_AUTH_COOKIE_PATH: "/"
     IAM_STAFF_AUTH_COOKIE_DOMAIN: '{{ tpl .Values.global.authCookieDomain $ }}'
-    IAM_STAFF_AUTH_COOKIE_MAX_AGE: 2100
+    IAM_STAFF_AUTH_COOKIE_MAX_AGE: '{{ .Values.global.authRefreshTokenTtlSeconds }}'
     IAM_STAFF_AUTH_COOKIE_SET_EXPIRES: true
     IAM_STAFF_DATA_APPLICATION_URLS__KEYCLOAK_APPLICATION_URL: '{{ tpl .Values.global.keycloakApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__REGISTRY_APPLICATION_URL: '{{ tpl .Values.global.registryApplicationUrl $ }}'
@@ -198,6 +199,7 @@ iamStaffPortalApi:
     IAM_STAFF_DATA_APPLICATION_URLS__MASTER_DATA_APPLICATION_URL: '{{ tpl .Values.global.masterDataApplicationUrl $ }}'
     IAM_STAFF_DATA_APPLICATION_URLS__AWE_APPLICATION_URL: '{{ tpl .Values.global.aweApplicationUrl $ }}'
     IAM_STAFF_KEYCLOAK_CLIENT_ID: "iam-staff-ui"
+    IAM_STAFF_AUTH_OIDC_CLIENT_ID: "staff-portal"
     IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
     IAM_STAFF_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_STAFF_KEYCLOAK_REALM: '{{ .Values.global.keycloakRealm }}'
@@ -211,6 +213,12 @@ iamStaffPortalApi:
         name: '{{ tpl .Values.global.iamDBSecret $ }}'
         key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
     IAM_STAFF_DATA_CLIENT_SECRETS__STAFF_PORTAL_SECRET:
+      secretKeyRef:
+        name: staff-portal
+        key: client_secret
+    # Same Keycloak client secret, used when a refresh has no secret on the
+    # login-provider row. Keycloak-init creates this Secret (name = client id).
+    IAM_STAFF_AUTH_OIDC_CLIENT_SECRET:
       secretKeyRef:
         name: staff-portal
         key: client_secret
@@ -403,7 +411,7 @@ iamAgentPortalApi:
     # request fails. Staff keeps the unprefixed names, so existing sessions and
     # any client reading them are unaffected.
     IAM_AGENT_AUTH_COOKIE_PREFIX: 'agent-'
-    IAM_AGENT_AUTH_COOKIE_MAX_AGE: 2100
+    IAM_AGENT_AUTH_COOKIE_MAX_AGE: '{{ .Values.global.authRefreshTokenTtlSeconds }}'
     IAM_AGENT_AUTH_COOKIE_SET_EXPIRES: true
     # The agent portal UI, not the staff one. This key was renamed from
     # IAM_STAFF_UI_APPLICATION_URL when the agent block was copied, but the VALUE
@@ -433,6 +441,11 @@ iamAgentPortalApi:
     # the commons layer; Secret name = clientId). `optional` so the chart still
     # installs if the Job has not finished — login cannot complete until it has.
     IAM_AGENT_DATA_CLIENT_SECRETS__AGENT_PORTAL_SECRET:
+      secretKeyRef:
+        name: agent-portal
+        key: client_secret
+        optional: true
+    IAM_AGENT_AUTH_OIDC_CLIENT_SECRET:
       secretKeyRef:
         name: agent-portal
         key: client_secret

@@ -229,7 +229,7 @@ async def test_get_provider_by_issuer_and_provider_dict():
     )
 
     payload = await service.get_provider_by_issuer(lp.issuer)
-    assert payload["client_secret"] == "secret"
+    assert "client_secret" not in payload
     assert payload["token_endpoint_auth_method"] == "client_secret_basic"
 
     public_payload = AuthService._provider_to_api_dict(lp, include_secrets=False)
@@ -293,6 +293,17 @@ async def test_provider_repository_cache_and_api_fallback():
     with (
         patch.object(LoginProvider, "get_login_provider_from_iss", AsyncMock(return_value=None)),
         patch.object(repo, "_fetch_provider_from_api", AsyncMock(side_effect=fetch_and_cache)) as mock_fetch,
+    ):
+        assert await repo.get_by_iss("https://api-issuer") is None
+        assert await repo.get_by_iss("https://api-issuer") is None
+        mock_fetch.assert_not_awaited()
+
+    repo = ProviderRepository()
+    with (
+        patch.object(
+            LoginProvider, "get_login_provider_from_iss", AsyncMock(side_effect=RuntimeError("no table"))
+        ),
+        patch.object(repo, "_fetch_provider_from_api", AsyncMock(return_value=api_provider)) as mock_fetch,
     ):
         result = await repo.get_by_iss("https://api-issuer")
         assert result.issuer == "https://api-issuer"

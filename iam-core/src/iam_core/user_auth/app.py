@@ -16,7 +16,7 @@ from iam_core.user_auth.adapters.oidc_base import OIDCBase
 from iam_core.user_auth.adapters.implementations.keycloak_adapter import KeycloakAdapter
 from iam_core.user_auth.adapters.implementations.esignet_adapter import EsignetAdapter
 from iam_core.user_auth.adapters.adapter_factory import AdapterFactory
-from iam_core.partner_auth.jwt_validation_helper import JWTValidationHelper
+from openg2p_fastapi_common.crypto import JWTValidationHelper
 from .cache import init_cache
 
 

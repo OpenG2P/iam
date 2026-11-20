@@ -2,16 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from iam_core.partner_auth.config import Settings as PartnerSettings
-from iam_core.partner_auth.jwt_signature_validator import JWTSignatureValidator
-from iam_core.partner_auth.jwt_validation_helper import JWTValidationHelper
-
-
-def test_partner_auth_settings_defaults():
-    settings = PartnerSettings.get_config(strict=False)
-    assert settings.login_providers_table_enabled is True
-    assert settings.login_providers_table_name == "login_providers"
-    assert settings.keymanager_sign_app_id == ""
+from openg2p_fastapi_common.crypto import JWTSignatureValidator, JWTValidationHelper
 
 
 def test_get_partner_id_from_payload_uses_header_sender_id():

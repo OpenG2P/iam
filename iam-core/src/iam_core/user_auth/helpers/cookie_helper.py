@@ -102,7 +102,7 @@ def set_auth_cookies(
     *,
     session_id: str | None = None,
 ) -> None:
-    """Write auth cookies. Pass ``session_id`` on login only; refresh updates tokens alone."""
+    """Write auth cookies. Pass ``session_id`` on login and on refresh so its max age slides."""
     delete_kwargs = _cookie_delete_kwargs()
     response.delete_cookie(cookie_name(AuthCookieName.ACCESS_TOKEN), **delete_kwargs)
     response.delete_cookie(cookie_name(AuthCookieName.ID_TOKEN), **delete_kwargs)

@@ -11,6 +11,7 @@ from iam_core.schemas import TokenEndpointAuthMethod
 from iam_core.user_auth.config import Settings
 
 _CACHE_TTL_SECONDS = 60
+_CACHE_MISS = object()
 _config = Settings.get_config(strict=False)
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
@@ -50,7 +51,7 @@ class ProviderRepository(BaseService):
     def __init__(self):
         super().__init__()
         self._by_id_cache: dict[int, tuple[LoginProvider, float]] = {}
-        self._by_iss_cache: dict[str, tuple[_ApiLoginProvider, float]] = {}
+        self._by_iss_cache: dict[str, tuple[_ApiLoginProvider | None, float]] = {}
 
     async def get_by_id(self, provider_id: int) -> LoginProvider | None:
         now = time.monotonic()
@@ -67,25 +68,35 @@ class ProviderRepository(BaseService):
         except Exception:
             return None
 
+    def _cached_issuer(self, issuer: str, now: float):
+        entry = self._by_iss_cache.get(issuer, _CACHE_MISS)
+        if entry is _CACHE_MISS:
+            return _CACHE_MISS
+        cached, ts = entry
+        if now - ts < _CACHE_TTL_SECONDS:
+            return cached
+        del self._by_iss_cache[issuer]
+        return _CACHE_MISS
+
     async def get_by_iss(self, issuer: str):
-        # Try DB first
+        now = time.monotonic()
+        cached = self._cached_issuer(issuer, now)
+        if cached is not _CACHE_MISS:
+            return cached
+
+        # A successful query that finds no row is the answer. Calling the
+        # provider API here makes the staff portal API call itself, and a
+        # miss was not cached, so every unknown issuer repeated that call.
         try:
             result = await LoginProvider.get_login_provider_from_iss(issuer)
-            if result:
-                return result
         except Exception:
-            pass
+            result = await self._fetch_provider_from_api(issuer)
+            self._by_iss_cache[issuer] = (result, time.monotonic())
+            return result
 
-        # Fallback: check in-memory cache from API
-        now = time.monotonic()
-        if issuer in self._by_iss_cache:
-            cached, ts = self._by_iss_cache[issuer]
-            if now - ts < _CACHE_TTL_SECONDS:
-                return cached
-            del self._by_iss_cache[issuer]
-
-        # Fallback: fetch from IAM Portal API
-        return await self._fetch_provider_from_api(issuer)
+        if not result:
+            self._by_iss_cache[issuer] = (None, now)
+        return result
 
     async def _fetch_provider_from_api(self, issuer: str) -> _ApiLoginProvider | None:
         api_url = getattr(_config, "auth_provider_api_url", None)
@@ -108,6 +119,7 @@ class ProviderRepository(BaseService):
                 return provider
         except Exception:
             _logger.exception("Failed to fetch login provider from API for issuer: %s", issuer)
+            self._by_iss_cache[issuer] = (None, time.monotonic())
             return None
 
     async def get_all(self) -> list[LoginProvider]:

@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     # e.g. http://localhost:8000/api/v1/iam-staff
     auth_provider_api_url: str | None = None
     keycloak_client_id: str | None = None
+    # Confidential-client secret for authorization-code exchange and refresh
+    # when the login-provider row (or the public provider API) has none.
+    # Each service's env prefix applies, e.g. IAM_STAFF_AUTH_OIDC_CLIENT_SECRET.
+    auth_oidc_client_id: str | None = None
+    auth_oidc_client_secret: str | None = None
 
     # Client-side cache for role→permissions resolution (ResolvePermissionMiddleware).
     # Same roles share one entry across users; short TTL so IAM role mapping changes propagate.
