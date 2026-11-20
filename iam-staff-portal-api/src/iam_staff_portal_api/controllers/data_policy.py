@@ -3,17 +3,12 @@
 import logging
 
 from fastapi import Request
-from fastapi_cache.decorator import cache
 from openg2p_fastapi_common.context import get_async_session_maker
-from ..config import Settings
 from iam_core.schemas.data_policy import (
     AddPolicyRequest,
     AddPolicyResponse,
     AddPolicyResponseBody,
     AddPolicyResponsePayload,
-    DataPolicyData,
-    EvaluateExpressionRequestPayload,
-    EvaluateExpressionResponsePayload,
     GetAllPoliciesRequest,
     GetAllPoliciesResponse,
     GetAllPoliciesResponseBody,
@@ -32,13 +27,11 @@ from iam_core.user_auth.decorators import require_permissions
 from openg2p_fastapi_common.controller import BaseController
 from openg2p_fastapi_common.errors.http_exceptions import BadRequestError
 
-from ..cache import data_policy_expression_key
 from ..helpers.auth_token import bearer_from_request
 from ..helpers.keycloak_helper import KeycloakHelper
 from ..helpers.request_response_helper import RequestResponseHelper
 
 _logger = logging.getLogger(__name__)
-_config = Settings.get_config(strict=False)
 
 
 class DataPolicyController(BaseController):
@@ -71,12 +64,6 @@ class DataPolicyController(BaseController):
             "/remove_policy",
             self.remove_policy,
             responses={200: {"model": RemovePolicyResponse}},
-            methods=["POST"],
-        )
-        self.router.add_api_route(
-            "/evaluate_expression",
-            self.evaluate_expression,
-            responses={200: {"model": EvaluateExpressionResponsePayload}},
             methods=["POST"],
         )
 
@@ -172,9 +159,9 @@ class DataPolicyController(BaseController):
                     auth_token = bearer_from_request(http_request) or ""
                     if auth_token:
                         try:
-                            from ..models import StaffPortalApplication
+                            from iam_core.models import Application
 
-                            app = await session.get(StaffPortalApplication, payload.application_id)
+                            app = await session.get(Application, payload.application_id)
                             if app:
                                 kc_helper = KeycloakHelper(auth_token)
                                 role_name, already_existed = await kc_helper.create_role(
@@ -225,9 +212,9 @@ class DataPolicyController(BaseController):
                     auth_token = bearer_from_request(http_request) or ""
                     if auth_token:
                         try:
-                            from ..models import StaffPortalApplication
+                            from iam_core.models import Application
 
-                            app = await session.get(StaffPortalApplication, policy.application_id)
+                            app = await session.get(Application, policy.application_id)
                             if app:
                                 kc_helper = KeycloakHelper(auth_token)
                                 await kc_helper.delete_role(policy.policy_mnemonic, app.application_mnemonic)
@@ -252,39 +239,3 @@ class DataPolicyController(BaseController):
         except Exception as error_exception:
             _logger.error("Error in remove_policy: %s", error_exception)
             raise BadRequestError(message=str(error_exception))
-
-    async def evaluate_expression(
-        self, payload: EvaluateExpressionRequestPayload
-    ) -> EvaluateExpressionResponsePayload:
-        """
-        Evaluate data policy expression for given policy mnemonics.
-        This endpoint is called by registry middleware to get all policies matching mnemonics.
-        Returns complete policy data; registry will handle filtering and expression merging.
-        Results are cached based on policy mnemonics.
-        No permission decorator - accessible by registry service-to-service.
-        """
-        _logger.info(
-            "Evaluating expression for policy_mnemonics=%s",
-            payload.policy_mnemonics,
-        )
-
-        # Call the cached internal method
-        policies = await self._evaluate_expression_cached(
-            policy_mnemonics=payload.policy_mnemonics,
-        )
-
-        return EvaluateExpressionResponsePayload(policies=policies)
-
-    @cache(expire=_config.cache_expire_seconds, key_builder=data_policy_expression_key)
-    async def _evaluate_expression_cached(
-        self,
-        policy_mnemonics: list[str],
-    ) -> list[DataPolicyData]:
-        """Internal cached method for expression evaluation."""
-        session_maker = get_async_session_maker()
-        async with session_maker() as session:
-            policies = await self._service.get_policies_by_mnemonics(
-                policy_mnemonics=policy_mnemonics,
-                session=session,
-            )
-            return policies

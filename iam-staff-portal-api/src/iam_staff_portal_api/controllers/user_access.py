@@ -11,19 +11,17 @@ from iam_core.user_auth.decorators import requires_auth
 from ..cache import role_cache_key
 from ..config import Settings
 from ..data import DataLoader
-from ..models import (
-    StaffApplicationPermission,
-    StaffPortalApplication,
-    StaffRole,
-    StaffRolePermission,
+from iam_core.models import (
+    ApplicationPermission,
+    Application,
+    Role,
+    RolePermission,
 )
 from ..schemas import (
     ApplicationPermissionResponse,
-    GetPermissionsForRolesRequest,
-    PermissionsForRolesResponse,
-    RegisterStaffPortalApplicationRequest,
-    RegisterStaffPortalApplicationResponse,
-    StaffPortalApplicationResponse,
+    RegisterPortalApplicationRequest,
+    RegisterPortalApplicationResponse,
+    PortalApplicationResponse,
 )
 
 
@@ -43,7 +41,7 @@ class UserAccessController(BaseController):
         self.router.add_api_route(
             "/get_staff_portal_applications",
             self.get_staff_portal_applications,
-            response_model=List[StaffPortalApplicationResponse],
+            response_model=List[PortalApplicationResponse],
             methods=["GET"],
         )
         self.router.add_api_route(
@@ -53,15 +51,9 @@ class UserAccessController(BaseController):
             methods=["GET"],
         )
         self.router.add_api_route(
-            "/get_permissions_for_roles",
-            self.get_permissions_for_roles,
-            response_model=PermissionsForRolesResponse,
-            methods=["POST"],
-        )
-        self.router.add_api_route(
             "/staff_portal_applications",
             self.register_staff_portal_application,
-            response_model=RegisterStaffPortalApplicationResponse,
+            response_model=RegisterPortalApplicationResponse,
             methods=["POST"],
         )
 
@@ -69,7 +61,7 @@ class UserAccessController(BaseController):
     async def get_staff_portal_applications(
         self,
         request: Request,
-    ) -> List[StaffPortalApplicationResponse]:
+    ) -> List[PortalApplicationResponse]:
         auth = request.state.auth
         client_roles = auth.client_roles or {}
         allowed_mnemonics = list(client_roles.keys())
@@ -77,11 +69,11 @@ class UserAccessController(BaseController):
         async_session = get_async_session_maker()
         async with async_session() as session:
             stmt = (
-                select(StaffPortalApplication)
-                .where(StaffPortalApplication.active.is_(True))
+                select(Application)
+                .where(Application.active.is_(True))
                 .order_by(
-                    StaffPortalApplication.order.asc().nullslast(),
-                    StaffPortalApplication.id.asc(),
+                    Application.order.asc().nullslast(),
+                    Application.id.asc(),
                 )
             )
             apps = (await session.execute(stmt)).scalars().all()
@@ -107,8 +99,8 @@ class UserAccessController(BaseController):
     async def register_staff_portal_application(
         self,
         request: Request,
-        payload: RegisterStaffPortalApplicationRequest,
-    ) -> RegisterStaffPortalApplicationResponse:
+        payload: RegisterPortalApplicationRequest,
+    ) -> RegisterPortalApplicationResponse:
         """Register or update a staff portal application and its access catalog.
 
         Intended for applications such as registries to self-register at install
@@ -143,7 +135,7 @@ class UserAccessController(BaseController):
             await session.commit()
             await session.refresh(app)
 
-        return RegisterStaffPortalApplicationResponse(
+        return RegisterPortalApplicationResponse(
             id=app.id,
             application_mnemonic=app.application_mnemonic,
             created=created,
@@ -155,8 +147,8 @@ class UserAccessController(BaseController):
         existing = (
             (
                 await session.execute(
-                    select(StaffPortalApplication).where(
-                        StaffPortalApplication.application_mnemonic == request.application_mnemonic
+                    select(Application).where(
+                        Application.application_mnemonic == request.application_mnemonic
                     )
                 )
             )
@@ -175,7 +167,7 @@ class UserAccessController(BaseController):
             existing.is_self_registered = True
             return existing, False
 
-        app = StaffPortalApplication(
+        app = Application(
             application_mnemonic=request.application_mnemonic,
             application_url=request.application_url,
             api_url=request.api_url,
@@ -193,8 +185,8 @@ class UserAccessController(BaseController):
         existing = (
             (
                 await session.execute(
-                    select(StaffApplicationPermission).where(
-                        StaffApplicationPermission.application_id == application_id
+                    select(ApplicationPermission).where(
+                        ApplicationPermission.application_id == application_id
                     )
                 )
             )
@@ -206,7 +198,7 @@ class UserAccessController(BaseController):
         for perm in permissions:
             row = by_mnemonic.get(perm.permission_mnemonic)
             if row is None:
-                row = StaffApplicationPermission(
+                row = ApplicationPermission(
                     application_id=application_id,
                     permission_mnemonic=perm.permission_mnemonic,
                     permission_description=perm.permission_description,
@@ -222,16 +214,14 @@ class UserAccessController(BaseController):
 
     async def _upsert_roles(self, session, application_id, roles):
         existing = (
-            (await session.execute(select(StaffRole).where(StaffRole.application_id == application_id)))
-            .scalars()
-            .all()
+            (await session.execute(select(Role).where(Role.application_id == application_id))).scalars().all()
         )
         by_mnemonic = {r.role_mnemonic: r for r in existing}
 
         for role in roles:
             row = by_mnemonic.get(role.role_mnemonic)
             if row is None:
-                row = StaffRole(
+                row = Role(
                     application_id=application_id,
                     role_mnemonic=role.role_mnemonic,
                     role_description=role.role_description,
@@ -253,9 +243,7 @@ class UserAccessController(BaseController):
         if not payload_role_ids:
             return
 
-        await session.execute(
-            delete(StaffRolePermission).where(StaffRolePermission.role_id.in_(payload_role_ids))
-        )
+        await session.execute(delete(RolePermission).where(RolePermission.role_id.in_(payload_role_ids)))
 
         for role in roles:
             role_row = roles_by_mnemonic[role.role_mnemonic]
@@ -269,7 +257,7 @@ class UserAccessController(BaseController):
                         )
                     )
                 session.add(
-                    StaffRolePermission(
+                    RolePermission(
                         role_id=role_row.id,
                         permission_id=perm_row.id,
                         active=True,
@@ -299,18 +287,18 @@ class UserAccessController(BaseController):
         async_session = get_async_session_maker()
         async with async_session() as session:
             for client_id, roles in client_roles_items:
-                stmt = select(StaffPortalApplication).where(
-                    StaffPortalApplication.application_mnemonic == client_id,
-                    StaffPortalApplication.active == True,  # noqa: E712
+                stmt = select(Application).where(
+                    Application.application_mnemonic == client_id,
+                    Application.active == True,  # noqa: E712
                 )
                 app_row = (await session.execute(stmt)).scalars().first()
                 if not app_row:
                     continue
 
-                role_stmt = select(StaffRole).where(
-                    StaffRole.application_id == app_row.id,
-                    StaffRole.role_mnemonic.in_(roles),
-                    StaffRole.active == True,  # noqa: E712
+                role_stmt = select(Role).where(
+                    Role.application_id == app_row.id,
+                    Role.role_mnemonic.in_(roles),
+                    Role.active == True,  # noqa: E712
                 )
                 role_rows = (await session.execute(role_stmt)).scalars().all()
                 role_ids = [r.id for r in role_rows]
@@ -318,18 +306,18 @@ class UserAccessController(BaseController):
                 if not role_ids:
                     continue
 
-                mapping_stmt = select(StaffRolePermission.permission_id).where(
-                    StaffRolePermission.role_id.in_(role_ids),
-                    StaffRolePermission.active == True,  # noqa: E712
+                mapping_stmt = select(RolePermission.permission_id).where(
+                    RolePermission.role_id.in_(role_ids),
+                    RolePermission.active == True,  # noqa: E712
                 )
                 permission_ids = (await session.execute(mapping_stmt)).scalars().all()
 
                 if not permission_ids:
                     continue
 
-                permission_stmt = select(StaffApplicationPermission).where(
-                    StaffApplicationPermission.id.in_(permission_ids),
-                    StaffApplicationPermission.active == True,  # noqa: E712
+                permission_stmt = select(ApplicationPermission).where(
+                    ApplicationPermission.id.in_(permission_ids),
+                    ApplicationPermission.active == True,  # noqa: E712
                 )
                 permission_rows = (await session.execute(permission_stmt)).scalars().all()
 
@@ -346,17 +334,6 @@ class UserAccessController(BaseController):
 
         return result
 
-    async def get_permissions_for_roles(
-        self,
-        request: GetPermissionsForRolesRequest,
-    ) -> PermissionsForRolesResponse:
-        permissions: List[str] = []
-
-        for role_mnemonic in request.role_mnemonics:
-            permissions.extend(await self.get_permission_mnemonics_for_role(role_mnemonic))
-
-        return PermissionsForRolesResponse(permissions=sorted(set(permissions)))
-
     @cache(expire=_config.cache_expire_seconds, key_builder=role_cache_key)
     async def get_permission_mnemonics_for_role(
         self,
@@ -364,26 +341,26 @@ class UserAccessController(BaseController):
     ) -> List[str]:
         async_session = get_async_session_maker()
         async with async_session() as session:
-            role_stmt = select(StaffRole).where(
-                StaffRole.role_mnemonic == role_mnemonic,
-                StaffRole.active == True,  # noqa: E712
+            role_stmt = select(Role).where(
+                Role.role_mnemonic == role_mnemonic,
+                Role.active == True,  # noqa: E712
             )
             role = (await session.execute(role_stmt)).scalars().first()
 
             if not role:
                 return []
 
-            mapping_stmt = select(StaffRolePermission.permission_id).where(
-                StaffRolePermission.role_id == role.id,
-                StaffRolePermission.active == True,  # noqa: E712
+            mapping_stmt = select(RolePermission.permission_id).where(
+                RolePermission.role_id == role.id,
+                RolePermission.active == True,  # noqa: E712
             )
             permission_ids = (await session.execute(mapping_stmt)).scalars().all()
 
             if not permission_ids:
                 return []
 
-            permission_stmt = select(StaffApplicationPermission.permission_mnemonic).where(
-                StaffApplicationPermission.id.in_(permission_ids),
-                StaffApplicationPermission.active == True,  # noqa: E712
+            permission_stmt = select(ApplicationPermission.permission_mnemonic).where(
+                ApplicationPermission.id.in_(permission_ids),
+                ApplicationPermission.active == True,  # noqa: E712
             )
             return (await session.execute(permission_stmt)).scalars().all()

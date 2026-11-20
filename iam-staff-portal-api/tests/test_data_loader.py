@@ -11,7 +11,7 @@ from iam_staff_portal_api.data.data_loader import (
     DataLoader,
     DataLoaderBase,
 )
-from iam_staff_portal_api.models import StaffPortalApplication, StaffRole
+from iam_core.models import Application, Role
 
 
 class _Loader(DataLoaderBase):
@@ -20,32 +20,32 @@ class _Loader(DataLoaderBase):
 
 def test_load_dataset_returns_empty_for_missing_file(tmp_path):
     loader = _Loader()
-    rows = loader.load_dataset(StaffPortalApplication, tmp_path)
+    rows = loader.load_dataset(Application, tmp_path)
     assert rows == []
 
 
 def test_load_dataset_rejects_invalid_json(tmp_path):
-    path = tmp_path / "staff_portal_applications.json"
+    path = tmp_path / "applications.json"
     path.write_text("{not-json", encoding="utf-8")
     loader = _Loader()
     with pytest.raises(ValueError, match="Invalid JSON"):
-        loader.load_dataset(StaffPortalApplication, path.parent)
+        loader.load_dataset(Application, path.parent)
 
 
 def test_load_dataset_rejects_non_array_payload(tmp_path):
-    path = tmp_path / "staff_portal_applications.json"
+    path = tmp_path / "applications.json"
     path.write_text('{"application_mnemonic":"x"}', encoding="utf-8")
     loader = _Loader()
     with pytest.raises(ValueError, match="must be a JSON array"):
-        loader.load_dataset(StaffPortalApplication, path.parent)
+        loader.load_dataset(Application, path.parent)
 
 
 def test_load_dataset_rejects_non_object_rows(tmp_path):
-    path = tmp_path / "staff_portal_applications.json"
+    path = tmp_path / "applications.json"
     path.write_text("[1, 2]", encoding="utf-8")
     loader = _Loader()
     with pytest.raises(ValueError, match="must contain only JSON objects"):
-        loader.load_dataset(StaffPortalApplication, path.parent)
+        loader.load_dataset(Application, path.parent)
 
 
 def test_apply_application_url_values_substitutes_config_keys():
@@ -75,7 +75,7 @@ def test_apply_login_provider_values_substitutes_client_secret():
 def test_coerce_rows_for_model_parses_dates_and_drops_timestamps():
     loader = _Loader()
     coerced = loader.coerce_rows_for_model(
-        StaffPortalApplication,
+        Application,
         [
             {
                 "application_mnemonic": "registry",
@@ -95,7 +95,7 @@ async def test_seed_if_empty_skips_when_table_has_rows():
     session.scalar = AsyncMock(return_value=3)
     session.execute = AsyncMock()
 
-    await loader.seed_if_empty(session, StaffPortalApplication, [{"application_mnemonic": "x"}])
+    await loader.seed_if_empty(session, Application, [{"application_mnemonic": "x"}])
     session.execute.assert_not_called()
 
 
@@ -108,7 +108,7 @@ async def test_seed_if_empty_inserts_when_empty():
 
     await loader.seed_if_empty(
         session,
-        StaffPortalApplication,
+        Application,
         [{"application_mnemonic": "registry", "active": True}],
     )
     session.execute.assert_called_once()
@@ -187,10 +187,10 @@ async def test_sync_postgres_id_sequences_updates_sequence_on_postgresql():
     bind = MagicMock()
     bind.dialect.name = "postgresql"
     session.get_bind = MagicMock(return_value=bind)
-    session.scalar = AsyncMock(side_effect=["staff_portal_applications_id_seq", 42])
+    session.scalar = AsyncMock(side_effect=["applications_id_seq", 42])
     session.execute = AsyncMock()
 
-    await loader.sync_postgres_id_sequences(session, [StaffPortalApplication])
+    await loader.sync_postgres_id_sequences(session, [Application])
     assert session.scalar.await_count == 2
     session.execute.assert_called_once()
 
@@ -207,7 +207,7 @@ async def test_seed_models_from_dir_skips_missing_directory(tmp_path):
 def test_load_dataset_from_bundled_seed_file():
     loader = _Loader()
     data_dir = Path(__file__).resolve().parents[1] / "src/iam_staff_portal_api/data"
-    rows = loader.load_dataset(StaffPortalApplication, data_dir)
+    rows = loader.load_dataset(Application, data_dir)
     assert rows
     assert rows[0]["application_mnemonic"] == "iam-staff-ui"
 
@@ -215,14 +215,14 @@ def test_load_dataset_from_bundled_seed_file():
 def test_apply_config_values_routes_by_model():
     loader = _Loader()
     with patch.object(loader, "apply_application_url_values", return_value=["app"]) as app_patch:
-        assert loader.apply_config_values(StaffPortalApplication, []) == ["app"]
+        assert loader.apply_config_values(Application, []) == ["app"]
         app_patch.assert_called_once()
 
     with patch.object(loader, "apply_login_provider_values", return_value=["provider"]) as provider_patch:
         assert loader.apply_config_values(LoginProvider, []) == ["provider"]
         provider_patch.assert_called_once()
 
-    assert loader.apply_config_values(StaffRole, [{"x": 1}]) == [{"x": 1}]
+    assert loader.apply_config_values(Role, [{"x": 1}]) == [{"x": 1}]
 
 
 @pytest.mark.asyncio
@@ -303,7 +303,7 @@ async def test_seed_if_empty_returns_when_rows_empty():
     session.scalar = AsyncMock(return_value=0)
     session.execute = AsyncMock()
 
-    await loader.seed_if_empty(session, StaffPortalApplication, [])
+    await loader.seed_if_empty(session, Application, [])
 
     session.execute.assert_not_called()
 
@@ -362,7 +362,7 @@ async def test_sync_postgres_id_sequences_skips_when_sequence_missing():
     session.scalar = AsyncMock(return_value=None)
     session.execute = AsyncMock()
 
-    await loader.sync_postgres_id_sequences(session, [StaffPortalApplication])
+    await loader.sync_postgres_id_sequences(session, [Application])
 
     session.execute.assert_not_called()
 

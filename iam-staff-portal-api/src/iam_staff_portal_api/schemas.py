@@ -11,7 +11,7 @@ from openg2p_fastapi_common.schemas import (
 )
 
 
-class StaffPortalApplicationResponse(BaseModel):
+class PortalApplicationResponse(BaseModel):
     id: int
     application_mnemonic: str
     application_description: Optional[str] = None
@@ -38,7 +38,7 @@ class RegisterApplicationRole(BaseModel):
     permissions: List[str] = []
 
 
-class RegisterStaffPortalApplicationRequest(BaseModel):
+class RegisterPortalApplicationRequest(BaseModel):
     """Payload an application (e.g. a registry) sends to register/update itself
     in the staff portal. Upserted by ``application_mnemonic``, which must equal
     the application's Keycloak client_id so role-gating resolves correctly.
@@ -61,7 +61,7 @@ class RegisterStaffPortalApplicationRequest(BaseModel):
     roles: List[RegisterApplicationRole] = []
 
 
-class RegisterStaffPortalApplicationResponse(BaseModel):
+class RegisterPortalApplicationResponse(BaseModel):
     id: int
     application_mnemonic: str
     created: bool
@@ -594,3 +594,27 @@ class DeleteLoginProviderRequestBody(G2PRequestBody):
 
 class DeleteLoginProviderRequest(G2PRequest):
     request_body: DeleteLoginProviderRequestBody
+
+
+class CreateAgencyAdminBody(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    agency_id: str
+
+
+class AssignPoliciesBody(BaseModel):
+    user_id: str
+    policy_mnemonics: list[str]
+
+
+class CreateAgencyAdminResponse(BaseModel):
+    id: str
+    agency_id: str
+    is_agency_admin: bool
+    sync_status: str
+
+
+class AssignPoliciesResponse(BaseModel):
+    user_id: str
+    policy_mnemonics: list[str]

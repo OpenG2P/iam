@@ -5,8 +5,8 @@ from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class StaffRole(BaseORMModelWithTimes):
-    __tablename__ = "staff_roles"
+class Role(BaseORMModelWithTimes):
+    __tablename__ = "roles"
 
     role_mnemonic: Mapped[str] = mapped_column(String, nullable=False)
     role_description: Mapped[Optional[str]] = mapped_column(String, nullable=True)

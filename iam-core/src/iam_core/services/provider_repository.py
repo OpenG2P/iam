@@ -19,6 +19,7 @@ _logger = logging.getLogger(_config.logging_default_logger_name)
 class _ApiLoginProvider(BaseModel):
     """Lightweight stand-in for LoginProvider, built from the API response."""
 
+    application_type: str | None = None
     issuer: str
     jwks_uri: str | None = None
     server_metadata_url: str | None = None

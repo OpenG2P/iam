@@ -488,7 +488,7 @@ def test_decorator_metadata_helpers():
 
 @pytest.mark.asyncio
 async def test_resolve_permission_middleware_extra_paths():
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal", allow_by_default=False)
+    middleware = ResolvePermissionMiddleware(app=MagicMock(), allow_by_default=False)
     request = make_request()
     call_next = AsyncMock(return_value=MagicMock())
 
@@ -500,7 +500,7 @@ async def test_resolve_permission_middleware_extra_paths():
     with patch("iam_core.user_auth.middleware.resolve_permissions.match_route", return_value=route):
         await middleware.dispatch(request, call_next)
 
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="", allow_by_default=True)
+    middleware = ResolvePermissionMiddleware(app=MagicMock(), allow_by_default=True)
     request = make_request()
     request.state.auth = AuthPrincipal(credentials="t", sub="u", client_roles={"": ["admin"]})
     route = MagicMock(endpoint=_requires_perm_endpoint)
@@ -516,7 +516,6 @@ async def test_resolve_permission_middleware_extra_paths():
 
     middleware = ResolvePermissionMiddleware(
         app=MagicMock(),
-        client_id="portal",
         required_permissions_resolver=resolver,
     )
     request = make_request()
@@ -538,9 +537,9 @@ async def test_resolve_permission_fetch_permissions_paths():
     from fastapi_cache.backends.inmemory import InMemoryBackend
 
     FastAPICache.init(InMemoryBackend(), prefix="test-iam-permissions")
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal")
+    middleware = ResolvePermissionMiddleware(app=MagicMock())
 
-    assert await middleware._fetch_permissions_for_roles([]) == set()
+    assert await middleware._fetch_permissions_for_roles(()) == set()
 
     with patch(
         "iam_core.user_auth.middleware.resolve_permissions.Settings.get_config",
@@ -548,7 +547,7 @@ async def test_resolve_permission_fetch_permissions_paths():
     ):
         await FastAPICache.clear()
         with pytest.raises(ForbiddenError, match="auth_provider_api_url"):
-            await middleware._fetch_permissions_for_roles(["admin"])
+            await middleware._fetch_permissions_for_roles((("portal", ("admin",)),))
 
     mock_response = MagicMock()
     mock_response.raise_for_status = MagicMock()
@@ -565,7 +564,7 @@ async def test_resolve_permission_fetch_permissions_paths():
         mock_http.__aenter__.return_value = mock_http
         mock_http.post = AsyncMock(return_value=mock_response)
         mock_client_cls.return_value = mock_http
-        perms = await middleware._fetch_permissions_for_roles(["admin"])
+        perms = await middleware._fetch_permissions_for_roles((("portal", ("admin",)),))
         assert perms == {"p1", "p2"}
 
     with (
@@ -581,7 +580,7 @@ async def test_resolve_permission_fetch_permissions_paths():
         mock_http.post = AsyncMock(side_effect=httpx.HTTPError("down"))
         mock_client_cls.return_value = mock_http
         with pytest.raises(ForbiddenError, match="Unable to fetch"):
-            await middleware._fetch_permissions_for_roles(["admin-fail"])
+            await middleware._fetch_permissions_for_roles((("portal", ("admin-fail",)),))
 
 
 @pytest.mark.asyncio
@@ -610,7 +609,7 @@ async def test_resolve_permissions_allow_by_default_paths():
         await middleware.dispatch(request, call_next)
         call_next.assert_awaited_once()
 
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), allow_by_default=False, client_id="portal")
+    middleware = ResolvePermissionMiddleware(app=MagicMock(), allow_by_default=False)
     request = make_request()
     call_next = AsyncMock(return_value=MagicMock())
     with patch("iam_core.user_auth.middleware.resolve_permissions.match_route", return_value=route):

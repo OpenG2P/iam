@@ -4,12 +4,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from starlette.requests import Request
-from iam_staff_portal_api.controllers.oauth_callback_controller import OAuthCallbackController
+from iam_core.controllers.auth import AuthController
+from iam_core.models.enum import ApplicationType
 
 
 @pytest.fixture
 def controller():
-    return OAuthCallbackController()
+    return AuthController(ApplicationType.STAFF.value)
 
 
 @pytest.mark.asyncio
@@ -37,7 +38,7 @@ async def test_oauth_callback_sets_cookies_and_redirects(controller):
     )
     controller.auth_service.store_refresh_token = MagicMock(return_value=refresh_token)
 
-    with patch("iam_staff_portal_api.controllers.oauth_callback_controller.set_auth_cookies") as set_cookies:
+    with patch("iam_core.controllers.auth.set_auth_cookies") as set_cookies:
         response = await controller.oauth_callback(request)
 
     assert response.status_code == 307

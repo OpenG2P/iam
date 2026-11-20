@@ -13,12 +13,19 @@ from sqlalchemy import Boolean, Enum as SAEnum, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..schemas import TokenEndpointAuthMethod
+from .enum import ApplicationType
 
 
 class LoginProvider(BaseORMModelWithTimes):
     __tablename__ = "login_providers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    application_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=ApplicationType.STAFF.value,
+        server_default=ApplicationType.STAFF.value,
+    )
     provider_name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     icon_base64: Mapped[Optional[str]] = mapped_column(String, nullable=True)

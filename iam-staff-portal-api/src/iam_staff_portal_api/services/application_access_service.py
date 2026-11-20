@@ -9,11 +9,11 @@ from sqlalchemy import delete, select
 
 from ..helpers.query_helper import dt_iso, paginate
 from ..helpers.keycloak_helper import KeycloakHelper
-from ..models import (
-    StaffApplicationPermission,
-    StaffPortalApplication,
-    StaffRole,
-    StaffRolePermission,
+from iam_core.models import (
+    ApplicationPermission,
+    Application,
+    Role,
+    RolePermission,
 )
 from ..schemas import (
     ApplicationScopedPayload,
@@ -34,13 +34,13 @@ _logger = logging.getLogger("iam-application-access-service")
 
 
 class ApplicationAccessService(BaseService):
-    async def _get_application(self, session, application_id: int) -> StaffPortalApplication:
-        app = await session.get(StaffPortalApplication, application_id)
+    async def _get_application(self, session, application_id: int) -> Application:
+        app = await session.get(Application, application_id)
         if app is None:
             raise NotFoundError(message="Application not found")
         return app
 
-    def _role_data(self, role: StaffRole) -> RoleData:
+    def _role_data(self, role: Role) -> RoleData:
         return RoleData(
             id=role.id,
             role_mnemonic=role.role_mnemonic,
@@ -51,7 +51,7 @@ class ApplicationAccessService(BaseService):
             updated_at=dt_iso(role.updated_at),
         )
 
-    def _perm_data(self, perm: StaffApplicationPermission) -> PermissionData:
+    def _perm_data(self, perm: ApplicationPermission) -> PermissionData:
         return PermissionData(
             id=perm.id,
             permission_mnemonic=perm.permission_mnemonic,
@@ -69,11 +69,9 @@ class ApplicationAccessService(BaseService):
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             stmt = (
-                select(StaffRole)
-                .where(
-                    StaffRole.application_id == payload.application_id, ~StaffRole.role_mnemonic.like("DP_%")
-                )
-                .order_by(StaffRole.id.desc())
+                select(Role)
+                .where(Role.application_id == payload.application_id, ~Role.role_mnemonic.like("DP_%"))
+                .order_by(Role.id.desc())
             )
             rows, total = await paginate(session, stmt, page=page, page_size=page_size)
             return [self._role_data(r) for r in rows], total
@@ -88,9 +86,9 @@ class ApplicationAccessService(BaseService):
             existing = (
                 (
                     await session.execute(
-                        select(StaffRole).where(
-                            StaffRole.application_id == payload.application_id,
-                            StaffRole.role_mnemonic == mnemonic,
+                        select(Role).where(
+                            Role.application_id == payload.application_id,
+                            Role.role_mnemonic == mnemonic,
                         )
                     )
                 )
@@ -99,7 +97,7 @@ class ApplicationAccessService(BaseService):
             )
             if existing is not None:
                 raise BadRequestError(message=f"Role '{mnemonic}' already exists")
-            role = StaffRole(
+            role = Role(
                 application_id=payload.application_id,
                 role_mnemonic=mnemonic,
                 role_description=payload.role_description,
@@ -134,7 +132,7 @@ class ApplicationAccessService(BaseService):
         async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
-            role = await session.get(StaffRole, payload.id)
+            role = await session.get(Role, payload.id)
             if role is None or role.application_id != payload.application_id:
                 raise NotFoundError(message="Role not found")
             role_data = self._role_data(role)
@@ -149,7 +147,7 @@ class ApplicationAccessService(BaseService):
                 except Exception as e:
                     raise BadRequestError(message=f"Failed to delete role from Keycloak: {e}")
 
-            await session.execute(delete(StaffRolePermission).where(StaffRolePermission.role_id == role.id))
+            await session.execute(delete(RolePermission).where(RolePermission.role_id == role.id))
             await session.delete(role)
             await session.commit()
         return role_data
@@ -161,9 +159,9 @@ class ApplicationAccessService(BaseService):
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             stmt = (
-                select(StaffApplicationPermission)
-                .where(StaffApplicationPermission.application_id == payload.application_id)
-                .order_by(StaffApplicationPermission.id.desc())
+                select(ApplicationPermission)
+                .where(ApplicationPermission.application_id == payload.application_id)
+                .order_by(ApplicationPermission.id.desc())
             )
             rows, total = await paginate(session, stmt, page=page, page_size=page_size)
             return [self._perm_data(r) for r in rows], total
@@ -178,9 +176,9 @@ class ApplicationAccessService(BaseService):
             existing = (
                 (
                     await session.execute(
-                        select(StaffApplicationPermission).where(
-                            StaffApplicationPermission.application_id == payload.application_id,
-                            StaffApplicationPermission.permission_mnemonic == mnemonic,
+                        select(ApplicationPermission).where(
+                            ApplicationPermission.application_id == payload.application_id,
+                            ApplicationPermission.permission_mnemonic == mnemonic,
                         )
                     )
                 )
@@ -189,7 +187,7 @@ class ApplicationAccessService(BaseService):
             )
             if existing is not None:
                 raise BadRequestError(message=f"Permission '{mnemonic}' already exists")
-            perm = StaffApplicationPermission(
+            perm = ApplicationPermission(
                 application_id=payload.application_id,
                 permission_mnemonic=mnemonic,
                 permission_description=payload.permission_description or mnemonic,
@@ -204,13 +202,11 @@ class ApplicationAccessService(BaseService):
         async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
-            perm = await session.get(StaffApplicationPermission, payload.id)
+            perm = await session.get(ApplicationPermission, payload.id)
             if perm is None or perm.application_id != payload.application_id:
                 raise NotFoundError(message="Permission not found")
             perm_data = self._perm_data(perm)
-            await session.execute(
-                delete(StaffRolePermission).where(StaffRolePermission.permission_id == perm.id)
-            )
+            await session.execute(delete(RolePermission).where(RolePermission.permission_id == perm.id))
             await session.delete(perm)
             await session.commit()
         return perm_data
@@ -222,11 +218,7 @@ class ApplicationAccessService(BaseService):
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
             roles = (
-                (
-                    await session.execute(
-                        select(StaffRole).where(StaffRole.application_id == payload.application_id)
-                    )
-                )
+                (await session.execute(select(Role).where(Role.application_id == payload.application_id)))
                 .scalars()
                 .all()
             )
@@ -235,8 +227,8 @@ class ApplicationAccessService(BaseService):
             perms = (
                 (
                     await session.execute(
-                        select(StaffApplicationPermission).where(
-                            StaffApplicationPermission.application_id == payload.application_id
+                        select(ApplicationPermission).where(
+                            ApplicationPermission.application_id == payload.application_id
                         )
                     )
                 )
@@ -247,12 +239,12 @@ class ApplicationAccessService(BaseService):
             if not role_ids:
                 return [], 0
 
-            stmt = select(StaffRolePermission).where(StaffRolePermission.role_id.in_(role_ids))
+            stmt = select(RolePermission).where(RolePermission.role_id.in_(role_ids))
             if payload.role_id is not None:
-                stmt = stmt.where(StaffRolePermission.role_id == payload.role_id)
+                stmt = stmt.where(RolePermission.role_id == payload.role_id)
             if payload.permission_id is not None:
-                stmt = stmt.where(StaffRolePermission.permission_id == payload.permission_id)
-            stmt = stmt.order_by(StaffRolePermission.id.desc())
+                stmt = stmt.where(RolePermission.permission_id == payload.permission_id)
+            stmt = stmt.order_by(RolePermission.id.desc())
             rows, total = await paginate(session, stmt, page=page, page_size=page_size)
             items: list[RolePermissionData] = []
             for row in rows:
@@ -276,8 +268,8 @@ class ApplicationAccessService(BaseService):
         async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
-            role = await session.get(StaffRole, payload.role_id)
-            perm = await session.get(StaffApplicationPermission, payload.permission_id)
+            role = await session.get(Role, payload.role_id)
+            perm = await session.get(ApplicationPermission, payload.permission_id)
             if role is None or role.application_id != payload.application_id:
                 raise BadRequestError(message="role_id does not belong to this application")
             if perm is None or perm.application_id != payload.application_id:
@@ -289,9 +281,9 @@ class ApplicationAccessService(BaseService):
             existing = (
                 (
                     await session.execute(
-                        select(StaffRolePermission).where(
-                            StaffRolePermission.role_id == payload.role_id,
-                            StaffRolePermission.permission_id == payload.permission_id,
+                        select(RolePermission).where(
+                            RolePermission.role_id == payload.role_id,
+                            RolePermission.permission_id == payload.permission_id,
                         )
                     )
                 )
@@ -300,7 +292,7 @@ class ApplicationAccessService(BaseService):
             )
             if existing is not None:
                 raise BadRequestError(message="Mapping already exists")
-            mapping = StaffRolePermission(
+            mapping = RolePermission(
                 role_id=payload.role_id,
                 permission_id=payload.permission_id,
                 active=True,
@@ -323,13 +315,13 @@ class ApplicationAccessService(BaseService):
         async_session = get_async_session_maker()
         async with async_session() as session:
             await self._get_application(session, payload.application_id)
-            mapping = await session.get(StaffRolePermission, payload.id)
+            mapping = await session.get(RolePermission, payload.id)
             if mapping is None:
                 raise NotFoundError(message="Mapping not found")
-            role = await session.get(StaffRole, mapping.role_id)
+            role = await session.get(Role, mapping.role_id)
             if role is None or role.application_id != payload.application_id:
                 raise NotFoundError(message="Mapping not found")
-            perm = await session.get(StaffApplicationPermission, mapping.permission_id)
+            perm = await session.get(ApplicationPermission, mapping.permission_id)
             role_mnemonic = role.role_mnemonic if role else None
             permission_mnemonic = perm.permission_mnemonic if perm else None
             mapping_data = RolePermissionData(

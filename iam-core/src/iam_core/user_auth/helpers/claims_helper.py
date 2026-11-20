@@ -12,6 +12,31 @@ def claims_from_auth(auth: Any) -> dict:
     return {}
 
 
+AGENCY_ID_STATE_KEY = "agency_id"
+
+
+def agency_id_from_groups(groups: Any) -> str:
+    """The agency id is the Keycloak group name on the caller token.
+
+    A group path such as ``/agency-id`` yields ``agency-id``. The caller must
+    belong to exactly one group.
+    """
+    from openg2p_fastapi_common.errors.http_exceptions import UnauthorizedError
+
+    if isinstance(groups, str):
+        groups = [groups]
+    names: list[str] = []
+    for group in groups or []:
+        name = str(group).strip().strip("/")
+        if not name:
+            continue
+        names.append(name.split("/")[-1])
+    unique = list(dict.fromkeys(names))
+    if len(unique) != 1:
+        raise UnauthorizedError(message="Agency group is missing from the token")
+    return unique[0]
+
+
 def extract_client_roles(claims: dict) -> dict[str, list[str]] | None:
     """Pull Keycloak ``resource_access`` roles into ``{client_id: [roles]}``."""
     resource_access = claims.get("resource_access") or {}

@@ -5,8 +5,8 @@ from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class StaffApplicationPermission(BaseORMModelWithTimes):
-    __tablename__ = "staff_application_permissions"
+class ApplicationPermission(BaseORMModelWithTimes):
+    __tablename__ = "application_permissions"
 
     permission_mnemonic: Mapped[str] = mapped_column(String, nullable=False)
     permission_description: Mapped[Optional[str]] = mapped_column(String, nullable=True)

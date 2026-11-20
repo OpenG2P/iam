@@ -4,14 +4,14 @@ from iam_staff_portal_api.schemas import (
     PermissionsForRolesResponse,
     RegisterApplicationPermission,
     RegisterApplicationRole,
-    RegisterStaffPortalApplicationRequest,
-    RegisterStaffPortalApplicationResponse,
-    StaffPortalApplicationResponse,
+    RegisterPortalApplicationRequest,
+    RegisterPortalApplicationResponse,
+    PortalApplicationResponse,
 )
 
 
-def test_staff_portal_application_response_defaults():
-    response = StaffPortalApplicationResponse(
+def test_staff_application_response_defaults():
+    response = PortalApplicationResponse(
         id=1,
         application_mnemonic="registry",
         disabled=False,
@@ -23,7 +23,7 @@ def test_staff_portal_application_response_defaults():
 
 
 def test_register_request_accepts_catalog():
-    request = RegisterStaffPortalApplicationRequest(
+    request = RegisterPortalApplicationRequest(
         application_mnemonic="registry-staff-portal",
         application_url="https://registry.example.com",
         api_url="https://staff-registry.example.com",
@@ -44,7 +44,7 @@ def test_register_request_accepts_catalog():
 
 
 def test_register_response_and_permission_models():
-    response = RegisterStaffPortalApplicationResponse(
+    response = RegisterPortalApplicationResponse(
         id=7,
         application_mnemonic="registry-staff-portal",
         created=True,

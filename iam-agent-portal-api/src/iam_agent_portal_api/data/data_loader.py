@@ -101,8 +101,8 @@ class DataLoader:
     def coerce_rows(self, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Drop non-column keys and parse date/datetime strings.
 
-        The mounted JSON carries presentation-only keys (``user_type``) that are
-        not columns; ``created_at``/``updated_at`` are left to the DB defaults.
+        Keys that are not columns are dropped. ``created_at`` and ``updated_at``
+        are left to the database defaults. ``application_type`` is a column.
         """
         columns = {column.name: column for column in self.model.__table__.columns}
 

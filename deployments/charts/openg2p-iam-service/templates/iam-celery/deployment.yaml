@@ -1,0 +1,43 @@
+{{- if .Values.iamCelery.enabled }}
+{{- $root := . -}}
+{{- range $component := list "worker" "beat" }}
+{{- $componentValues := index $root.Values.iamCelery $component -}}
+{{- $values := merge (deepCopy $root.Values.iamCelery) $componentValues -}}
+{{- $_ := set $values "envVars" (mergeOverwrite (deepCopy $root.Values.iamCelery.envVars) (default dict $componentValues.envVars)) -}}
+{{- $_ := set $values "envVarsFrom" (mergeOverwrite (deepCopy $root.Values.iamCelery.envVarsFrom) (default dict $componentValues.envVarsFrom)) -}}
+{{- $context := dict "Values" (merge (deepCopy $values) (dict "global" $root.Values.global)) "Chart" $root.Chart "Release" $root.Release "Files" $root.Files "Capabilities" $root.Capabilities -}}
+{{- with $context }}
+---
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}-{{ $component }}
+  labels: {{- include "common.labels.standard" (dict "customLabels" .Values.commonLabels "context" $) | nindent 4 }}
+    app.kubernetes.io/component: iam-celery-{{ $component }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" (dict "customLabels" .Values.podLabels "context" $) | nindent 6 }}
+      app.kubernetes.io/component: iam-celery-{{ $component }}
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" (dict "customLabels" .Values.podLabels "context" $) | nindent 8 }}
+        app.kubernetes.io/component: iam-celery-{{ $component }}
+    spec:
+      {{- if .Values.postgresCheckerInit.enabled }}
+      initContainers:
+        - name: postgres-checker
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.postgresCheckerInit.image "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.postgresCheckerInit.image.pullPolicy }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.postgresCheckerInit.command "context" $) | nindent 12 }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.postgresCheckerInit.args "context" $) | nindent 12 }}
+          env: {{- include "iamStaffPortalApi.envVars" . | indent 12 }}
+      {{- end }}
+      containers:
+        - name: iam-celery-{{ $component }}
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.image "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env: {{- include "iamStaffPortalApi.envVars" . | indent 12 }}
+{{- end }}
+{{- end }}
+{{- end }}
