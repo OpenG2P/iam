@@ -78,6 +78,7 @@ class TokenValidatorService(BaseService):
         jwt_token: str,
         jwt_id_token: str | None,
         api_auth_settings: ApiAuthSettings,
+        application_type: str | None = None,
     ) -> AuthCredentials:
         try:
             unverified_payload = jose_jwt.get_unverified_claims(jwt_token)
@@ -87,6 +88,9 @@ class TokenValidatorService(BaseService):
         iss = unverified_payload.get("iss")
         login_provider = await self._get_login_provider_db_by_iss(iss)
         if not login_provider:
+            raise UnauthorizedError(message=f"Unauthorized. Unknown Issuer. {iss}")
+        provider_type = getattr(login_provider, "application_type", None)
+        if application_type is not None and provider_type != application_type:
             raise UnauthorizedError(message=f"Unauthorized. Unknown Issuer. {iss}")
 
         self._validate_iss_aud(unverified_payload, login_provider)

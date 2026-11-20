@@ -1,11 +1,12 @@
 """Roles representing data policies are identified by a DP_ prefix in Keycloak."""
 
 DP_ROLE_PREFIX = "DP_"
+AGC_ROLE_PREFIX = "AGC_"
 
 
-def is_dp_role(role: str) -> bool:
-    """Check whether a role string carries the DP_ prefix (case-insensitive)."""
-    return str(role).strip().upper().startswith(DP_ROLE_PREFIX)
+def is_dp_role(role: str, prefix: str = DP_ROLE_PREFIX) -> bool:
+    """Check whether a role string carries the policy prefix (case-insensitive)."""
+    return str(role).strip().upper().startswith(prefix.upper())
 
 
 def strip_dp_prefix(role: str) -> str:
@@ -16,9 +17,8 @@ def strip_dp_prefix(role: str) -> str:
     return cleaned_role
 
 
-def get_data_policy_mnemonics(roles: list[str] | None) -> list[str]:
-    """Given a list of client roles, return the deduplicated set of data-policy
-    role names (with DP_ prefix preserved), preserving first-seen order."""
+def get_data_policy_mnemonics(roles: list[str] | None, prefix: str = DP_ROLE_PREFIX) -> list[str]:
+    """Return deduplicated policy role names that start with ``prefix``, in first-seen order."""
     if not roles:
         return []
 
@@ -26,7 +26,7 @@ def get_data_policy_mnemonics(roles: list[str] | None) -> list[str]:
     mnemonics: list[str] = []
 
     for role in roles:
-        if not is_dp_role(role):
+        if not is_dp_role(role, prefix):
             continue
         cleaned_role = str(role).strip()
         if cleaned_role and cleaned_role not in seen:

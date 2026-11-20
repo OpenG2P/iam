@@ -8,12 +8,13 @@ from openg2p_fastapi_common.errors.http_exceptions import InternalServerError, U
 
 from helpers import make_auth, make_request
 from iam_core.schemas import AuthPrincipal
-from iam_staff_portal_api.controllers.auth_controller import AuthController
+from iam_core.controllers.auth import AuthController
+from iam_core.models.enum import ApplicationType
 
 
 @pytest.fixture
 def controller():
-    return AuthController()
+    return AuthController(ApplicationType.STAFF.value)
 
 
 @pytest.mark.asyncio
@@ -53,7 +54,7 @@ async def test_logout_redirects_to_provider_end_session_endpoint(controller):
     controller.auth_service.delete_refresh_token = MagicMock()
 
     with patch(
-        "iam_staff_portal_api.controllers.auth_controller.OidcClient.get_server_metadata",
+        "iam_core.controllers.auth.OidcClient.get_server_metadata",
         AsyncMock(return_value={"end_session_endpoint": "https://keycloak.example.com/logout"}),
     ):
         response = await controller.logout(request)
@@ -101,7 +102,7 @@ async def test_logout_raises_when_end_session_endpoint_missing(controller):
     controller.auth_service.delete_refresh_token = MagicMock()
 
     with patch(
-        "iam_staff_portal_api.controllers.auth_controller.OidcClient.get_server_metadata",
+        "iam_core.controllers.auth.OidcClient.get_server_metadata",
         AsyncMock(return_value={}),
     ):
         with pytest.raises(InternalServerError, match="Logout endpoint not available"):
@@ -132,11 +133,15 @@ async def test_backchannel_logout_delegates_to_auth_service(controller):
 async def test_get_login_providers_delegates_to_auth_service(controller):
     controller.auth_service.get_login_providers = AsyncMock(return_value={"providers": []})
     result = await controller.get_login_providers()
+    controller.auth_service.get_login_providers.assert_awaited_once_with("staff")
     assert result == {"providers": []}
 
 
 @pytest.mark.asyncio
 async def test_start_authentication_transaction_delegates_to_auth_service(controller):
+    provider = types.SimpleNamespace(application_type="staff")
+    controller.provider_repository = MagicMock()
+    controller.provider_repository.get_by_id = AsyncMock(return_value=provider)
     controller.auth_service.start_authentication_transaction = AsyncMock(return_value={"state": "abc"})
     result = await controller.start_authentication_transaction(id=3, redirect_uri="/home")
     controller.auth_service.start_authentication_transaction.assert_awaited_once_with(

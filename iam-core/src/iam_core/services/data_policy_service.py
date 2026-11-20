@@ -6,9 +6,13 @@ from typing import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from collections import defaultdict
+
+from openg2p_fastapi_common.errors.http_exceptions import BadRequestError
 from openg2p_fastapi_common.service import BaseService
 
-from ..models import DataPolicy
+from ..models import DataPolicy, Application
+from ..models.enum import ApplicationType
 from ..schemas.data_policy import (
     PolicyFilterGroup,
     PolicyTarget,
@@ -144,6 +148,19 @@ class DataPolicyService(BaseService):
         should_delete_role = remaining.scalar_one_or_none() is None
         return deleted_id, policy_mnemonic, should_delete_role
 
+    async def policies_for_agency(self, session: AsyncSession, agency_id: str) -> list[DataPolicyData]:
+        """Policies stored for the agency application. The application mnemonic is the group name."""
+        application_id = await session.scalar(
+            select(Application.id).where(
+                Application.application_mnemonic == agency_id,
+                Application.application_type == ApplicationType.AGENT.value,
+            )
+        )
+        if application_id is None:
+            return []
+        policies, _total = await self.get_all_policies(session, application_id=application_id)
+        return policies
+
     async def get_policies_by_mnemonics(
         self,
         policy_mnemonics: Sequence[str],
@@ -169,6 +186,71 @@ class DataPolicyService(BaseService):
         )
         policies = result.scalars().all()
         return [self._to_policy_data(policy) for policy in policies]
+
+    async def policies_for_client_roles(
+        self,
+        session: AsyncSession,
+        clients: list[tuple[str, list[str]]],
+    ) -> list[DataPolicyData]:
+        """Load policies for every token client in one pass.
+
+        A client that is not an application is ignored. When the client is an
+        application and a policy mnemonic is not stored for it, that is an error.
+        """
+        pairs = [(client_id, list(mnemonics)) for client_id, mnemonics in clients if client_id and mnemonics]
+        if not pairs:
+            return []
+
+        applications = (
+            (
+                await session.execute(
+                    select(Application).where(
+                        Application.application_mnemonic.in_([client_id for client_id, _ in pairs])
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        by_mnemonic = {application.application_mnemonic: application for application in applications}
+        known = [
+            (by_mnemonic[client_id], mnemonics) for client_id, mnemonics in pairs if client_id in by_mnemonic
+        ]
+        if not known:
+            return []
+
+        wanted = {mnemonic for _, mnemonics in known for mnemonic in mnemonics}
+        policies = (
+            (
+                await session.execute(
+                    select(DataPolicy).where(
+                        DataPolicy.application_id.in_([application.id for application, _ in known]),
+                        DataPolicy.policy_mnemonic.in_(wanted),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        by_application: dict[int, dict[str, list[DataPolicy]]] = defaultdict(lambda: defaultdict(list))
+        for policy in policies:
+            by_application[policy.application_id][policy.policy_mnemonic].append(policy)
+
+        missing: list[str] = []
+        matched: list[DataPolicy] = []
+        for application, mnemonics in known:
+            stored = by_application.get(application.id, {})
+            for mnemonic in mnemonics:
+                rows = stored.get(mnemonic)
+                if not rows:
+                    missing.append(f"{application.application_mnemonic}: {mnemonic}")
+                else:
+                    matched.extend(rows)
+        if missing:
+            raise BadRequestError(
+                message="Policy is not defined for this application: " + ", ".join(sorted(set(missing)))
+            )
+        return [self._to_policy_data(policy) for policy in matched]
 
     def _to_policy_data(self, policy: DataPolicy) -> DataPolicyData:
         return DataPolicyData(

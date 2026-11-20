@@ -1,3 +1,4 @@
+from .access import ClientRoles, PermissionsLookupResponse, RoleLookup
 from .refresh_token_record import RefreshTokenRecord
 from .credentials import AuthCredentials
 from .auth_principal import AuthPrincipal
@@ -6,6 +7,7 @@ from .login_provider import (
     LoginProviderHttpResponse,
     LoginProviderResponse,
     StartAuthTransactionResponse,
+    LoginProviderByIssuerResponse,
 )
 from .provider_auth_parameters import TokenEndpointAuthMethod
 from .logged_in_user import LoggedInUserResponse

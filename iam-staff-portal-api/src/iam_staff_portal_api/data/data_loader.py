@@ -12,11 +12,11 @@ from iam_core.models import LoginProvider
 from openg2p_fastapi_common.context import async_session_maker, dbengine, get_async_session_maker
 
 from ..config import Settings
-from ..models import (
-    StaffApplicationPermission,
-    StaffPortalApplication,
-    StaffRole,
-    StaffRolePermission,
+from iam_core.models import (
+    ApplicationPermission,
+    Application,
+    Role,
+    RolePermission,
 )
 
 _logger = logging.getLogger("iam-staff-data-loader")
@@ -24,10 +24,10 @@ _logger = logging.getLogger("iam-staff-data-loader")
 # Tables touched by self-registration (farmer-registry, national-social-registry,
 # and any other product that POSTs to /user-access/staff_portal_applications).
 STAFF_ACCESS_SEQUENCE_MODELS = (
-    StaffPortalApplication,
-    StaffApplicationPermission,
-    StaffRole,
-    StaffRolePermission,
+    Application,
+    ApplicationPermission,
+    Role,
+    RolePermission,
 )
 
 IAM_STAFF_UI_APPLICATION_MNEMONIC = "iam-staff-ui"
@@ -59,10 +59,10 @@ IAM_STAFF_UI_PERMISSIONS = (
 class DataLoaderBase(ABC):
     data_models = (
         LoginProvider,
-        StaffPortalApplication,
-        StaffRole,
-        StaffApplicationPermission,
-        StaffRolePermission,
+        Application,
+        Role,
+        ApplicationPermission,
+        RolePermission,
     )
 
     def get_mounted_data_dir(self) -> Path:
@@ -106,7 +106,7 @@ class DataLoaderBase(ABC):
         model,
         rows: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        if model is StaffPortalApplication:
+        if model is Application:
             return self.apply_application_url_values(rows)
 
         if model is LoginProvider:
@@ -163,7 +163,7 @@ class DataLoaderBase(ABC):
 
         for model in self.data_models:
             rows = self.load_dataset(model, data_dir)
-            if model is StaffPortalApplication:
+            if model is Application:
                 await self.seed_applications_by_mnemonic(session, rows)
             elif model is LoginProvider:
                 await self.seed_login_providers_by_issuer(session, rows)
@@ -214,11 +214,11 @@ class DataLoaderBase(ABC):
         if not rows:
             return
 
-        existing_rows = (await session.execute(select(StaffPortalApplication))).scalars().all()
+        existing_rows = (await session.execute(select(Application))).scalars().all()
         existing_by_mnemonic = {row.application_mnemonic: row for row in existing_rows}
 
         new_rows: list[dict[str, Any]] = []
-        for row in self.coerce_rows_for_model(StaffPortalApplication, rows):
+        for row in self.coerce_rows_for_model(Application, rows):
             mnemonic = row.get("application_mnemonic")
             existing = existing_by_mnemonic.get(mnemonic)
 
@@ -236,8 +236,8 @@ class DataLoaderBase(ABC):
                 setattr(existing, key, value)
 
         if new_rows:
-            _logger.info("Seeding %s with %s new rows", StaffPortalApplication.__tablename__, len(new_rows))
-            await session.execute(insert(StaffPortalApplication), new_rows)
+            _logger.info("Seeding %s with %s new rows", Application.__tablename__, len(new_rows))
+            await session.execute(insert(Application), new_rows)
 
     async def seed_iam_staff_ui_catalog(self, session: AsyncSession) -> None:
         """Idempotently seed IAM_ADMIN role + low-level permissions for iam-staff-ui.
@@ -246,9 +246,7 @@ class DataLoaderBase(ABC):
         numeric id assigned to the ``iam-staff-ui`` application row.
         """
         result = await session.execute(
-            select(StaffPortalApplication).where(
-                StaffPortalApplication.application_mnemonic == IAM_STAFF_UI_APPLICATION_MNEMONIC
-            )
+            select(Application).where(Application.application_mnemonic == IAM_STAFF_UI_APPLICATION_MNEMONIC)
         )
         app = result.scalars().first()
         if app is None:
@@ -259,7 +257,7 @@ class DataLoaderBase(ABC):
             return
 
         result = await session.execute(
-            select(StaffApplicationPermission).where(StaffApplicationPermission.application_id == app.id)
+            select(ApplicationPermission).where(ApplicationPermission.application_id == app.id)
         )
         existing_perms = result.scalars().all()
         perms_by_mnemonic = {p.permission_mnemonic: p for p in existing_perms}
@@ -267,7 +265,7 @@ class DataLoaderBase(ABC):
         for mnemonic in IAM_STAFF_UI_PERMISSIONS:
             row = perms_by_mnemonic.get(mnemonic)
             if row is None:
-                row = StaffApplicationPermission(
+                row = ApplicationPermission(
                     application_id=app.id,
                     permission_mnemonic=mnemonic,
                     permission_description=mnemonic,
@@ -282,15 +280,13 @@ class DataLoaderBase(ABC):
         await session.flush()
 
         existing_roles = (
-            (await session.execute(select(StaffRole).where(StaffRole.application_id == app.id)))
-            .scalars()
-            .all()
+            (await session.execute(select(Role).where(Role.application_id == app.id))).scalars().all()
         )
         roles_by_mnemonic = {r.role_mnemonic: r for r in existing_roles}
 
         admin_role = roles_by_mnemonic.get(IAM_STAFF_UI_ADMIN_ROLE)
         if admin_role is None:
-            admin_role = StaffRole(
+            admin_role = Role(
                 application_id=app.id,
                 role_mnemonic=IAM_STAFF_UI_ADMIN_ROLE,
                 role_description="IAM staff UI administrator",
@@ -305,11 +301,7 @@ class DataLoaderBase(ABC):
         await session.flush()
 
         existing_mappings = (
-            (
-                await session.execute(
-                    select(StaffRolePermission).where(StaffRolePermission.role_id == admin_role.id)
-                )
-            )
+            (await session.execute(select(RolePermission).where(RolePermission.role_id == admin_role.id)))
             .scalars()
             .all()
         )
@@ -323,7 +315,7 @@ class DataLoaderBase(ABC):
             if perm.id in mapped_permission_ids:
                 continue
             session.add(
-                StaffRolePermission(
+                RolePermission(
                     role_id=admin_role.id,
                     permission_id=perm.id,
                     active=True,

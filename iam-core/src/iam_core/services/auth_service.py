@@ -49,8 +49,14 @@ class AuthService(BaseService):
     def _get_refresh_token_store(self):
         return RedisRefreshTokenStore.get_component()
 
-    async def get_login_providers(self) -> LoginProviderHttpResponse:
+    async def get_login_providers(self, application_type: str | None = None) -> LoginProviderHttpResponse:
         login_providers = await self.provider_repository.get_all()
+        if application_type is not None:
+            login_providers = [
+                provider
+                for provider in login_providers
+                if getattr(provider, "application_type", None) == application_type
+            ]
         return LoginProviderHttpResponse(
             loginProviders=[
                 LoginProviderResponse(
@@ -250,9 +256,14 @@ class AuthService(BaseService):
             return userinfo
         return self.combine_tokens(access_token, id_token, userinfo)
 
-    async def get_provider_by_issuer(self, issuer: str) -> dict:
+    async def get_provider_by_issuer(self, issuer: str, application_type: str | None = None) -> dict:
         login_provider = await self.provider_repository.get_by_iss(issuer)
         if not login_provider:
+            raise UnauthorizedError("G2P-AUT-404", "Provider not found")
+        if (
+            application_type is not None
+            and getattr(login_provider, "application_type", None) != application_type
+        ):
             raise UnauthorizedError("G2P-AUT-404", "Provider not found")
 
         return self._provider_to_api_dict(login_provider, include_secrets=False)
@@ -261,6 +272,7 @@ class AuthService(BaseService):
     def _provider_to_api_dict(login_provider, *, include_secrets: bool = False) -> dict:
         payload = {
             "id": getattr(login_provider, "id", None),
+            "application_type": getattr(login_provider, "application_type", None),
             "issuer": login_provider.issuer,
             "jwks_uri": login_provider.jwks_uri,
             "server_metadata_url": login_provider.server_metadata_url,

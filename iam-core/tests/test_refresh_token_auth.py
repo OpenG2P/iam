@@ -502,7 +502,7 @@ def test_make_request_supports_authorization_header():
 
 @pytest.mark.asyncio
 async def test_resolve_permission_middleware_enforces_permissions_from_state():
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal-client")
+    middleware = ResolvePermissionMiddleware(app=MagicMock())
     request = _make_request()
     request.state.auth = AuthPrincipal(
         credentials="valid-access", sub="user-1", client_roles={"portal-client": ["admin"]}
@@ -529,7 +529,7 @@ async def test_resolve_permission_middleware_enforces_permissions_from_state():
 
 @pytest.mark.asyncio
 async def test_resolve_permission_middleware_raises_unauthorized_without_auth_state():
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal-client")
+    middleware = ResolvePermissionMiddleware(app=MagicMock())
     request = _make_request()
 
     route = MagicMock()
@@ -547,7 +547,7 @@ async def test_resolve_permission_middleware_raises_unauthorized_without_auth_st
 
 @pytest.mark.asyncio
 async def test_resolve_permission_middleware_raises_forbidden_when_permissions_missing():
-    middleware = ResolvePermissionMiddleware(app=MagicMock(), client_id="portal-client")
+    middleware = ResolvePermissionMiddleware(app=MagicMock())
     request = _make_request()
     request.state.auth = AuthPrincipal(
         credentials="valid-access", sub="user-1", client_roles={"portal-client": ["viewer"]}

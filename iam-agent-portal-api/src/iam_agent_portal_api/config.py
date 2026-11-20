@@ -17,3 +17,6 @@ class Settings(BaseSettings):
     # ``agent_portal_secret``) to the real Keycloak client secret, supplied via
     # IAM_AGENT_DATA_CLIENT_SECRETS__* so it stays out of values.yaml.
     data_client_secrets: dict[str, str] = Field(default_factory=dict)
+    agent_realm: str = "agent"
+    # Agency API base URL. Policy and permission middleware call this, never the staff API.
+    agent_api_url: str | None = None

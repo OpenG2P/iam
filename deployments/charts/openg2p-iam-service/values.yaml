@@ -99,7 +99,7 @@ iamStaffPortalApi:
 
   image:
     repository: openg2p/iam-staff-portal-api
-    tag: "1.4.2"
+    tag: "1.5.0"
     pullPolicy: Always
 
   podSecurityContext:
@@ -203,6 +203,13 @@ iamStaffPortalApi:
     IAM_STAFF_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-staff-portal-api'
     IAM_STAFF_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_STAFF_KEYCLOAK_REALM: '{{ .Values.global.keycloakRealm }}'
+    IAM_STAFF_DEFAULT_PAGE_SIZE: 20
+    IAM_STAFF_DATA_DIR: '{{ .Values.dataMountPath }}'
+    IAM_PROVISION_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
+    IAM_PROVISION_KEYCLOAK_ADMIN_CLIENT_ID: iam-provision
+    IAM_PROVISION_STAFF_REALM: '{{ .Values.global.keycloakRealm }}'
+    IAM_PROVISION_AGENT_REALM: '{{ .Values.global.agentKeycloakRealm }}'
+    IAM_PROVISION_BENEFICIARY_REALM: beneficiary
 
     # API specific middleware configs
     IAM_STAFF_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.registryApplicationUrl $) (tpl .Values.global.staffPortalDefaultRedirectUri $) (tpl .Values.global.iamStaffUiApplicationUrl $) | toJson }}'
@@ -222,6 +229,11 @@ iamStaffPortalApi:
       secretKeyRef:
         name: staff-portal
         key: client_secret
+    IAM_PROVISION_KEYCLOAK_ADMIN_CLIENT_SECRET:
+      secretKeyRef:
+        name: iam-provision
+        key: client_secret
+        optional: true
 
   startupProbe:
     enabled: true
@@ -315,7 +327,7 @@ iamAgentPortalApi:
 
   image:
     repository: openg2p/iam-agent-portal-api
-    tag: "1.4.2"
+    tag: "1.5.0"
     pullPolicy: Always
 
   podSecurityContext:
@@ -428,6 +440,14 @@ iamAgentPortalApi:
     IAM_AGENT_AUTH_PROVIDER_API_URL: 'http://{{ .Release.Name }}-iam-agent-portal-api'
     IAM_AGENT_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
     IAM_AGENT_KEYCLOAK_REALM: '{{ .Values.global.agentKeycloakRealm }}'
+    IAM_AGENT_AGENT_REALM: '{{ .Values.global.agentKeycloakRealm }}'
+    IAM_AGENT_AGENT_API_URL: 'http://{{ .Release.Name }}-iam-agent-portal-api'
+    IAM_AGENT_DATA_DIR: '{{ .Values.dataMountPath }}'
+    IAM_PROVISION_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
+    IAM_PROVISION_KEYCLOAK_ADMIN_CLIENT_ID: iam-provision
+    IAM_PROVISION_STAFF_REALM: '{{ .Values.global.keycloakRealm }}'
+    IAM_PROVISION_AGENT_REALM: '{{ .Values.global.agentKeycloakRealm }}'
+    IAM_PROVISION_BENEFICIARY_REALM: beneficiary
 
     # API specific middleware configs
     IAM_AGENT_CORS_ALLOW_ORIGINS: '{{ list (tpl .Values.global.agentPortalDefaultRedirectUri $) | toJson }}'
@@ -448,6 +468,11 @@ iamAgentPortalApi:
     IAM_AGENT_AUTH_OIDC_CLIENT_SECRET:
       secretKeyRef:
         name: agent-portal
+        key: client_secret
+        optional: true
+    IAM_PROVISION_KEYCLOAK_ADMIN_CLIENT_SECRET:
+      secretKeyRef:
+        name: iam-provision
         key: client_secret
         optional: true
 
@@ -497,6 +522,64 @@ iamAgentPortalApi:
       - 'until psql "postgresql://${IAM_AGENT_DB_USERNAME}:${IAM_AGENT_DB_PASSWORD}@${IAM_AGENT_DB_HOSTNAME}:${IAM_AGENT_DB_PORT}/${IAM_AGENT_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_AGENT_DB_DBNAME} to be ready..."; sleep 3; done'
     containerSecurityContext:
       enabled: false
+
+# ---------------------------------------------------------------------------
+# Celery — one image. The worker consumes iam_celery. Beat claims pending users.
+# ---------------------------------------------------------------------------
+iamCelery:
+  enabled: true
+  nameOverride: iam-celery
+  replicaCount: 1
+  image:
+    repository: openg2p/iam-celery
+    tag: "1.5.0"
+    pullPolicy: Always
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+      - 'sh'
+    args:
+      - '-c'
+      - 'until psql "postgresql://${IAM_CELERY_DB_USERNAME}:${IAM_CELERY_DB_PASSWORD}@${IAM_CELERY_DB_HOSTNAME}:${IAM_CELERY_DB_PORT}/${IAM_CELERY_DB_DBNAME}" -c "SELECT 1" > /dev/null 2>&1; do echo "Waiting for database ${IAM_CELERY_DB_DBNAME} to be ready..."; sleep 3; done'
+  envVars:
+    IAM_CELERY_DB_DRIVER: "postgresql+asyncpg"
+    IAM_CELERY_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    IAM_CELERY_DB_DBNAME: '{{ tpl .Values.global.iamDB $ }}'
+    IAM_CELERY_DB_PORT: '{{ .Values.global.iamDBPort }}'
+    IAM_CELERY_DB_USERNAME: '{{ tpl .Values.global.iamDBUser $ }}'
+    IAM_CELERY_CELERY_BROKER_URL: 'redis://{{ tpl .Values.global.redisInstallationName $ }}-master:6379/0'
+    IAM_CELERY_CELERY_BACKEND_URL: 'redis://{{ tpl .Values.global.redisInstallationName $ }}-master:6379/0'
+    IAM_CELERY_WORKER_QUEUE: iam_celery
+    IAM_CELERY_PROVISION_USERS_BEAT_SECONDS: 30
+    IAM_CELERY_PROVISION_USERS_BATCH_SIZE: 50
+    IAM_PROVISION_KEYCLOAK_ADMIN_URL: '{{ tpl .Values.global.keycloakBaseUrl $ }}'
+    IAM_PROVISION_KEYCLOAK_ADMIN_CLIENT_ID: iam-provision
+    IAM_PROVISION_STAFF_REALM: '{{ .Values.global.keycloakRealm }}'
+    IAM_PROVISION_AGENT_REALM: '{{ .Values.global.agentKeycloakRealm }}'
+    IAM_PROVISION_BENEFICIARY_REALM: beneficiary
+    CELERY_APP: 'openg2p_iam_celery_worker.main:celery_app'
+    CELERY_OPTS: 'worker --loglevel=info -Q iam_celery'
+  envVarsFrom:
+    IAM_CELERY_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.iamDBSecret $ }}'
+        key: '{{ tpl .Values.global.iamDBUserPasswordKey $ }}'
+    IAM_PROVISION_KEYCLOAK_ADMIN_CLIENT_SECRET:
+      secretKeyRef:
+        name: iam-provision
+        key: client_secret
+        optional: true
+  worker:
+    replicaCount: 1
+  beat:
+    replicaCount: 1
+    envVars:
+      CELERY_APP: 'openg2p_iam_celery_beat.main:celery_app'
+      CELERY_OPTS: 'worker --beat --loglevel=info -Q celery --schedule=/tmp/celerybeat-schedule'
 
 # ---------------------------------------------------------------------------
 # keycloak-init — IAM OIDC client + iam.admin in the shared `staff` realm.
@@ -549,7 +632,7 @@ iamStaffUi:
 
   image:
     repository: openg2p/iam-staff-ui
-    tag: "1.4.2"
+    tag: "1.5.0"
     pullPolicy: Always
 
   containerPort: 3000

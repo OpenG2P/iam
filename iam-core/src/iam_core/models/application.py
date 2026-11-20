@@ -1,14 +1,23 @@
 from typing import Optional
 
 from openg2p_fastapi_common.models import BaseORMModelWithTimes
-from sqlalchemy import Boolean, String, Integer
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from .enum import ApplicationType
 
-class StaffPortalApplication(BaseORMModelWithTimes):
-    __tablename__ = "staff_portal_applications"
+
+class Application(BaseORMModelWithTimes):
+    __tablename__ = "applications"
 
     application_mnemonic: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    # Which audience this client belongs to. Existing rows are staff.
+    application_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=ApplicationType.STAFF.value,
+        server_default=ApplicationType.STAFF.value,
+    )
     application_description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     icon_base64: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

@@ -13,12 +13,13 @@ from helpers import (
     make_role_row,
     make_session_factory,
 )
-from iam_staff_portal_api.controllers.user_access_controller import UserAccessController
+from iam_core.controllers.access import AccessController
+from iam_core.schemas.access import ClientRoles, RoleLookup
+from iam_staff_portal_api.controllers.user_access import UserAccessController
 from iam_staff_portal_api.schemas import (
-    GetPermissionsForRolesRequest,
     RegisterApplicationPermission,
     RegisterApplicationRole,
-    RegisterStaffPortalApplicationRequest,
+    RegisterPortalApplicationRequest,
 )
 
 
@@ -37,7 +38,7 @@ async def test_get_staff_portal_applications_marks_disabled_without_role(control
     request = make_request(auth=make_auth(client_roles={"registry-staff-portal": ["Data Editor"]}))
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_staff_portal_applications(request)
@@ -75,7 +76,7 @@ async def test_get_application_permissions_for_user_skips_when_role_mappings_mis
     request = make_request(auth=make_auth(client_roles={"registry-staff-portal": ["Data Editor"]}))
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(request)
@@ -115,7 +116,7 @@ async def test_get_application_permissions_for_user_skips_unknown_and_empty_resu
     )
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(request)
@@ -137,7 +138,7 @@ async def test_get_application_permissions_for_user_returns_permissions_for_all_
     request = make_request(auth=make_auth(client_roles={"registry-staff-portal": ["Data Editor"]}))
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(request)
@@ -154,7 +155,7 @@ async def test_get_permission_mnemonics_for_role_returns_empty_without_mappings(
         make_execute_result(all_rows=[]),
     )
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_permission_mnemonics_for_role.__wrapped__(
@@ -180,7 +181,7 @@ async def test_get_application_permissions_for_user_filters_by_mnemonic(controll
     )
 
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_application_permissions_for_user(
@@ -194,14 +195,21 @@ async def test_get_application_permissions_for_user_filters_by_mnemonic(controll
 
 
 @pytest.mark.asyncio
-async def test_get_permissions_for_roles_aggregates_unique_permissions(controller):
-    with patch.object(
-        controller,
-        "get_permission_mnemonics_for_role",
-        AsyncMock(side_effect=[["register:view"], ["register:view", "register:edit"]]),
+async def test_get_permissions_for_roles_aggregates_unique_permissions():
+    access = AccessController()
+    session, _ = make_mock_session(make_execute_result())
+    with (
+        patch(
+            "iam_core.controllers.access.get_async_session_maker",
+            return_value=make_session_factory(session),
+        ),
+        patch(
+            "iam_core.controllers.access.permissions_for_client_roles",
+            AsyncMock(return_value=["register:edit", "register:view"]),
+        ),
     ):
-        response = await controller.get_permissions_for_roles(
-            GetPermissionsForRolesRequest(role_mnemonics=["Data Editor", "Admin"])
+        response = await access.permissions_for_roles(
+            RoleLookup(clients=[ClientRoles(client_id="registry", role_mnemonics=["Data Editor", "Admin"])])
         )
     assert response.permissions == ["register:edit", "register:view"]
 
@@ -210,7 +218,7 @@ async def test_get_permissions_for_roles_aggregates_unique_permissions(controlle
 async def test_get_permission_mnemonics_for_role_returns_empty_when_role_missing(controller):
     session, _ = make_mock_session(make_execute_result(first_row=None))
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_permission_mnemonics_for_role.__wrapped__(
@@ -229,7 +237,7 @@ async def test_get_permission_mnemonics_for_role_resolves_active_permissions(con
         make_execute_result(all_rows=["register:view", "register:edit"]),
     )
     with patch(
-        "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+        "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
         return_value=make_session_factory(session),
     ):
         result = await controller.get_permission_mnemonics_for_role.__wrapped__(
@@ -241,7 +249,7 @@ async def test_get_permission_mnemonics_for_role_resolves_active_permissions(con
 
 @pytest.mark.asyncio
 async def test_register_staff_portal_application_creates_new_application(controller):
-    payload = RegisterStaffPortalApplicationRequest(
+    payload = RegisterPortalApplicationRequest(
         application_mnemonic="registry-staff-portal",
         application_url="https://registry.example.com",
         api_url="https://staff-registry.example.com",
@@ -262,11 +270,11 @@ async def test_register_staff_portal_application_creates_new_application(control
 
     with (
         patch(
-            "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+            "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
             return_value=make_session_factory(session),
         ),
         patch(
-            "iam_staff_portal_api.controllers.user_access_controller.DataLoader.sync_staff_access_id_sequences",
+            "iam_staff_portal_api.controllers.user_access.DataLoader.sync_staff_access_id_sequences",
             AsyncMock(),
         ),
     ):
@@ -282,7 +290,7 @@ async def test_register_staff_portal_application_creates_new_application(control
 @pytest.mark.asyncio
 async def test_register_staff_portal_application_updates_existing_application(controller):
     existing = make_app_row(is_self_registered=False)
-    payload = RegisterStaffPortalApplicationRequest(
+    payload = RegisterPortalApplicationRequest(
         application_mnemonic="registry-staff-portal",
         application_url="https://registry.example.com",
         application_description="Updated",
@@ -296,11 +304,11 @@ async def test_register_staff_portal_application_updates_existing_application(co
 
     with (
         patch(
-            "iam_staff_portal_api.controllers.user_access_controller.get_async_session_maker",
+            "iam_staff_portal_api.controllers.user_access.get_async_session_maker",
             return_value=make_session_factory(session),
         ),
         patch(
-            "iam_staff_portal_api.controllers.user_access_controller.DataLoader.sync_staff_access_id_sequences",
+            "iam_staff_portal_api.controllers.user_access.DataLoader.sync_staff_access_id_sequences",
             AsyncMock(),
         ),
     ):

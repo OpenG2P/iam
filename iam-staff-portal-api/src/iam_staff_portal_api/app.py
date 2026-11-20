@@ -9,35 +9,34 @@ _config = Settings.get_config()
 
 print("DB datasource:", _config.db_datasource)
 
-from iam_core.models import DataPolicy, LoginProvider
+from iam_core.models import DataPolicy, LoginProvider, User
+from iam_core.models.enum import ApplicationType
 from iam_core.user_auth.app import Initializer as AuthInitializer
-from iam_core.user_auth.middleware import (
-    CsrfMiddleware,
-    ResolvePermissionMiddleware,
-    ValidateAndRefreshTokenMiddleware,
-)
+from iam_core.user_auth.helpers.data_policy_role_helper import DP_ROLE_PREFIX
+from iam_core.user_auth.middleware import CsrfMiddleware, ValidateAndRefreshTokenMiddleware
+from iam_core.user_auth.middleware.data_policy import DataPolicyMiddleware
+from iam_core.user_auth.middleware.resolve_permissions import ResolvePermissionMiddleware
 from .cache import init_cache
 from .helpers.request_response_helper import RequestResponseHelper
 from .services.application_access_service import ApplicationAccessService
 from .services.applications_service import ApplicationsService
 from .services.login_providers_service import LoginProvidersService
+from iam_core.controllers import AccessController, AuthController, IdentityProviderController
 from iam_core.services.data_policy_service import DataPolicyService
 
 from .controllers import (
     ApplicationAccessController,
     ApplicationsController,
-    AuthController,
     DataPolicyController,
-    IdentityProviderController,
     LoginProvidersController,
-    OAuthCallbackController,
+    UsersController,
     UserAccessController,
 )
-from .models import (
-    StaffApplicationPermission,
-    StaffPortalApplication,
-    StaffRole,
-    StaffRolePermission,
+from iam_core.models import (
+    ApplicationPermission,
+    Application,
+    Role,
+    RolePermission,
 )
 from .data import DataLoader
 
@@ -53,6 +52,7 @@ IAM_STAFF_CSRF_EXCLUDED_PATHS = (
     "/auth/start_authentication_transaction",
     "/auth/logout",
     "/auth/backchannel-logout",
+    "/identity-providers/get_provider_by_issuer",
     "/user-access/get_permissions_for_roles",
     "/user-access/staff_portal_applications",
     "/data-policies/evaluate_expression",
@@ -67,14 +67,19 @@ class Initializer(AuthInitializer):
         # CSRF -> ValidateAndRefresh -> DataPolicy -> ResolvePermission -> app
         self.return_app().add_middleware(
             ResolvePermissionMiddleware,
-            client_id=_config.keycloak_client_id,
+            permissions_api_url=_config.auth_provider_api_url,
             allow_by_default=True,
         )
-        # self.return_app().add_middleware(
-        #     DataPolicyMiddleware,
-        #     client_id=_config.keycloak_client_id,
-        # )
-        self.return_app().add_middleware(ValidateAndRefreshTokenMiddleware)
+        if _config.auth_provider_api_url:
+            self.return_app().add_middleware(
+                DataPolicyMiddleware,
+                iam_api_url=_config.auth_provider_api_url,
+                role_prefix=DP_ROLE_PREFIX,
+            )
+        self.return_app().add_middleware(
+            ValidateAndRefreshTokenMiddleware,
+            application_type=ApplicationType.STAFF.value,
+        )
         self.return_app().add_middleware(
             CsrfMiddleware,
             enabled=_config.csrf_enabled,
@@ -89,14 +94,15 @@ class Initializer(AuthInitializer):
         LoginProvidersService()
         DataPolicyService()
 
-        AuthController().post_init()
-        OAuthCallbackController().post_init()
+        AuthController(ApplicationType.STAFF.value).post_init()
         UserAccessController().post_init()
-        IdentityProviderController().post_init()
+        IdentityProviderController(ApplicationType.STAFF.value).post_init()
         ApplicationsController().post_init()
         ApplicationAccessController().post_init()
         LoginProvidersController().post_init()
         DataPolicyController().post_init()
+        AccessController().post_init()
+        UsersController().post_init()
 
     def migrate_database(self, args):
         super().migrate_database(args)
@@ -104,10 +110,11 @@ class Initializer(AuthInitializer):
         async def migrate():
             await LoginProvider.create_migrate()
             await DataPolicy.create_migrate()
-            await StaffPortalApplication.create_migrate()
-            await StaffApplicationPermission.create_migrate()
-            await StaffRole.create_migrate()
-            await StaffRolePermission.create_migrate()
+            await Application.create_migrate()
+            await ApplicationPermission.create_migrate()
+            await Role.create_migrate()
+            await RolePermission.create_migrate()
+            await User.create_migrate()
 
         asyncio.run(migrate())
         DataLoader().load()

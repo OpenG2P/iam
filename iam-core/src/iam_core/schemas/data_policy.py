@@ -197,8 +197,20 @@ class RemovePolicyResponsePayload(BaseModel):
     policy_id: str = Field(..., description="Removed policy ID")
 
 
+class ClientPolicyRoles(BaseModel):
+    client_id: str
+    policy_mnemonics: List[str] = Field(default_factory=list)
+
+
 class EvaluateExpressionRequestPayload(BaseModel):
-    policy_mnemonics: List[str] = Field(..., description="List of policy mnemonics to evaluate")
+    clients: List[ClientPolicyRoles] = Field(
+        default_factory=list,
+        description="Each token client with the policy mnemonics under it",
+    )
+    policy_mnemonics: List[str] = Field(
+        default_factory=list,
+        description="Unused. Clients carry the mnemonics.",
+    )
 
 
 class EvaluateExpressionResponsePayload(BaseModel):

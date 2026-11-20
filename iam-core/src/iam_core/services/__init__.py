@@ -5,3 +5,4 @@ from .redis_refresh_token_store import RedisRefreshTokenStore
 from .redis_auth_transaction_store import RedisAuthTransactionStore
 from .token_validator_service import TokenValidatorService
 from .data_policy_service import DataPolicyService
+from .user_service import UserService
